@@ -1,13 +1,69 @@
 // 引入 @tiptap/markdown 的类型增强，使 editor 上出现 getMarkdown()
 import '@tiptap/markdown';
 import type { Editor } from '@tiptap/react';
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   EditorToolbar,
   MarkdownPreview,
   MarkdownWysiwygEditor,
 } from 'tiptap-markdown-react';
 import 'tiptap-markdown-react/style.css';
+
+/** 元素进入视口时加 .in，触发一次性渐显。 */
+function Reveal({
+  children,
+  className = '',
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShown(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.12 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div
+      ref={ref}
+      className={`reveal ${shown ? 'in' : ''} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** 页面滚动超过阈值时返回 true（给导航加分隔线）。 */
+function useScrolled(threshold = 8) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > threshold);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [threshold]);
+  return scrolled;
+}
 
 const DEMO_MD = `# Meet the editor
 
@@ -90,7 +146,13 @@ function Demo() {
   const onImageUpload = useCallback((file: File) => fileToDataUrl(file), []);
 
   return (
-    <div className="demo">
+    <div className="window">
+      <div className="windowBar">
+        <span className="dot r" />
+        <span className="dot y" />
+        <span className="dot g" />
+        <span className="windowTitle">tiptap-markdown-react · live</span>
+      </div>
       <div className="demoTabs">
         <button
           className={tab === 'editor' ? 'active' : ''}
@@ -133,7 +195,7 @@ function Demo() {
       )}
 
       {tab === 'markdown' && (
-        <pre className="demoBody markdownOut">
+        <pre className="markdownOut">
           <code>{markdown}</code>
         </pre>
       )}
@@ -169,80 +231,125 @@ const FEATURES: { title: string; body: string }[] = [
 ];
 
 export function App() {
+  const scrolled = useScrolled();
   return (
-    <div className="page">
-      <header className="nav">
-        <span className="brand">tiptap-markdown-react</span>
-        <nav>
-          <a href="#demo">Demo</a>
-          <a href="#usage">Usage</a>
-          <a href="#api">API</a>
-          <a
-            href="https://github.com/CatsInJune/tiptap-markdown-react"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub
-          </a>
-          <a
-            href="https://www.npmjs.com/package/tiptap-markdown-react"
-            target="_blank"
-            rel="noreferrer"
-          >
-            npm
-          </a>
-        </nav>
-      </header>
+    <>
+      <div className="aurora" aria-hidden />
+      <div className="auroraGrain" aria-hidden />
+      <div className="page">
+        <header className={`nav ${scrolled ? 'scrolled' : ''}`}>
+          <span className="brand">
+            <span className="brandMark">M</span>
+            tiptap-markdown-react
+          </span>
+          <nav>
+            <a className="navLink" href="#demo">
+              Demo
+            </a>
+            <a className="navLink" href="#usage">
+              Usage
+            </a>
+            <a className="navLink" href="#api">
+              API
+            </a>
+            <a
+              className="navCta"
+              href="https://github.com/CatsInJune/tiptap-markdown-react"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub
+            </a>
+          </nav>
+        </header>
 
-      <section className="hero">
-        <h1>
-          A batteries-included Markdown
-          <br />
-          <span className="accent">WYSIWYG editor + reader</span>
-        </h1>
-        <p className="lede">
-          Built on Tiptap v3. Markdown in/out, a styled toolbar, table of
-          contents, a live preview, and a server-side renderer for SEO-friendly
-          reading pages. Themeable, and completely Ant&nbsp;Design-free.
-        </p>
-        <div className="heroActions">
-          <CopyRow text="npm install tiptap-markdown-react" />
-          <a
-            className="ghost"
-            href="https://github.com/CatsInJune/tiptap-markdown-react"
-            target="_blank"
-            rel="noreferrer"
-          >
-            View on GitHub →
-          </a>
-        </div>
-      </section>
+        <section className="hero">
+          <div className="badges">
+            <span className="badge">
+              npm <b>v0.1.0</b>
+            </span>
+            <span className="badge">Tiptap v3</span>
+            <span className="badge">MIT</span>
+            <span className="badge">zero Ant Design</span>
+          </div>
+          <h1>
+            Markdown editing, <span className="accent">done beautifully</span>
+          </h1>
+          <p className="lede">
+            A batteries-included WYSIWYG editor and reader on Tiptap&nbsp;v3.
+            Markdown in/out, a styled toolbar, table of contents, live preview,
+            and a server-side renderer for SEO-friendly reading pages —
+            themeable and completely Ant&nbsp;Design-free.
+          </p>
+          <div className="heroActions">
+            <CopyRow text="npm install tiptap-markdown-react" />
+            <a
+              className="ghost"
+              href="https://github.com/CatsInJune/tiptap-markdown-react"
+              target="_blank"
+              rel="noreferrer"
+            >
+              View on GitHub →
+            </a>
+          </div>
+        </section>
 
-      <section id="demo" className="section">
-        <h2>Try it</h2>
-        <p className="sectionLede">
-          The panel below is the real package. Edit, switch to the rendered
-          reader, or peek at the Markdown it produces.
-        </p>
-        <Demo />
-      </section>
-
-      <section className="section">
-        <h2>Why</h2>
-        <div className="features">
-          {FEATURES.map((f) => (
-            <div className="feature" key={f.title}>
-              <h3>{f.title}</h3>
-              <p>{f.body}</p>
+        <section id="demo" className="section">
+          <Reveal>
+            <div className="sectionHead">
+              <p className="kicker">Live</p>
+              <h2>Try it right here</h2>
+              <p className="sectionLede">
+                The panel below is the real package running in your browser.
+                Edit, switch to the rendered reader, or peek at the Markdown it
+                produces.
+              </p>
             </div>
-          ))}
-        </div>
-      </section>
+          </Reveal>
+          <Reveal delay={80}>
+            <Demo />
+          </Reveal>
+        </section>
 
-      <section id="usage" className="section">
-        <h2>Usage</h2>
+        <section className="section">
+          <Reveal>
+            <div className="sectionHead">
+              <p className="kicker">Why</p>
+              <h2>Everything the editor needs, styled</h2>
+              <p className="sectionLede">
+                Opinionated defaults that look right out of the box, with escape
+                hatches when you need them.
+              </p>
+            </div>
+          </Reveal>
+          <div className="features">
+            {FEATURES.map((f, i) => (
+              <Reveal key={f.title} delay={i * 60}>
+                <div className="feature">
+                  <div className="featureNum">
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                  <h3>{f.title}</h3>
+                  <p>{f.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </section>
 
-        <h3>1. Editor + toolbar</h3>
+        <section id="usage" className="section">
+          <Reveal>
+            <div className="sectionHead">
+              <p className="kicker">Usage</p>
+              <h2>Three ways to render</h2>
+              <p className="sectionLede">
+                Edit, preview on the client, or render on the server — same
+                Markdown, same styles.
+              </p>
+            </div>
+          </Reveal>
+
+          <h3>1. Editor + toolbar</h3>
         <Snippet
           code={`import { useState } from 'react';
 import type { Editor } from '@tiptap/react';
@@ -292,76 +399,88 @@ export default async function Page() {
         />
       </section>
 
-      <section id="api" className="section">
-        <h2>Exports</h2>
-        <div className="apiGrid">
-          <div>
-            <h4>tiptap-markdown-react</h4>
-            <ul>
-              <li>
-                <code>MarkdownWysiwygEditor</code> — the editor (ref:
-                getMarkdown/getHTML/getJSON)
-              </li>
-              <li>
-                <code>EditorToolbar</code> — styled toolbar, onImageUpload /
-                extraToolbarItems
-              </li>
-              <li>
-                <code>MarkdownPreview</code> — read-only client preview
-              </li>
-              <li>
-                <code>TocPanel</code> — table of contents sidebar
-              </li>
-              <li>
-                <code>ColorPalette</code>, icons, label defaults
-              </li>
-            </ul>
+        <section id="api" className="section">
+          <Reveal>
+            <div className="sectionHead">
+              <p className="kicker">API</p>
+              <h2>Exports at a glance</h2>
+            </div>
+          </Reveal>
+          <div className="apiGrid">
+            <Reveal>
+              <div className="apiCard">
+                <h4>tiptap-markdown-react</h4>
+                <ul>
+                  <li>
+                    <code>MarkdownWysiwygEditor</code> — the editor (ref:
+                    getMarkdown/getHTML/getJSON)
+                  </li>
+                  <li>
+                    <code>EditorToolbar</code> — styled toolbar, onImageUpload
+                    / extraToolbarItems
+                  </li>
+                  <li>
+                    <code>MarkdownPreview</code> — read-only client preview
+                  </li>
+                  <li>
+                    <code>TocPanel</code> — table of contents sidebar
+                  </li>
+                  <li>
+                    <code>ColorPalette</code>, icons, label defaults
+                  </li>
+                </ul>
+              </div>
+            </Reveal>
+            <Reveal delay={70}>
+              <div className="apiCard">
+                <h4>tiptap-markdown-react/server</h4>
+                <ul>
+                  <li>
+                    <code>renderReportHtml(md)</code> → {'{ html, toc }'}
+                  </li>
+                  <li>
+                    <code>ReportContent</code> — static reader (RSC-safe)
+                  </li>
+                  <li>
+                    <code>extractToc</code>, <code>makeTocGetId</code>
+                  </li>
+                  <li>
+                    <code>baseExtensions</code>, <code>lowlight</code>
+                  </li>
+                </ul>
+              </div>
+            </Reveal>
+            <Reveal delay={140}>
+              <div className="apiCard">
+                <h4>Theming (--tmr-*)</h4>
+                <ul>
+                  <li>
+                    <code>--tmr-accent</code>, <code>--tmr-text</code>,{' '}
+                    <code>--tmr-muted</code>
+                  </li>
+                  <li>
+                    <code>--tmr-border</code>, <code>--tmr-body-font</code>
+                  </li>
+                  <li>
+                    <code>--tmr-font-size</code>, <code>--tmr-line-height</code>
+                  </li>
+                </ul>
+              </div>
+            </Reveal>
           </div>
-          <div>
-            <h4>tiptap-markdown-react/server</h4>
-            <ul>
-              <li>
-                <code>renderReportHtml(md)</code> → {'{ html, toc }'}
-              </li>
-              <li>
-                <code>ReportContent</code> — static reader (RSC-safe)
-              </li>
-              <li>
-                <code>extractToc</code>, <code>makeTocGetId</code>
-              </li>
-              <li>
-                <code>baseExtensions</code>, <code>lowlight</code>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4>Theming (--tmr-*)</h4>
-            <ul>
-              <li>
-                <code>--tmr-accent</code>, <code>--tmr-text</code>,{' '}
-                <code>--tmr-muted</code>
-              </li>
-              <li>
-                <code>--tmr-border</code>, <code>--tmr-body-font</code>
-              </li>
-              <li>
-                <code>--tmr-font-size</code>, <code>--tmr-line-height</code>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <footer className="footer">
-        <span>MIT © CatsInJune</span>
-        <a
-          href="https://github.com/CatsInJune/tiptap-markdown-react"
-          target="_blank"
-          rel="noreferrer"
-        >
-          github.com/CatsInJune/tiptap-markdown-react
-        </a>
-      </footer>
-    </div>
+        <footer className="footer">
+          <span>MIT © CatsInJune</span>
+          <a
+            href="https://github.com/CatsInJune/tiptap-markdown-react"
+            target="_blank"
+            rel="noreferrer"
+          >
+            github.com/CatsInJune/tiptap-markdown-react
+          </a>
+        </footer>
+      </div>
+    </>
   );
 }
