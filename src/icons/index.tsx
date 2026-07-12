@@ -133,6 +133,12 @@ export const ChevronDownIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const CheckIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M20 6 9 17l-5-5" />
+  </Svg>
+);
+
 export const TrashIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M3 6h18" />

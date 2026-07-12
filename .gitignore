@@ -6,3 +6,4 @@ dist
 site/dist
 site/node_modules
 *.log
+.vercel

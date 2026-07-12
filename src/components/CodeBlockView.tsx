@@ -1,11 +1,12 @@
 'use client';
 
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   NodeViewContent,
   NodeViewWrapper,
   type NodeViewProps,
 } from '@tiptap/react';
-import { TrashIcon } from '../icons';
+import { CheckIcon, ChevronDownIcon, TrashIcon } from '../icons';
 import { defaultCodeBlockLabels, type CodeBlockLabels } from '../labels';
 import styles from '../styles/codeBlock.module.css';
 
@@ -32,7 +33,7 @@ const LANGUAGES: { value: string; label: string }[] = [
 ];
 
 /**
- * 代码块自定义 NodeView：右上角原生语言选择器 + 删除，可编辑代码内容。
+ * 代码块自定义 NodeView：右上角语言选择器（Radix DropdownMenu，支持方向键导航）+ 删除。
  * 文案（Auto-detect / 删除标题）从扩展 options.codeBlockLabels 读取，缺省用英文默认。
  */
 export function CodeBlockView({
@@ -47,24 +48,53 @@ export function CodeBlockView({
       ?.codeBlockLabels ?? {}),
   };
   const language = (node.attrs.language as string) || '';
+  const current = LANGUAGES.find((l) => l.value === language);
+  const currentLabel = current
+    ? current.value === ''
+      ? labels.autoDetect
+      : current.label
+    : labels.autoDetect;
 
   return (
     <NodeViewWrapper className={styles.wrapper}>
       <div className={styles.header} contentEditable={false}>
-        <select
-          className={styles.langSelect}
-          value={language}
-          onChange={(e) => updateAttributes({ language: e.target.value })}
-          // 阻止选择器交互冒泡到编辑器，避免选区/焦点错乱
-          onMouseDown={(e) => e.stopPropagation()}
-          aria-label="Code language"
-        >
-          {LANGUAGES.map((l) => (
-            <option key={l.value} value={l.value}>
-              {l.value === '' ? labels.autoDetect : l.label}
-            </option>
-          ))}
-        </select>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              type="button"
+              className={styles.langTrigger}
+              aria-label="Code language"
+            >
+              <span>{currentLabel}</span>
+              <ChevronDownIcon size={14} className={styles.langChevron} />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className={styles.langMenu}
+              sideOffset={4}
+              align="end"
+            >
+              {LANGUAGES.map((l) => {
+                const optionLabel =
+                  l.value === '' ? labels.autoDetect : l.label;
+                const selected = l.value === language;
+                return (
+                  <DropdownMenu.Item
+                    key={l.value}
+                    className={`${styles.langItem}${selected ? ` ${styles.langItemSelected}` : ''}`}
+                    onSelect={() => updateAttributes({ language: l.value })}
+                  >
+                    <span className={styles.langItemCheck}>
+                      {selected ? <CheckIcon size={14} /> : null}
+                    </span>
+                    {optionLabel}
+                  </DropdownMenu.Item>
+                );
+              })}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
         <button
           type="button"
           className={styles.deleteBtn}
