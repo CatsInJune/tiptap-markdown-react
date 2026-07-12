@@ -1,0 +1,225 @@
+/* 规范正文样式（编辑器 / 只读预览 / SSR 阅读三处共用同一个类，保证所见即所得、
+   发布后一致）。配色/字体全部走可被消费方覆盖的 CSS 变量（--tmr-*，带默认值）。 */
+
+.editorScroll {
+  margin-top: 24px;
+}
+
+.editorContent {
+  outline: none;
+  padding: 0;
+  font-family: var(
+    --tmr-body-font,
+    Spectral,
+    serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  font-size: var(--tmr-font-size, 19px);
+  line-height: var(--tmr-line-height, 1.7);
+  color: var(--tmr-text, #363737);
+  min-height: var(--tmr-min-height, 420px);
+}
+
+/* placeholder：空文档第一段显示占位符 */
+.editorContent :global(p.is-editor-empty:first-child)::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--tmr-placeholder, #b7b7b7);
+  pointer-events: none;
+}
+
+.editorContent :global(h1) {
+  font-family: inherit;
+  font-size: 1.55em;
+  font-weight: 700;
+  margin: 1em 0 0.4em;
+  line-height: 1.3;
+}
+
+.editorContent :global(h2) {
+  font-family: inherit;
+  font-size: 1.3em;
+  font-weight: 700;
+  margin: 0.9em 0 0.4em;
+  line-height: 1.3;
+}
+
+.editorContent :global(h3) {
+  font-family: inherit;
+  font-size: 1.12em;
+  font-weight: 600;
+  margin: 0.8em 0 0.35em;
+}
+
+/* h4-h6：延续 h1-h3 尺寸梯度递减；字号差变小后靠字重保持标题感，h6 字色稍弱。 */
+.editorContent :global(h4) {
+  font-family: inherit;
+  font-size: 1.05em;
+  font-weight: 600;
+  margin: 0.7em 0 0.3em;
+}
+
+.editorContent :global(h5) {
+  font-family: inherit;
+  font-size: 0.95em;
+  font-weight: 600;
+  margin: 0.7em 0 0.3em;
+}
+
+.editorContent :global(h6) {
+  font-family: inherit;
+  font-size: 0.88em;
+  font-weight: 600;
+  margin: 0.7em 0 0.3em;
+  color: var(--tmr-muted, #777777);
+}
+
+.editorContent :global(p) {
+  margin: 0.7em 0;
+}
+
+.editorContent :global(ul),
+.editorContent :global(ol) {
+  padding-left: 1.5em;
+  margin: 0.7em 0;
+}
+
+.editorContent :global(ul) {
+  list-style: disc;
+}
+
+.editorContent :global(ol) {
+  list-style: decimal;
+}
+
+.editorContent :global(blockquote) {
+  border-left: 3px solid var(--tmr-accent, #ff6719);
+  padding-left: 1em;
+  margin: 0.9em 0;
+  color: var(--tmr-muted, #777777);
+  font-style: italic;
+}
+
+.editorContent :global(a) {
+  color: var(--tmr-accent, #ff6719);
+  text-decoration: underline;
+}
+
+/* 仅行内代码加灰底；代码块内的 <code>（在 pre 内）由 NodeView 自管，排除掉 */
+.editorContent :global(code:not(pre code)) {
+  background: var(--tmr-code-bg, #f4f4f4);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: var(
+    --tmr-mono-font,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace
+  );
+}
+
+.editorContent :global(hr) {
+  border: none;
+  border-top: 1px solid var(--tmr-border, #e6e6e6);
+  margin: 1.5em 0;
+}
+
+.editorContent :global(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 0.8em 0;
+  display: block;
+}
+
+/* 选中的图片高亮 */
+.editorContent :global(img.ProseMirror-selectednode) {
+  outline: 2px solid var(--tmr-accent, #ff6719);
+}
+
+/* 表格：细边框、表头浅灰、可拖拽列宽 */
+.editorContent :global(table) {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1em 0;
+  overflow: hidden;
+  font-size: 0.92em;
+}
+
+.editorContent :global(table td),
+.editorContent :global(table th) {
+  border: 1px solid var(--tmr-border, #e6e6e6);
+  padding: 8px 12px;
+  vertical-align: top;
+  text-align: left;
+  position: relative;
+  min-width: 60px;
+}
+
+.editorContent :global(table th) {
+  background: var(--tmr-table-header-bg, #f7f7f7);
+  font-weight: 600;
+}
+
+/* 选中的单元格高亮 */
+.editorContent :global(table .selectedCell::after) {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--tmr-cell-selection, rgba(255, 103, 25, 0.12));
+  pointer-events: none;
+}
+
+/* 列宽拖拽手柄 */
+.editorContent :global(table .column-resize-handle) {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--tmr-accent, #ff6719);
+  cursor: col-resize;
+}
+
+.editorContent :global(.tableWrapper) {
+  overflow-x: auto;
+}
+
+/* 任务清单 */
+.editorContent :global(ul[data-type='taskList']) {
+  list-style: none;
+  padding-left: 0.2em;
+}
+
+.editorContent :global(ul[data-type='taskList'] li) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+  margin: 0.3em 0;
+}
+
+.editorContent :global(ul[data-type='taskList'] li > label) {
+  margin-top: 0.35em;
+  user-select: none;
+}
+
+.editorContent :global(ul[data-type='taskList'] li > div) {
+  flex: 1;
+}
+
+.editorContent :global(ul[data-type='taskList'] input[type='checkbox']) {
+  accent-color: var(--tmr-accent, #ff6719);
+  cursor: pointer;
+}

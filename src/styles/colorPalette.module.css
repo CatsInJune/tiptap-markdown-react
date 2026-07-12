@@ -1,0 +1,87 @@
+/* 颜色面板：None 清除行 + 10×6 色板 + THEME 品牌色 */
+.palette {
+  padding: 14px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.noneRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 6px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* 红色斜线圆圈，表示「无颜色」 */
+.noneIcon {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 50%;
+}
+
+.noneIcon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 1px;
+  right: 1px;
+  height: 1.5px;
+  background: #ff3b30;
+  transform: rotate(-45deg);
+  transform-origin: center;
+}
+
+.noneLabel {
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+
+.swatch {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: transform 0.1s;
+}
+
+.swatch:hover {
+  transform: scale(1.12);
+}
+
+/* 选中态：外圈描边 */
+.swatchActive {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 3.5px #1f2937;
+}
+
+.themeLabel {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+}
+
+.themeRow {
+  display: flex;
+  gap: 6px;
+}

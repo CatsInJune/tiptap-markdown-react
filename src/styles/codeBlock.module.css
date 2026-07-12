@@ -1,0 +1,135 @@
+/* 代码块 NodeView：白底、细边框、顶部 header 放语言选择（原生 select）+ 删除。 */
+.wrapper {
+  position: relative;
+  margin: 0.9em 0;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* 选中整个代码块时（NodeSelection）：accent 边框高亮，作为删除前的二次确认提示 */
+.wrapper:global(.ProseMirror-selectednode),
+:global(.ProseMirror-selectednode) > .wrapper {
+  border-color: var(--tmr-accent, #ff6719);
+  box-shadow: 0 0 0 1px var(--tmr-accent, #ff6719);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #efefef;
+}
+
+/* 原生语言选择器：无边框胶囊，hover 出灰底 */
+.langSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 3px 24px 3px 10px;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+  /* 自绘下拉箭头 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.langSelect:hover {
+  background-color: #f0f0f0;
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #8a8a8a;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.deleteBtn:hover {
+  background: #f4f4f4;
+  color: #d4380d;
+}
+
+.pre {
+  margin: 0;
+  padding: 16px 18px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow-x: auto;
+  font-size: 0.9em;
+  line-height: 1.65;
+}
+
+.pre code {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #24292e;
+  background: transparent;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  white-space: pre;
+}
+
+/* 语法高亮配色（lowlight / highlight.js token，GitHub 浅色主题） */
+.pre :global(.hljs-comment),
+.pre :global(.hljs-quote) {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.pre :global(.hljs-keyword),
+.pre :global(.hljs-selector-tag),
+.pre :global(.hljs-literal),
+.pre :global(.hljs-type) {
+  color: #d73a49;
+}
+
+.pre :global(.hljs-string),
+.pre :global(.hljs-meta .hljs-string),
+.pre :global(.hljs-regexp) {
+  color: #032f62;
+}
+
+.pre :global(.hljs-number),
+.pre :global(.hljs-built_in),
+.pre :global(.hljs-builtin-name) {
+  color: #005cc5;
+}
+
+.pre :global(.hljs-title),
+.pre :global(.hljs-function .hljs-title),
+.pre :global(.hljs-section) {
+  color: #6f42c1;
+}
+
+.pre :global(.hljs-attr),
+.pre :global(.hljs-attribute),
+.pre :global(.hljs-variable),
+.pre :global(.hljs-template-variable) {
+  color: #e36209;
+}
+
+.pre :global(.hljs-tag) {
+  color: #22863a;
+}

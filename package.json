@@ -1,0 +1,110 @@
+{
+  "name": "tiptap-markdown-react",
+  "version": "0.1.0",
+  "description": "A batteries-included, self-styled Markdown WYSIWYG editor and reader suite built on Tiptap v3. Markdown in/out, SSR/static rendering, table of contents, themeable via CSS variables, zero Ant Design.",
+  "type": "module",
+  "license": "MIT",
+  "author": "CatsInJune",
+  "homepage": "https://github.com/CatsInJune/tiptap-markdown-react#readme",
+  "bugs": {
+    "url": "https://github.com/CatsInJune/tiptap-markdown-react/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CatsInJune/tiptap-markdown-react.git"
+  },
+  "keywords": [
+    "tiptap",
+    "markdown",
+    "editor",
+    "wysiwyg",
+    "rich-text",
+    "react",
+    "prosemirror",
+    "ssr",
+    "table-of-contents"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@tiptap/extension-code-block-lowlight": "^3.27.0",
+    "@tiptap/extension-highlight": "^3.27.0",
+    "@tiptap/extension-image": "^3.27.0",
+    "@tiptap/extension-subscript": "^3.27.0",
+    "@tiptap/extension-superscript": "^3.27.0",
+    "@tiptap/extension-table": "^3.27.0",
+    "@tiptap/extension-table-of-contents": "^3.27.0",
+    "@tiptap/extension-task-item": "^3.27.0",
+    "@tiptap/extension-task-list": "^3.27.0",
+    "@tiptap/extension-text-style": "^3.27.0",
+    "@tiptap/markdown": "^3.27.0",
+    "@tiptap/pm": "^3.27.0",
+    "@tiptap/react": "^3.27.0",
+    "@tiptap/starter-kit": "^3.27.0",
+    "@tiptap/static-renderer": "^3.27.0",
+    "lowlight": "^3.0.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-popover": "^1.1.15"
+  },
+  "devDependencies": {
+    "@tiptap/extension-code-block-lowlight": "^3.27.1",
+    "@tiptap/extension-highlight": "^3.27.1",
+    "@tiptap/extension-image": "^3.27.1",
+    "@tiptap/extension-subscript": "^3.27.1",
+    "@tiptap/extension-superscript": "^3.27.1",
+    "@tiptap/extension-table": "^3.27.1",
+    "@tiptap/extension-table-of-contents": "^3.27.1",
+    "@tiptap/extension-task-item": "^3.27.1",
+    "@tiptap/extension-task-list": "^3.27.1",
+    "@tiptap/extension-text-style": "^3.27.1",
+    "@tiptap/markdown": "^3.27.1",
+    "@tiptap/pm": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
+    "@tiptap/static-renderer": "^3.27.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "lowlight": "^3.3.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "rollup-preserve-directives": "^1.1.3",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vite-plugin-dts": "^4.5.4"
+  },
+  "overrides": {
+    "@tiptap/core": "3.27.3"
+  }
+}
