@@ -55,6 +55,8 @@ export {
 export { useIsMobile } from './hooks/useIsMobile';
 export * from './icons';
 
+export { insertMarkdown } from './insertMarkdown';
+
 // ── 常用 Tiptap 类型（宿主无需再安装 / import @tiptap/*） ──
 export type { Editor } from '@tiptap/react';
 export type { JSONContent } from '@tiptap/core';
