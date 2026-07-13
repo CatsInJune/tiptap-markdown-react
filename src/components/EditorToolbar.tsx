@@ -463,7 +463,7 @@ export function EditorToolbar({
                 onMouseDown={(e) => e.preventDefault()}
               >
                 <span className={styles.styleTriggerLabel}>
-                  {state.fontSize || 'Size'}
+                  {state.fontSize || t.fontSize}
                 </span>
                 <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
               </button>
