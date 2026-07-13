@@ -1,6 +1,6 @@
 {
   "name": "tiptap-markdown-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A batteries-included, self-styled Markdown WYSIWYG editor and reader suite built on Tiptap v3. Markdown in/out, SSR/static rendering, table of contents, themeable via CSS variables, zero Ant Design.",
   "type": "module",
   "license": "MIT",
@@ -54,30 +54,13 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@tiptap/extension-code-block-lowlight": "^3.27.0",
-    "@tiptap/extension-highlight": "^3.27.0",
-    "@tiptap/extension-image": "^3.27.0",
-    "@tiptap/extension-subscript": "^3.27.0",
-    "@tiptap/extension-superscript": "^3.27.0",
-    "@tiptap/extension-table": "^3.27.0",
-    "@tiptap/extension-table-of-contents": "^3.27.0",
-    "@tiptap/extension-task-item": "^3.27.0",
-    "@tiptap/extension-task-list": "^3.27.0",
-    "@tiptap/extension-text-style": "^3.27.0",
-    "@tiptap/markdown": "^3.27.0",
-    "@tiptap/pm": "^3.27.0",
-    "@tiptap/react": "^3.27.0",
-    "@tiptap/starter-kit": "^3.27.0",
-    "@tiptap/static-renderer": "^3.27.0",
-    "lowlight": "^3.0.0",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "@radix-ui/react-popover": "^1.1.15"
-  },
-  "devDependencies": {
+    "@radix-ui/react-popover": "^1.1.15",
+    "@tiptap/core": "3.27.1",
     "@tiptap/extension-code-block-lowlight": "3.27.1",
     "@tiptap/extension-highlight": "3.27.1",
     "@tiptap/extension-image": "3.27.1",
@@ -93,10 +76,12 @@
     "@tiptap/react": "3.27.1",
     "@tiptap/starter-kit": "3.27.1",
     "@tiptap/static-renderer": "3.27.1",
+    "lowlight": "3.3.0"
+  },
+  "devDependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
-    "lowlight": "^3.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "rollup-preserve-directives": "^1.1.3",

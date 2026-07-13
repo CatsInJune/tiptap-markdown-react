@@ -51,7 +51,7 @@ function HomePage() {
       <section className="hero">
         <div className="badges">
           <span className="badge">
-            npm <b>v0.1.0</b>
+            npm <b>v0.2.0</b>
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>

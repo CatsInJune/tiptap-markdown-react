@@ -1,5 +1,8 @@
 'use client';
 
+// 副作用：增强 Editor.insertContent / getMarkdown 的 @tiptap/markdown 类型。
+import '@tiptap/markdown';
+
 // ── 编辑器 / 预览 ──
 export {
   MarkdownWysiwygEditor,
@@ -51,3 +54,7 @@ export {
 // ── 其它 ──
 export { useIsMobile } from './hooks/useIsMobile';
 export * from './icons';
+
+// ── 常用 Tiptap 类型（宿主无需再安装 / import @tiptap/*） ──
+export type { Editor } from '@tiptap/react';
+export type { JSONContent } from '@tiptap/core';

@@ -198,7 +198,7 @@ export function NpmRow() {
         rel="noreferrer"
         className="npmBadge"
       >
-        npm v0.1.0
+        npm v0.2.0
       </a>
       <CopyRow text="npm install tiptap-markdown-react" />
     </div>

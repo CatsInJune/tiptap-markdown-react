@@ -16,23 +16,20 @@ npm install tiptap-markdown-react
 pnpm add tiptap-markdown-react
 ```
 
-### Peer dependencies
-
-Install these alongside the package (kept as peers to avoid duplicate instances):
-
-```bash
-npm install react react-dom lowlight \
-  @tiptap/react @tiptap/pm @tiptap/core @tiptap/starter-kit @tiptap/markdown \
-  @tiptap/static-renderer @tiptap/extension-code-block-lowlight \
-  @tiptap/extension-highlight @tiptap/extension-image @tiptap/extension-subscript \
-  @tiptap/extension-superscript @tiptap/extension-table @tiptap/extension-table-of-contents \
-  @tiptap/extension-task-item @tiptap/extension-task-list @tiptap/extension-text-style
-```
+`react` and `react-dom` are peer dependencies (you likely already have them). **Tiptap and lowlight ship as transitive dependencies** — you do not need to install `@tiptap/*` separately.
 
 Then import the stylesheet once (e.g. in your root layout / entry):
 
 ```ts
 import 'tiptap-markdown-react/style.css';
+```
+
+### Migrating from 0.1.x
+
+Remove all `@tiptap/*` and `lowlight` from your `package.json` if you added them only for this package. Upgrade to `^0.2.0` and import types from the package:
+
+```ts
+import type { Editor } from 'tiptap-markdown-react';
 ```
 
 ## Usage
@@ -44,11 +41,11 @@ The editor and toolbar are separate components so you can place the toolbar wher
 ```tsx
 'use client';
 import { useState, useRef } from 'react';
-import type { Editor } from '@tiptap/react';
 import {
   MarkdownWysiwygEditor,
   EditorToolbar,
   type MarkdownWysiwygEditorHandle,
+  type Editor,
 } from 'tiptap-markdown-react';
 import 'tiptap-markdown-react/style.css';
 
