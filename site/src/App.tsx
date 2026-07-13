@@ -1,485 +1,519 @@
-// 引入 @tiptap/markdown 的类型增强，使 editor 上出现 getMarkdown()
-import '@tiptap/markdown';
-import type { Editor } from '@tiptap/react';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
-import {
-  EditorToolbar,
-  MarkdownPreview,
-  MarkdownWysiwygEditor,
-} from 'tiptap-markdown-react';
 import 'tiptap-markdown-react/style.css';
+import {
+  CodeBlockDemo,
+  EditorDemo,
+  EditorTocDemo,
+  HeroDemo,
+  MarkdownOutputDemo,
+  PreviewDemo,
+  ReportContentDemo,
+  ThemeDemo,
+  TocDemo,
+  ToolbarDemo,
+} from './demos';
+import {
+  COMPONENT_NAV,
+  DEMO_NAV,
+  EDITOR_API,
+  EDITOR_REF_API,
+  PACKAGE_FEATURES,
+  PREVIEW_API,
+  RENDER_HTML_API,
+  REPORT_CONTENT_API,
+  THEME_VARS,
+  TOC_API,
+  TOOLBAR_API,
+} from './site-data';
+import {
+  ApiTable,
+  ComponentSection,
+  CopyRow,
+  DemoBlock,
+  DocsShell,
+  PageToc,
+  Reveal,
+  SideNav,
+  SiteFooter,
+  Snippet,
+  TopNav,
+  useHashPage,
+} from './ui';
 
-/** 元素进入视口时加 .in，触发一次性渐显。 */
-function Reveal({
-  children,
-  className = '',
-  delay = 0,
-}: {
-  children: ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShown(true);
-          io.disconnect();
-        }
-      },
-      { threshold: 0.12 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return (
-    <div
-      ref={ref}
-      className={`reveal ${shown ? 'in' : ''} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** 页面滚动超过阈值时返回 true（给导航加分隔线）。 */
-function useScrolled(threshold = 8) {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > threshold);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [threshold]);
-  return scrolled;
-}
-
-const DEMO_MD = `# Meet the editor
-
-This whole panel is **tiptap-markdown-react** running live. Type here — everything
-is stored and exported as _Markdown_.
-
-## Rich, but markdown-native
-
-- Bullet lists, ordered lists, and task lists
-- Inline \`code\`, [links](https://tiptap.dev), highlights and colors
-- Tables, blockquotes, dividers
-
-> Right-click inside a table to add or remove rows and columns.
-
-\`\`\`ts
-function greet(name: string) {
-  return \`Hello, \${name}!\`;
-}
-\`\`\`
-
-| Feature      | Editor | Reader |
-| ------------ | :----: | :----: |
-| Markdown I/O |   ✅   |   ✅   |
-| SSR render   |   —    |   ✅   |
-`;
-
-/** 演示用图片上传：直接把文件读成 data URL，无需后端。 */
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function CopyRow({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="copyRow">
-      <code>{text}</code>
-      <button
-        type="button"
-        onClick={() => {
-          navigator.clipboard?.writeText(text);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1400);
-        }}
-      >
-        {copied ? 'Copied' : 'Copy'}
-      </button>
-    </div>
-  );
-}
-
-function Snippet({ code }: { code: string }) {
-  return (
-    <pre className="snippet">
-      <code>{code}</code>
-    </pre>
-  );
-}
-
-function Demo() {
-  const [editor, setEditor] = useState<Editor | null>(null);
-  const [markdown, setMarkdown] = useState(DEMO_MD);
-  const [tab, setTab] = useState<'editor' | 'markdown' | 'reader'>('editor');
-
-  // 订阅编辑器更新，实时把 markdown 同步到 output / reader 面板
-  useEffect(() => {
-    if (!editor) return;
-    const sync = () => setMarkdown(editor.getMarkdown());
-    editor.on('update', sync);
-    sync();
-    return () => {
-      editor.off('update', sync);
-    };
-  }, [editor]);
-
-  const onImageUpload = useCallback((file: File) => fileToDataUrl(file), []);
-
-  return (
-    <div className="window">
-      <div className="windowBar">
-        <span className="dot r" />
-        <span className="dot y" />
-        <span className="dot g" />
-        <span className="windowTitle">tiptap-markdown-react · live</span>
-      </div>
-      <div className="demoTabs">
-        <button
-          className={tab === 'editor' ? 'active' : ''}
-          onClick={() => setTab('editor')}
-        >
-          Editor
-        </button>
-        <button
-          className={tab === 'reader' ? 'active' : ''}
-          onClick={() => setTab('reader')}
-        >
-          Rendered
-        </button>
-        <button
-          className={tab === 'markdown' ? 'active' : ''}
-          onClick={() => setTab('markdown')}
-        >
-          Markdown output
-        </button>
-      </div>
-
-      {/* 编辑器常驻挂载（切 tab 只是隐藏），避免重挂丢失状态 */}
-      <div style={{ display: tab === 'editor' ? 'block' : 'none' }}>
-        {editor && (
-          <EditorToolbar editor={editor} onImageUpload={onImageUpload} />
-        )}
-        <div className="demoBody">
-          <MarkdownWysiwygEditor
-            initialMarkdown={DEMO_MD}
-            placeholder="Write something…"
-            onEditorReady={setEditor}
-          />
-        </div>
-      </div>
-
-      {tab === 'reader' && (
-        <div className="demoBody">
-          <MarkdownPreview markdown={markdown} />
-        </div>
-      )}
-
-      {tab === 'markdown' && (
-        <pre className="markdownOut">
-          <code>{markdown}</code>
-        </pre>
-      )}
-    </div>
-  );
-}
-
-const FEATURES: { title: string; body: string }[] = [
-  {
-    title: 'Markdown in, markdown out',
-    body: 'Content is authored and exported as Markdown. getHTML() and getJSON() are there too when you need them.',
-  },
-  {
-    title: 'Its own opinionated UI',
-    body: 'Toolbar, color palette, code block, and table of contents ship styled. No Ant Design — Radix primitives + inline SVG icons.',
-  },
-  {
-    title: 'Editor + Preview + SSR reader',
-    body: 'Edit, live client preview, and a pure renderReportHtml() for Server Components / ISR reading pages.',
-  },
-  {
-    title: 'Shareable TOC anchors',
-    body: 'Stable slug anchors match between the editor preview and the published page, so deep links keep working.',
-  },
-  {
-    title: 'Themeable',
-    body: 'Colors and fonts are exposed as --tmr-* CSS variables. Restyle without forking.',
-  },
-  {
-    title: 'RSC-safe server entry',
-    body: 'tiptap-markdown-react/server has no client code and renders markdown to HTML at build/request time.',
-  },
+const COLOR_PALETTE_API = [
+  { name: 'value', desc: 'Currently applied color (shows checkmark)', type: 'string', defaultVal: '—' },
+  { name: 'onPick', desc: 'Called when a swatch is clicked; null clears', type: '(color: string | null) => void' },
+  { name: 'labels', desc: 'Label overrides', type: 'Partial<ColorPaletteLabels>', defaultVal: '—' },
 ];
 
-export function App() {
-  const scrolled = useScrolled();
+function HomePage() {
   return (
     <>
-      <div className="aurora" aria-hidden />
-      <div className="auroraGrain" aria-hidden />
-      <div className="page">
-        <header className={`nav ${scrolled ? 'scrolled' : ''}`}>
-          <span className="brand">
-            <span className="brandMark">M</span>
-            tiptap-markdown-react
+      <section className="hero">
+        <div className="badges">
+          <span className="badge">
+            npm <b>v0.1.0</b>
           </span>
-          <nav>
-            <a className="navLink" href="#demo">
-              Demo
-            </a>
-            <a className="navLink" href="#usage">
-              Usage
-            </a>
-            <a className="navLink" href="#api">
-              API
-            </a>
-            <a
-              className="navCta"
-              href="https://github.com/CatsInJune/tiptap-markdown-react"
-              target="_blank"
-              rel="noreferrer"
-            >
-              GitHub
-            </a>
-          </nav>
-        </header>
+          <span className="badge">Tiptap v3</span>
+          <span className="badge">MIT</span>
+          <span className="badge">zero Ant Design</span>
+        </div>
+        <h1>
+          Markdown editing, <span className="accent">done beautifully</span>
+        </h1>
+        <p className="lede">
+          A batteries-included WYSIWYG editor and reader on Tiptap&nbsp;v3.
+          Markdown in/out, styled toolbar, table of contents, live preview,
+          and server-side rendering — themeable and Ant&nbsp;Design-free.
+        </p>
+        <div className="heroActions">
+          <CopyRow text="npm install tiptap-markdown-react" />
+          <a className="ghost" href="#/components">
+            Browse components →
+          </a>
+        </div>
+      </section>
 
-        <section className="hero">
-          <div className="badges">
-            <span className="badge">
-              npm <b>v0.1.0</b>
-            </span>
-            <span className="badge">Tiptap v3</span>
-            <span className="badge">MIT</span>
-            <span className="badge">zero Ant Design</span>
+      <section className="homeSection">
+        <Reveal>
+          <div className="sectionHead">
+            <p className="kicker">Live</p>
+            <h2>Try it right here</h2>
+            <p className="sectionLede">
+              The panel below is the real package. Edit, switch to rendered
+              reader, or peek at Markdown output.
+            </p>
           </div>
-          <h1>
-            Markdown editing, <span className="accent">done beautifully</span>
-          </h1>
-          <p className="lede">
-            A batteries-included WYSIWYG editor and reader on Tiptap&nbsp;v3.
-            Markdown in/out, a styled toolbar, table of contents, live preview,
-            and a server-side renderer for SEO-friendly reading pages —
-            themeable and completely Ant&nbsp;Design-free.
-          </p>
-          <div className="heroActions">
-            <CopyRow text="npm install tiptap-markdown-react" />
-            <a
-              className="ghost"
-              href="https://github.com/CatsInJune/tiptap-markdown-react"
-              target="_blank"
-              rel="noreferrer"
-            >
-              View on GitHub →
-            </a>
+        </Reveal>
+        <Reveal delay={80}>
+          <HeroDemo />
+        </Reveal>
+      </section>
+
+      <section className="homeSection">
+        <Reveal>
+          <div className="sectionHead">
+            <p className="kicker">Why</p>
+            <h2>Everything the editor needs, styled</h2>
           </div>
-        </section>
+        </Reveal>
+        <div className="features">
+          {PACKAGE_FEATURES.map((f, i) => (
+            <Reveal key={f.title} delay={i * 50}>
+              <div className="feature">
+                <span className="featureIcon">{f.icon}</span>
+                <h3>{f.title}</h3>
+                <p>{f.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
 
-        <section id="demo" className="section">
-          <Reveal>
-            <div className="sectionHead">
-              <p className="kicker">Live</p>
-              <h2>Try it right here</h2>
-              <p className="sectionLede">
-                The panel below is the real package running in your browser.
-                Edit, switch to the rendered reader, or peek at the Markdown it
-                produces.
-              </p>
-            </div>
-          </Reveal>
-          <Reveal delay={80}>
-            <Demo />
-          </Reveal>
-        </section>
-
-        <section className="section">
-          <Reveal>
-            <div className="sectionHead">
-              <p className="kicker">Why</p>
-              <h2>Everything the editor needs, styled</h2>
-              <p className="sectionLede">
-                Opinionated defaults that look right out of the box, with escape
-                hatches when you need them.
-              </p>
-            </div>
-          </Reveal>
-          <div className="features">
-            {FEATURES.map((f, i) => (
-              <Reveal key={f.title} delay={i * 60}>
-                <div className="feature">
-                  <div className="featureNum">
-                    {String(i + 1).padStart(2, '0')}
-                  </div>
-                  <h3>{f.title}</h3>
-                  <p>{f.body}</p>
-                </div>
-              </Reveal>
-            ))}
+      <section className="homeSection">
+        <Reveal>
+          <div className="sectionHead">
+            <p className="kicker">Quick start</p>
+            <h2>Three ways to render</h2>
           </div>
-        </section>
-
-        <section id="usage" className="section">
-          <Reveal>
-            <div className="sectionHead">
-              <p className="kicker">Usage</p>
-              <h2>Three ways to render</h2>
-              <p className="sectionLede">
-                Edit, preview on the client, or render on the server — same
-                Markdown, same styles.
-              </p>
-            </div>
-          </Reveal>
-
-          <h3>1. Editor + toolbar</h3>
+        </Reveal>
+        <h3>1. Editor + toolbar</h3>
         <Snippet
           code={`import { useState } from 'react';
 import type { Editor } from '@tiptap/react';
-import {
-  MarkdownWysiwygEditor,
-  EditorToolbar,
-} from 'tiptap-markdown-react';
+import { MarkdownWysiwygEditor, EditorToolbar } from 'tiptap-markdown-react';
 import 'tiptap-markdown-react/style.css';
 
 function Composer() {
   const [editor, setEditor] = useState<Editor | null>(null);
   return (
     <div>
-      {editor && (
-        <EditorToolbar
-          editor={editor}
-          onImageUpload={async (file) => await uploadToStorage(file)}
-        />
-      )}
-      <MarkdownWysiwygEditor
-        initialMarkdown={'# Hello'}
-        onEditorReady={setEditor}
-      />
+      {editor && <EditorToolbar editor={editor} onImageUpload={upload} />}
+      <MarkdownWysiwygEditor initialMarkdown="# Hello" onEditorReady={setEditor} />
     </div>
   );
 }`}
         />
-
-        <h3>2. Client-side preview</h3>
+        <h3>2. Client preview</h3>
         <Snippet
           code={`import { MarkdownPreview } from 'tiptap-markdown-react';
-import 'tiptap-markdown-react/style.css';
-
-<MarkdownPreview markdown={markdown} />;`}
+<MarkdownPreview markdown={markdown} />`}
         />
-
-        <h3>3. Server-side reader (SEO)</h3>
+        <h3>3. Server reader (SEO)</h3>
         <Snippet
-          code={`// app/p/[slug]/page.tsx — a Server Component
-import { renderReportHtml, ReportContent } from 'tiptap-markdown-react/server';
-import 'tiptap-markdown-react/style.css';
+          code={`import { renderReportHtml, ReportContent } from 'tiptap-markdown-react/server';
 
-export default async function Page() {
-  const { html, toc } = renderReportHtml(await loadMarkdown());
-  return <ReportContent html={html} />;
-}`}
+const { html, toc } = renderReportHtml(markdown);
+return <ReportContent html={html} />;`}
+        />
+      </section>
+    </>
+  );
+}
+
+function ComponentsPage() {
+  const tocItems = COMPONENT_NAV.flatMap((g) =>
+    g.items.map((i) => ({ id: i.id, label: i.label })),
+  );
+  return (
+    <DocsShell
+      sidebar={<SideNav groups={COMPONENT_NAV} />}
+      toc={<PageToc items={tocItems} />}
+    >
+      <div className="docsPageHead">
+        <h1>Components</h1>
+        <p>
+          Batteries-included React components for editing, reading, and
+          navigating Markdown content. Each ships with opinionated styles and
+          Radix-based UI — no Ant Design.
+        </p>
+      </div>
+
+      <ComponentSection
+        id="editor"
+        title="MarkdownWysiwygEditor"
+        description="The core WYSIWYG editor. Markdown in, markdown out via ref methods. Emits TOC updates through onTocChange."
+        importName="MarkdownWysiwygEditor"
+        features={[
+          'Full rich-text editing with Markdown serialization',
+          'Ref API: getMarkdown(), getHTML(), getJSON(), getEditor()',
+          'onTocChange for live table-of-contents sync',
+          'extraExtensions hook for custom Tiptap nodes',
+        ]}
+        demo={
+          <DemoBlock title="Basic editor" description="Toolbar optional — wire EditorToolbar separately.">
+            <EditorDemo />
+          </DemoBlock>
+        }
+        api={EDITOR_API}
+        refApi={EDITOR_REF_API}
+      />
+
+      <ComponentSection
+        id="toolbar"
+        title="EditorToolbar"
+        description="Styled formatting toolbar. Image upload button appears only when onImageUpload is provided."
+        importName="EditorToolbar"
+        features={[
+          'Headings, lists, tables, links, colors, alignment',
+          'Radix Popover / DropdownMenu — no native selects',
+          'extraToolbarItems for custom More-menu entries',
+          'Partial ToolbarLabels for i18n',
+        ]}
+        demo={
+          <DemoBlock title="Toolbar with image upload">
+            <ToolbarDemo />
+          </DemoBlock>
+        }
+        api={TOOLBAR_API}
+      />
+
+      <ComponentSection
+        id="preview"
+        title="MarkdownPreview"
+        description="Read-only client-side preview using the same extensions and styles as the editor."
+        importName="MarkdownPreview"
+        features={[
+          'Same rendering pipeline as the editor',
+          'Syntax highlighting via lowlight',
+          'Stable heading anchors for deep links',
+        ]}
+        demo={
+          <DemoBlock title="Client preview">
+            <PreviewDemo />
+          </DemoBlock>
+        }
+        api={PREVIEW_API}
+      />
+
+      <ComponentSection
+        id="report-content"
+        title="ReportContent"
+        description="RSC-safe static HTML reader. Pass html from renderReportHtml() — no client JavaScript required."
+        importName="ReportContent"
+        features={[
+          'Pure HTML injection with editorContent styles',
+          'Also exported from tiptap-markdown-react/server',
+          'Ideal for published articles and SEO pages',
+        ]}
+        demo={
+          <DemoBlock title="Static reader" description="Pre-rendered HTML sample — same output as renderReportHtml().">
+            <ReportContentDemo />
+          </DemoBlock>
+        }
+        api={REPORT_CONTENT_API}
+      />
+
+      <ComponentSection
+        id="toc"
+        title="TocPanel"
+        description="Sidebar table of contents. Consumes TocItem[] from onTocChange or extractToc."
+        importName="TocPanel"
+        features={[
+          'Active item highlighting via activeId',
+          'Locked sections (e.g. paywalled content)',
+          'Click handler with locked-item guard',
+        ]}
+        demo={
+          <DemoBlock title="TOC panel">
+            <TocDemo />
+          </DemoBlock>
+        }
+        api={TOC_API}
+      />
+
+      <ComponentSection
+        id="color-palette"
+        title="ColorPalette"
+        description="10×6 color matrix used inside EditorToolbar. Can be used standalone for custom color pickers."
+        importName="ColorPalette"
+        features={[
+          'None row to clear color',
+          'THEME brand swatches',
+          'Accessible grid with checkmark on active color',
+        ]}
+        api={COLOR_PALETTE_API}
+      />
+
+      <ComponentSection
+        id="render-html"
+        title="renderReportHtml"
+        description="Server-only function. Renders markdown to HTML + TOC without a browser or Tiptap Editor instance."
+        importName="renderReportHtml"
+        features={[
+          'Pure function — runs in Server Components / ISR',
+          'Stable slug anchors via makeTocGetId',
+          'Returns { html, toc } for ReportContent + TocPanel',
+        ]}
+        extra={
+          <Snippet
+            code={`import { renderReportHtml } from 'tiptap-markdown-react/server';
+
+const { html, toc } = renderReportHtml(markdown, ['Advanced Usage']);`}
+          />
+        }
+        api={RENDER_HTML_API}
+      />
+    </DocsShell>
+  );
+}
+
+function DemosPage() {
+  const tocItems = DEMO_NAV.flatMap((g) =>
+    g.items.map((i) => ({ id: i.id, label: i.label })),
+  );
+  return (
+    <DocsShell
+      sidebar={<SideNav groups={DEMO_NAV} />}
+      toc={<PageToc items={tocItems} />}
+    >
+      <div className="docsPageHead">
+        <h1>Demo</h1>
+        <p>
+          Interactive examples grouped by scenario. Each block is a live preview
+          you can edit and inspect.
+        </p>
+      </div>
+
+      <h2 className="demoGroupTitle">Editing</h2>
+
+      <DemoBlock
+        anchor="demo-editor"
+        title="WYSIWYG Editor"
+        description="Full editor with toolbar. Content exports as Markdown."
+      >
+        <EditorDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          <code>initialMarkdown</code> seeds content; <code>onEditorReady</code>{' '}
+          provides the Tiptap Editor for toolbar wiring.
+        </p>
+      </div>
+
+      <DemoBlock
+        anchor="demo-toolbar"
+        title="Toolbar + Image Upload"
+        description="onImageUpload converts files to data URLs in this demo (no backend)."
+      >
+        <ToolbarDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          <code>onImageUpload</code> is required for the image button to appear.
+          Return a URL string (or data URL) to insert the image node.
+        </p>
+      </div>
+
+      <DemoBlock
+        anchor="demo-codeblock"
+        title="Code Block"
+        description="Radix language dropdown — arrow keys work around the block. Backspace twice to delete."
+      >
+        <CodeBlockDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          Customize labels via <code>codeBlockLabels</code> on{' '}
+          <code>MarkdownWysiwygEditor</code>.
+        </p>
+      </div>
+
+      <h2 className="demoGroupTitle">Reading</h2>
+
+      <DemoBlock
+        anchor="demo-preview"
+        title="Client Preview"
+        description="MarkdownPreview renders the same markdown as the editor."
+      >
+        <PreviewDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          Pass any markdown string to <code>markdown</code>. Styles come from{' '}
+          <code>tiptap-markdown-react/style.css</code>.
+        </p>
+      </div>
+
+      <DemoBlock
+        anchor="demo-markdown-out"
+        title="Markdown Output"
+        description="Edit on the left — live Markdown export on the right."
+      >
+        <MarkdownOutputDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          Call <code>ref.getMarkdown()</code> or subscribe to editor{' '}
+          <code>update</code> events.
+        </p>
+      </div>
+
+      <h2 className="demoGroupTitle">Navigation</h2>
+
+      <DemoBlock
+        anchor="demo-toc"
+        title="Table of Contents"
+        description="Editor headings sync to TocPanel via onTocChange."
+      >
+        <EditorTocDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          <code>TocPanel</code> takes <code>items</code>, <code>activeId</code>,{' '}
+          and <code>onItemClick</code>. Locked items are not clickable.
+        </p>
+      </div>
+
+      <h2 className="demoGroupTitle">Theming</h2>
+
+      <DemoBlock
+        anchor="demo-theme"
+        title="CSS Variables"
+        description="Override --tmr-accent and other tokens without forking."
+        controls={
+          <p className="demoControlHint">
+            Use the color picker above the editor to change accent live.
+          </p>
+        }
+      >
+        <ThemeDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          Set CSS variables on a wrapper element. See the API page for the full
+          --tmr-* list.
+        </p>
+      </div>
+    </DocsShell>
+  );
+}
+
+function ApiPage() {
+  const tocItems = [
+    { id: 'api-client', label: 'Client exports' },
+    { id: 'api-server', label: 'Server exports' },
+    { id: 'api-theme', label: 'CSS variables' },
+  ];
+  return (
+    <DocsShell toc={<PageToc items={tocItems} />}>
+      <div className="docsPageHead">
+        <h1>API</h1>
+        <p>Complete reference for props, ref methods, and theming tokens.</p>
+      </div>
+
+      <section id="api-client" className="apiSection">
+        <h2>tiptap-markdown-react</h2>
+        <h3>MarkdownWysiwygEditor</h3>
+        <ApiTable rows={EDITOR_API} />
+        <h4>Ref methods</h4>
+        <ApiTable rows={EDITOR_REF_API} />
+
+        <h3>EditorToolbar</h3>
+        <ApiTable rows={TOOLBAR_API} />
+
+        <h3>MarkdownPreview</h3>
+        <ApiTable rows={PREVIEW_API} />
+
+        <h3>TocPanel</h3>
+        <ApiTable rows={TOC_API} />
+
+        <h3>ReportContent</h3>
+        <ApiTable rows={REPORT_CONTENT_API} />
+
+        <h3>ColorPalette</h3>
+        <ApiTable rows={COLOR_PALETTE_API} />
+      </section>
+
+      <section id="api-server" className="apiSection">
+        <h2>tiptap-markdown-react/server</h2>
+        <h3>renderReportHtml(markdown, lockedTitles?)</h3>
+        <ApiTable rows={RENDER_HTML_API} />
+        <Snippet
+          code={`import {
+  renderReportHtml,
+  ReportContent,
+  extractToc,
+  makeTocGetId,
+  baseExtensions,
+} from 'tiptap-markdown-react/server';`}
         />
       </section>
 
-        <section id="api" className="section">
-          <Reveal>
-            <div className="sectionHead">
-              <p className="kicker">API</p>
-              <h2>Exports at a glance</h2>
-            </div>
-          </Reveal>
-          <div className="apiGrid">
-            <Reveal>
-              <div className="apiCard">
-                <h4>tiptap-markdown-react</h4>
-                <ul>
-                  <li>
-                    <code>MarkdownWysiwygEditor</code> — the editor (ref:
-                    getMarkdown/getHTML/getJSON)
-                  </li>
-                  <li>
-                    <code>EditorToolbar</code> — styled toolbar, onImageUpload
-                    / extraToolbarItems
-                  </li>
-                  <li>
-                    <code>MarkdownPreview</code> — read-only client preview
-                  </li>
-                  <li>
-                    <code>TocPanel</code> — table of contents sidebar
-                  </li>
-                  <li>
-                    <code>ColorPalette</code>, icons, label defaults
-                  </li>
-                </ul>
-              </div>
-            </Reveal>
-            <Reveal delay={70}>
-              <div className="apiCard">
-                <h4>tiptap-markdown-react/server</h4>
-                <ul>
-                  <li>
-                    <code>renderReportHtml(md)</code> → {'{ html, toc }'}
-                  </li>
-                  <li>
-                    <code>ReportContent</code> — static reader (RSC-safe)
-                  </li>
-                  <li>
-                    <code>extractToc</code>, <code>makeTocGetId</code>
-                  </li>
-                  <li>
-                    <code>baseExtensions</code>, <code>lowlight</code>
-                  </li>
-                </ul>
-              </div>
-            </Reveal>
-            <Reveal delay={140}>
-              <div className="apiCard">
-                <h4>Theming (--tmr-*)</h4>
-                <ul>
-                  <li>
-                    <code>--tmr-accent</code>, <code>--tmr-text</code>,{' '}
-                    <code>--tmr-muted</code>
-                  </li>
-                  <li>
-                    <code>--tmr-border</code>, <code>--tmr-body-font</code>
-                  </li>
-                  <li>
-                    <code>--tmr-font-size</code>, <code>--tmr-line-height</code>
-                  </li>
-                </ul>
-              </div>
-            </Reveal>
-          </div>
-        </section>
+      <section id="api-theme" className="apiSection">
+        <h2>CSS variables (--tmr-*)</h2>
+        <p className="componentDesc">
+          Override on any ancestor of the editor or reader. Import{' '}
+          <code>tiptap-markdown-react/style.css</code> first.
+        </p>
+        <ApiTable rows={THEME_VARS} />
+      </section>
+    </DocsShell>
+  );
+}
 
-        <footer className="footer">
-          <span>MIT © CatsInJune</span>
-          <a
-            href="https://github.com/CatsInJune/tiptap-markdown-react"
-            target="_blank"
-            rel="noreferrer"
-          >
-            github.com/CatsInJune/tiptap-markdown-react
-          </a>
-        </footer>
+export function App() {
+  const page = useHashPage();
+
+  return (
+    <>
+      <div className="aurora" aria-hidden />
+      <div className="auroraGrain" aria-hidden />
+      <div className="site">
+        <TopNav active={page} />
+        <div className={page === 'home' ? 'page homePage' : 'page docsPage'}>
+          {page === 'home' && <HomePage />}
+          {page === 'components' && <ComponentsPage />}
+          {page === 'demos' && <DemosPage />}
+          {page === 'api' && <ApiPage />}
+          <SiteFooter />
+        </div>
       </div>
     </>
   );
