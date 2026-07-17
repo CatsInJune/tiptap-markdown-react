@@ -54,6 +54,7 @@ export const DEMO_NAV: NavGroup[] = [
     title: 'Editing',
     items: [
       { id: 'demo-editor', label: 'WYSIWYG Editor', href: '#demo-editor' },
+      { id: 'demo-markdown-in', label: 'Paste / Drop / Import', href: '#demo-markdown-in' },
       { id: 'demo-toolbar', label: 'Toolbar + Image', href: '#demo-toolbar' },
       { id: 'demo-codeblock', label: 'Code Block', href: '#demo-codeblock' },
     ],
@@ -87,6 +88,8 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'placeholder', desc: 'Empty-state placeholder', type: 'string', defaultVal: '—' },
   { name: 'onEditorReady', desc: 'Called when editor is ready / destroyed', type: '(editor: Editor | null) => void', defaultVal: '—' },
   { name: 'onTocChange', desc: 'TOC updates when headings change', type: '(items: TocItem[]) => void', defaultVal: '—' },
+  { name: 'markdownPaste', desc: 'Auto-convert pasted markdown text (Shift+paste keeps plain text). Init-only', type: 'boolean', defaultVal: 'true' },
+  { name: 'markdownFileDrop', desc: 'Drop / paste .md files to insert parsed content. Init-only', type: 'boolean', defaultVal: 'true' },
   { name: 'extraExtensions', desc: 'Additional Tiptap extensions', type: 'AnyExtension[]', defaultVal: '—' },
   { name: 'codeBlockLabels', desc: 'Code block NodeView labels', type: 'Partial<CodeBlockLabels>', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
@@ -172,6 +175,24 @@ function greet(name: string) {
 | ------------ | :----: | :----: |
 | Markdown I/O |   ✅   |   ✅   |
 | SSR render   |   —    |   ✅   |
+`;
+
+export const INGEST_MD = `# Markdown in: three ways
+
+1. **Paste** markdown text — auto-detected and converted (Shift+paste keeps it plain)
+2. **Drag & drop** a \`.md\` file anywhere in this editor
+3. Toolbar **More → Import Markdown** opens a file picker
+
+Try it now: select and copy the source inside the code block below (it is plain text there), then paste it under this line.
+
+\`\`\`md
+## Pasted section
+
+- converted **rich** item
+- [a link](https://tiptap.dev)
+
+> a blockquote from pasted markdown
+\`\`\`
 `;
 
 export const CODEBLOCK_MD = `## Code block demo

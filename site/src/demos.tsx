@@ -12,6 +12,7 @@ import {
 import {
   CODEBLOCK_MD,
   DEMO_MD,
+  INGEST_MD,
   PREVIEW_MD,
   SAMPLE_TOC,
 } from './site-data';
@@ -73,6 +74,23 @@ export function ToolbarDemo() {
       <div className="editorDemoBody compact">
         <MarkdownWysiwygEditor
           initialMarkdown="# Toolbar demo\n\nClick the image button to upload — files become data URLs in this demo."
+          onEditorReady={setEditor}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Markdown 摄入:粘贴 / 拖拽 .md / 工具栏导入 */
+export function MarkdownIngestDemo() {
+  const [editor, setEditor] = useState<Editor | null>(null);
+  return (
+    <div className="editorDemo">
+      {editor && <EditorToolbar editor={editor} />}
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor
+          initialMarkdown={INGEST_MD}
+          placeholder="Paste markdown or drop a .md file…"
           onEditorReady={setEditor}
         />
       </div>

@@ -4,6 +4,7 @@ import {
   EditorDemo,
   EditorTocDemo,
   HeroDemo,
+  MarkdownIngestDemo,
   MarkdownOutputDemo,
   PreviewDemo,
   ReportContentDemo,
@@ -51,7 +52,7 @@ function HomePage() {
       <section className="hero">
         <div className="badges">
           <span className="badge">
-            npm <b>v0.2.0</b>
+            npm <b>v0.3.0</b>
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
@@ -332,6 +333,26 @@ function DemosPage() {
       </div>
 
       <DemoBlock
+        anchor="demo-markdown-in"
+        title="Paste / Drop / Import Markdown"
+        description="Three built-in ways to get markdown into the editor — paste detection, .md file drop, and a toolbar file picker."
+      >
+        <MarkdownIngestDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          Paste detection and file drop are on by default — opt out with{' '}
+          <code>markdownPaste={'{false}'}</code> /{' '}
+          <code>markdownFileDrop={'{false}'}</code>. Detection looks only at the
+          plain-text content, so copying markdown source from any app (Xcode,
+          VS Code, notes) converts, while real rich text (Word / web pages)
+          pastes normally. The toolbar item is localized via{' '}
+          <code>labels.importMarkdown</code>.
+        </p>
+      </div>
+
+      <DemoBlock
         anchor="demo-toolbar"
         title="Toolbar + Image Upload"
         description="onImageUpload converts files to data URLs in this demo (no backend)."
@@ -452,6 +473,17 @@ function ApiPage() {
         <h2>tiptap-markdown-react</h2>
         <h3>MarkdownWysiwygEditor</h3>
         <ApiTable rows={EDITOR_API} />
+        <p className="componentDesc">
+          Markdown ingestion is built in: <code>markdownPaste</code> converts
+          pasted markdown text (heuristic on the plain-text content;
+          Shift+paste and code blocks are left untouched),{' '}
+          <code>markdownFileDrop</code> accepts <code>.md</code> /{' '}
+          <code>.markdown</code> files via drag-drop or file paste, and{' '}
+          <code>EditorToolbar</code> ships an <em>Import Markdown</em> entry in
+          its More menu (<code>labels.importMarkdown</code>). The underlying
+          extensions <code>MarkdownPaste</code> / <code>MarkdownFileDrop</code>{' '}
+          are exported for custom pipelines.
+        </p>
         <h4>Ref methods</h4>
         <ApiTable rows={EDITOR_REF_API} />
 
