@@ -16,6 +16,8 @@ import {
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { baseExtensions, lowlight } from '../extensions';
 import type { CodeBlockLabels } from '../labels';
+import { MarkdownFileDrop } from '../markdownFileDrop';
+import { MarkdownPaste } from '../markdownPaste';
 import styles from '../styles/content.module.css';
 import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
@@ -112,6 +114,16 @@ export interface MarkdownWysiwygEditorProps {
   onEditorReady?: (editor: Editor | null) => void;
   /** 目录变化回调（正文标题增删改时），供侧边目录实时展示。 */
   onTocChange?: (items: TocItem[]) => void;
+  /**
+   * 粘贴纯文本时启发式检测 markdown 并自动转富文本(Shift+粘贴保持纯文本)。
+   * 默认 true。仅初始化时生效。
+   */
+  markdownPaste?: boolean;
+  /**
+   * 支持把 .md / .markdown 文件拖拽或粘贴进编辑器,解析后插入到落点/光标处。
+   * 默认 true。仅初始化时生效。
+   */
+  markdownFileDrop?: boolean;
   /** 追加的 Tiptap 扩展（在内置扩展之后注册）。 */
   extraExtensions?: AnyExtension[];
   /** 代码块 NodeView 的本地化文案。 */
@@ -133,6 +145,8 @@ export const MarkdownWysiwygEditor = forwardRef<
     placeholder,
     onEditorReady,
     onTocChange,
+    markdownPaste = true,
+    markdownFileDrop = true,
     extraExtensions,
     codeBlockLabels,
     className,
@@ -155,6 +169,8 @@ export const MarkdownWysiwygEditor = forwardRef<
           );
         },
       }),
+      ...(markdownPaste ? [MarkdownPaste] : []),
+      ...(markdownFileDrop ? [MarkdownFileDrop] : []),
       ...(extraExtensions ?? []),
     ],
     content: initialMarkdown,

@@ -34,6 +34,8 @@ export {
   pureCodeBlock,
   pureImage,
 } from './extensions';
+export { MarkdownPaste, looksLikeMarkdown } from './markdownPaste';
+export { MarkdownFileDrop } from './markdownFileDrop';
 
 // ── 目录工具 / 类型 ──
 export { extractToc, type TocItem } from './toc/extractToc';

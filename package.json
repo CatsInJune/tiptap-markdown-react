@@ -1,6 +1,6 @@
 {
   "name": "tiptap-markdown-react",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "A batteries-included, self-styled Markdown WYSIWYG editor and reader suite built on Tiptap v3. Markdown in/out, SSR/static rendering, table of contents, themeable via CSS variables, zero Ant Design.",
   "type": "module",
   "license": "MIT",
@@ -62,6 +62,7 @@
     "@radix-ui/react-popover": "^1.1.15",
     "@tiptap/core": "3.27.1",
     "@tiptap/extension-code-block-lowlight": "3.27.1",
+    "@tiptap/extension-file-handler": "^3.27.1",
     "@tiptap/extension-highlight": "3.27.1",
     "@tiptap/extension-image": "3.27.1",
     "@tiptap/extension-subscript": "3.27.1",

@@ -36,6 +36,7 @@ export interface ToolbarLabels {
   more: string;
   codeBlock: string;
   hr: string;
+  importMarkdown: string;
   tableInsert: string;
   tableAddColumnBefore: string;
   tableAddColumnAfter: string;
@@ -77,6 +78,7 @@ export const defaultToolbarLabels: ToolbarLabels = {
   more: 'More',
   codeBlock: 'Code block',
   hr: 'Divider',
+  importMarkdown: 'Import Markdown',
   tableInsert: 'Insert table',
   tableAddColumnBefore: 'Add column before',
   tableAddColumnAfter: 'Add column after',

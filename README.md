@@ -141,11 +141,23 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `placeholder` | `string` | Placeholder for the empty document. |
 | `onEditorReady` | `(editor: Editor \| null) => void` | Get the Tiptap instance (for the toolbar). |
 | `onTocChange` | `(items: TocItem[]) => void` | Fires when headings change. |
+| `markdownPaste` | `boolean` | Auto-detect markdown in plain-text paste and convert it (Shift+paste keeps plain text). Default `true`. Init-only. |
+| `markdownFileDrop` | `boolean` | Drop or paste `.md` / `.markdown` files into the editor to insert their parsed content. Default `true`. Init-only. |
 | `extraExtensions` | `AnyExtension[]` | Extra Tiptap extensions to register. |
 | `codeBlockLabels` | `Partial<CodeBlockLabels>` | Localize the code block UI. |
 | `className` | `string` | Class on the scroll container. |
 
 Ref handle (`MarkdownWysiwygEditorHandle`): `getMarkdown()`, `getHTML()`, `getJSON()`, `getEditor()`.
+
+#### Markdown in: paste, drop, import
+
+Three ways to get markdown into the editor, all built in:
+
+- **Paste markdown text** — plain-text paste is heuristically detected (headings, lists, links, fences, tables…) and parsed into rich content. Rich-text (HTML) paste is untouched; Shift+paste always inserts plain text; pasting inside a code block is never converted. Opt out with `markdownPaste={false}`.
+- **Drop / paste `.md` files** — drag a `.md` / `.markdown` file into the editor (inserted at drop point) or paste a copied file (inserted at cursor). Opt out with `markdownFileDrop={false}`.
+- **Toolbar import** — "Import Markdown" in the toolbar's More menu opens a file picker and inserts the parsed file at the cursor (label: `labels.importMarkdown`).
+
+The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLikeMarkdown` heuristic) are exported for custom pipelines.
 
 ### `<EditorToolbar>` (client)
 

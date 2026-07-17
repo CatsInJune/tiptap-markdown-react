@@ -34,6 +34,7 @@ import {
   UndoIcon,
 } from '../icons';
 import { defaultToolbarLabels, type ToolbarLabels } from '../labels';
+import { insertMarkdown } from '../insertMarkdown';
 import styles from '../styles/toolbar.module.css';
 import { ColorPalette } from './ColorPalette';
 
@@ -346,6 +347,21 @@ export function EditorToolbar({
       chain().setImage({ src: url }).run();
     } catch (err) {
       console.error('image upload failed:', err);
+      onError?.(err);
+    }
+  };
+
+  // ── 导入 Markdown：选 .md 文件 → 读文本 → 解析插入光标处 ──
+  const mdFileInputRef = useRef<HTMLInputElement>(null);
+  const handleMdFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      insertMarkdown(editor, text);
+    } catch (err) {
+      console.error('markdown import failed:', err);
       onError?.(err);
     }
   };
@@ -694,6 +710,12 @@ export function EditorToolbar({
                 {t.tableInsert}
               </span>
             </MenuItem>
+            <MenuItem onSelect={() => mdFileInputRef.current?.click()}>
+              <span className={styles.styleItem}>
+                <span className={styles.styleIcon}>M↓</span>
+                {t.importMarkdown}
+              </span>
+            </MenuItem>
             {extraToolbarItems?.map((item) => (
               <MenuItem
                 key={item.key}
@@ -709,6 +731,15 @@ export function EditorToolbar({
           </MenuPopover>
         </div>
       </div>
+
+      {/* 导入 Markdown 的隐藏文件选择器（More 菜单项触发） */}
+      <input
+        ref={mdFileInputRef}
+        type="file"
+        accept=".md,.markdown,text/markdown"
+        hidden
+        onChange={handleMdFileChange}
+      />
 
       {/* 表格工具条（右键召唤） */}
       {tableMenu &&
