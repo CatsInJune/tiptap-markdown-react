@@ -17,12 +17,15 @@ import {
   DEMO_NAV,
   EDITOR_API,
   EDITOR_REF_API,
+  INSERT_MARKDOWN_API,
   PACKAGE_FEATURES,
   PREVIEW_API,
   RENDER_HTML_API,
   REPORT_CONTENT_API,
+  SCROLL_TO_TOC_HEADING_API,
   THEME_VARS,
   TOC_API,
+  TOC_UTIL_API,
   TOOLBAR_API,
 } from './site-data';
 import {
@@ -466,7 +469,7 @@ function ApiPage() {
     <DocsShell toc={<PageToc items={tocItems} />}>
       <div className="docsPageHead">
         <h1>API</h1>
-        <p>Complete reference for props, ref methods, and theming tokens.</p>
+        <p>Complete reference for props, ref methods, utility functions, and theming tokens.</p>
       </div>
 
       <section id="api-client" className="apiSection">
@@ -501,6 +504,32 @@ function ApiPage() {
 
         <h3>ColorPalette</h3>
         <ApiTable rows={COLOR_PALETTE_API} />
+
+        <h3>Utilities</h3>
+        <p className="componentDesc">
+          Tool functions you can import directly from <code>tiptap-markdown-react</code>.
+          Use them for custom scroll behavior, programmatic markdown insertion, and TOC anchor
+          generation.
+        </p>
+
+        <h4>scrollToTocHeading</h4>
+        <p className="componentDesc">
+          Smooth-scroll to a heading identified by its <code>data-toc-id</code> attribute.
+          Uses <code>requestAnimationFrame</code> + easeOutCubic instead of browser{' '}
+          <code>scrollIntoView()</code>, which silently fails inside flex + overflow nested
+          containers in Chrome. Respects <code>prefers-reduced-motion: reduce</code>.
+        </p>
+        <ApiTable rows={SCROLL_TO_TOC_HEADING_API} />
+
+        <h4>insertMarkdown</h4>
+        <p className="componentDesc">
+          Programmatically insert a markdown string at the cursor position. Equivalent to{' '}
+          <code>editor.chain().focus().insertContent(md, {'{'}contentType:'markdown'{'}'}).run()</code>.
+        </p>
+        <ApiTable rows={INSERT_MARKDOWN_API} />
+
+        <h4>TOC / Markdown helpers</h4>
+        <ApiTable rows={TOC_UTIL_API} />
       </section>
 
       <section id="api-server" className="apiSection">

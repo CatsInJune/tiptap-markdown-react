@@ -144,6 +144,23 @@ export const THEME_VARS: ApiRow[] = [
   { name: '--tmr-line-height', desc: 'Body line height', type: 'number', defaultVal: '1.7' },
 ];
 
+export const SCROLL_TO_TOC_HEADING_API: ApiRow[] = [
+  { name: 'headingId', desc: 'TOC item id, matches the data-toc-id attribute on the target heading', type: 'string' },
+  { name: 'scrollContainer', desc: 'The overflow:auto container element to animate', type: 'HTMLElement' },
+  { name: 'options.duration', desc: 'Animation duration in ms (default 400)', type: 'number', defaultVal: '400' },
+];
+
+export const INSERT_MARKDOWN_API: ApiRow[] = [
+  { name: 'editor', desc: 'Tiptap Editor instance', type: 'Editor' },
+  { name: 'markdown', desc: 'Markdown string to insert at cursor position', type: 'string' },
+];
+
+export const TOC_UTIL_API: ApiRow[] = [
+  { name: 'extractToc(doc)', desc: 'Extract TocItem[] from Tiptap JSONContent', type: '(doc: JSONContent) => TocItem[]' },
+  { name: 'makeTocGetId(headings)', desc: 'Returns (text, level) => slug; shared anchor logic for SSR + client', type: '(headings: HeadingInfo[]) => (text: string, level: number) => string' },
+  { name: 'looksLikeMarkdown(text)', desc: 'Heuristic: does plain-text contain markdown patterns?', type: '(text: string) => boolean' },
+];
+
 export const PACKAGE_FEATURES = [
   { icon: '📝', title: 'Markdown in/out', body: 'Author and export as Markdown. getHTML() and getJSON() available too.' },
   { icon: '🎨', title: 'Opinionated UI', body: 'Toolbar, color palette, code blocks, TOC — styled out of the box, zero Ant Design.' },
