@@ -40,6 +40,7 @@ export { MarkdownFileDrop } from './markdownFileDrop';
 // ── 目录工具 / 类型 ──
 export { extractToc, type TocItem } from './toc/extractToc';
 export { makeTocGetId } from './toc/tocSlug';
+export { scrollToTocHeading } from './toc/scrollToTocHeading';
 
 // ── 文案默认值 / 类型（i18n 注入） ──
 export {
