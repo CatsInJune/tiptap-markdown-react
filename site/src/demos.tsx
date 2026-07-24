@@ -1,7 +1,7 @@
 import '@tiptap/markdown';
 import type { Editor } from '@tiptap/react';
 import * as Popover from '@radix-ui/react-popover';
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   EditorToolbar,
   MarkdownPreview,
@@ -9,8 +9,8 @@ import {
   ReportContent,
   ReportContentInteractive,
   TocPanel,
+  type CitationEnterContext,
   type RenderCitation,
-  type RenderCitationInteractive,
   type TocItem,
 } from 'tiptap-markdown-react';
 import { renderReportHtml } from 'tiptap-markdown-react/server';
@@ -176,7 +176,7 @@ export function CitationDemo() {
   );
 }
 
-/** SSR HTML + CitationInteractive：静态圆标上挂宿主 Popover */
+/** SSR HTML + CitationInteractive：库只报事件，宿主管 Popover 开关 */
 export function CitationSsrDemo() {
   const html = useMemo(
     () =>
@@ -184,15 +184,53 @@ export function CitationSsrDemo() {
     [],
   );
 
-  const renderCitation: RenderCitationInteractive = useCallback(
-    ({ index, anchorEl, close }) => {
-      const source = CITATION_SOURCES.find((s) => s.index === index);
-      if (!source?.excerpt) return null;
-      const rect = anchorEl.getBoundingClientRect();
-      return (
+  const [active, setActive] = useState<CitationEnterContext | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimerRef.current != null) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleClose = useCallback(() => {
+    clearCloseTimer();
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
+      setActive(null);
+    }, 200);
+  }, [clearCloseTimer]);
+
+  const onCitationEnter = useCallback(
+    (ctx: CitationEnterContext) => {
+      const source = CITATION_SOURCES.find((s) => s.index === ctx.index);
+      if (!source?.excerpt) {
+        scheduleClose();
+        return;
+      }
+      clearCloseTimer();
+      setActive(ctx);
+    },
+    [clearCloseTimer, scheduleClose],
+  );
+
+  const source = active
+    ? CITATION_SOURCES.find((s) => s.index === active.index)
+    : undefined;
+  const rect = active?.anchorEl.getBoundingClientRect();
+
+  return (
+    <div className="previewDemo">
+      <ReportContentInteractive
+        html={html}
+        trigger="hover"
+        onCitationEnter={onCitationEnter}
+        onCitationLeave={scheduleClose}
+      />
+      {active && source?.excerpt && rect ? (
         <div
           className="citationPopover citationPopoverFixed"
-          data-tmr-citation-popover
           style={{
             position: 'fixed',
             top: rect.top - 8,
@@ -201,6 +239,8 @@ export function CitationSsrDemo() {
             zIndex: 50,
           }}
           role="dialog"
+          onPointerEnter={clearCloseTimer}
+          onPointerLeave={scheduleClose}
         >
           <div className="citationPopoverTitle">Original excerpt</div>
           <div className="citationPopoverBody">{source.excerpt}</div>
@@ -212,28 +252,21 @@ export function CitationSsrDemo() {
                 href={source.url}
                 target="_blank"
                 rel="noreferrer"
-                onClick={close}
+                onClick={() => setActive(null)}
               >
                 View source
               </a>
             </>
           )}
-          <button type="button" className="citationPopoverClose" onClick={close}>
+          <button
+            type="button"
+            className="citationPopoverClose"
+            onClick={() => setActive(null)}
+          >
             Close
           </button>
         </div>
-      );
-    },
-    [],
-  );
-
-  return (
-    <div className="previewDemo">
-      <ReportContentInteractive
-        html={html}
-        trigger="hover"
-        renderCitation={renderCitation}
-      />
+      ) : null}
     </div>
   );
 }

@@ -264,16 +264,15 @@ function ComponentsPage() {
   <Popover content={lookup(index)}>{defaultDom}</Popover>
 )} />
 
-// SSR reader (DOM delegation)
-const { html } = renderReportHtml(md);
+// SSR reader — library emits events; host owns open state
+const [active, setActive] = useState(null);
 <ReportContentInteractive
   html={html}
-  renderCitation={({ index, anchorEl, close }) => (
-    <Popover anchorEl={anchorEl} onClose={close}>
-      {lookup(index)}
-    </Popover>
-  )}
-/>`}
+  trigger="hover"
+  onCitationEnter={setActive}
+  onCitationLeave={scheduleClose}
+/>
+{active && <Popover anchorEl={active.anchorEl}>{lookup(active.index)}</Popover>}`}
           />
         }
       />
@@ -473,7 +472,7 @@ function DemosPage() {
       <DemoBlock
         anchor="demo-citations-ssr"
         title="SSR reader + citations"
-        description="renderReportHtml produces static pills; CitationInteractive / ReportContentInteractive event-delegates hover/click and hands index + anchorEl to your Popover. Mark the floating root with data-tmr-citation-popover so hover can move onto a portaled panel."
+        description="renderReportHtml produces static pills; CitationInteractive only emits enter/leave — host owns Popover open state and delay-close (pointerenter on the floating panel cancels leave)."
       >
         <CitationSsrDemo />
       </DemoBlock>
@@ -481,11 +480,10 @@ function DemosPage() {
         <h4>Props 说明</h4>
         <p>
           Use <code>ReportContentInteractive</code> or compose{' '}
-          <code>ReportContent</code> + <code>CitationInteractive</code>. Slot
-          signature: <code>{'({ index, anchorEl, close }) => ReactNode'}</code>.
-          Hover: leave a pill schedules close (default 200ms); put{' '}
-          <code>data-tmr-citation-popover</code> on the popover content to cancel
-          while the pointer is over it.
+          <code>ReportContent</code> + <code>CitationInteractive</code>. Callbacks:{' '}
+          <code>onCitationEnter(ctx)</code> / <code>onCitationLeave()</code>. Render
+          your Popover outside; bridge portal hover with host pointer handlers — no
+          library marker required.
         </p>
       </div>
 
@@ -587,9 +585,10 @@ function ApiPage() {
         <p className="componentDesc">
           <code>[^n]</code> is parsed into a mid-line circular pill. Mount host UI
           with <code>renderCitation</code> on the editor/preview (NodeView), or{' '}
-          <code>CitationInteractive</code> / <code>ReportContentInteractive</code>{' '}
-          on SSR HTML (DOM delegation). Same <code>index</code> lookup; different
-          mount. The library does not define your source schema.
+          <code>onCitationEnter</code> / <code>onCitationLeave</code> on SSR HTML
+          via <code>CitationInteractive</code>. Same <code>index</code> lookup;
+          reader open state is host-owned. The library does not define your source
+          schema.
         </p>
         <ApiTable rows={CITATION_API} />
         <h4>CitationInteractive</h4>

@@ -28,7 +28,6 @@ export { CodeBlockView } from './components/CodeBlockView';
 export { ReportContent, type ReportContentProps } from './ReportContent';
 export {
   CitationInteractive,
-  CITATION_POPOVER_ATTR,
   type CitationInteractiveProps,
 } from './components/CitationInteractive';
 export {
@@ -48,8 +47,9 @@ export { createCitationRef } from './createCitationRef';
 export type {
   RenderCitation,
   RenderCitationContext,
-  RenderCitationInteractive,
-  RenderCitationInteractiveContext,
+  CitationEnterContext,
+  OnCitationEnter,
+  OnCitationLeave,
 } from './citationTypes';
 export {
   findCitationRefElement,

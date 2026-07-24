@@ -151,9 +151,9 @@ export const INSERT_MARKDOWN_API: ApiRow[] = [
 
 export const CITATION_API: ApiRow[] = [
   { name: 'renderCitation', desc: 'Editor/Preview NodeView slot: ({ index, attrs, defaultDom }) => ReactNode', type: 'RenderCitation' },
-  { name: 'CitationInteractive', desc: 'SSR reader enhancer: event-delegates .citation-ref, calls renderCitation with anchorEl', type: 'Component' },
+  { name: 'CitationInteractive', desc: 'SSR reader: event-delegates .citation-ref; emits onCitationEnter / onCitationLeave (no open state)', type: 'Component' },
   { name: 'ReportContentInteractive', desc: 'Convenience: ReportContent + CitationInteractive', type: 'Component' },
-  { name: 'renderCitation (interactive)', desc: 'SSR slot: ({ index, attrs, anchorEl, close }) => ReactNode', type: 'RenderCitationInteractive' },
+  { name: 'onCitationEnter / onCitationLeave', desc: 'Host-owned open/close; ctx has index + anchorEl', type: 'callbacks' },
   { name: 'createCitationRef({ renderCitation })', desc: 'Client CitationRef + NodeView', type: '() => Extension' },
   { name: 'CitationRef', desc: 'Pure schema node for SSR HTML (no React)', type: 'Node' },
   { name: 'findCitationRefElement / readCitationAttrs', desc: 'DOM helpers for custom delegation', type: 'function' },
@@ -162,7 +162,8 @@ export const CITATION_API: ApiRow[] = [
 
 export const CITATION_INTERACTIVE_API: ApiRow[] = [
   { name: 'containerRef', desc: 'Ref to the element wrapping ReportContent HTML', type: 'RefObject<HTMLElement | null>' },
-  { name: 'renderCitation', desc: 'Called when a .citation-ref is activated', type: 'RenderCitationInteractive' },
+  { name: 'onCitationEnter', desc: 'Pill activated (hover/click); host opens Popover', type: 'OnCitationEnter' },
+  { name: 'onCitationLeave', desc: 'Left pill/root or Escape; host closes (often with delay)', type: 'OnCitationLeave' },
   { name: 'trigger', desc: 'click (default) or hover', type: "'click' | 'hover'", defaultVal: "'click'" },
 ];
 

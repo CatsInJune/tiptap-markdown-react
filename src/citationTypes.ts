@@ -16,10 +16,11 @@ export interface RenderCitationContext {
 export type RenderCitation = (ctx: RenderCitationContext) => ReactNode;
 
 /**
- * SSR 阅读页增强插槽：在已有 `.citation-ref` DOM 上挂宿主浮层。
+ * SSR 阅读页：圆标被 hover/click 激活时交给宿主的载荷。
  * 与 {@link RenderCitation} 同构（按 index 查数据），输入是锚点元素而非 defaultDom。
+ * 开/关状态由宿主管，库只报事件。
  */
-export interface RenderCitationInteractiveContext {
+export interface CitationEnterContext {
   index: string;
   attrs: {
     index: string;
@@ -28,10 +29,7 @@ export interface RenderCitationInteractiveContext {
   };
   /** 被激活的圆标 DOM，供 Popover 锚定定位。 */
   anchorEl: HTMLElement;
-  /** 关闭浮层。 */
-  close: () => void;
 }
 
-export type RenderCitationInteractive = (
-  ctx: RenderCitationInteractiveContext,
-) => ReactNode;
+export type OnCitationEnter = (ctx: CitationEnterContext) => void;
+export type OnCitationLeave = () => void;

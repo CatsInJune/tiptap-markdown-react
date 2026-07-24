@@ -1,27 +1,28 @@
 'use client';
 
 import { useRef, type ComponentProps } from 'react';
-import type { RenderCitationInteractive } from '../citationTypes';
+import type { OnCitationEnter, OnCitationLeave } from '../citationTypes';
 import { ReportContent } from '../ReportContent';
 import { CitationInteractive } from './CitationInteractive';
 
 export interface ReportContentInteractiveProps
   extends Omit<ComponentProps<typeof ReportContent>, 'ref'> {
-  /** 与编辑器 `renderCitation` 同构：按 index 查数据、渲染 Popover。 */
-  renderCitation: RenderCitationInteractive;
+  /** 圆标激活：宿主 setState 打开自己的 Popover。 */
+  onCitationEnter: OnCitationEnter;
+  /** 离开圆标区域 / Escape：宿主决定立即关或延迟关。 */
+  onCitationLeave: OnCitationLeave;
   trigger?: 'click' | 'hover';
-  /** 透传 {@link CitationInteractive} hover 延迟关闭。 */
-  hoverCloseDelayMs?: number;
 }
 
 /**
- * SSR HTML 阅读 + 脚注交互的便捷封装。
- * 内部：`ReportContent`（静态 HTML）+ `CitationInteractive`（事件委托）。
+ * SSR HTML 阅读 + 脚注事件委托的便捷封装。
+ * 内部：`ReportContent`（静态 HTML）+ `CitationInteractive`（只报事件）。
+ * Popover 由宿主在外部渲染，不经本组件。
  */
 export function ReportContentInteractive({
-  renderCitation,
+  onCitationEnter,
+  onCitationLeave,
   trigger,
-  hoverCloseDelayMs,
   className,
   html,
   ...rest
@@ -33,9 +34,9 @@ export function ReportContentInteractive({
       <ReportContent html={html} {...rest} />
       <CitationInteractive
         containerRef={ref}
-        renderCitation={renderCitation}
+        onCitationEnter={onCitationEnter}
+        onCitationLeave={onCitationLeave}
         trigger={trigger}
-        hoverCloseDelayMs={hoverCloseDelayMs}
       />
     </div>
   );
