@@ -30,23 +30,8 @@ export interface CitationInteractiveProps {
 /**
  * SSR 阅读页脚注增强：只做事件委托，**不持有 open 状态**。
  *
- * 宿主自己渲染 Popover、自己写 delay close / 进浮层取消。浮层在 portal 里时，
- * 在浮层根上挂 `onPointerEnter` / `onPointerLeave` 即可，无需库侧标记。
- *
- * ```tsx
- * const [active, setActive] = useState<CitationEnterContext | null>(null);
- * // … delay close 略
- * <div ref={ref}>
- *   <ReportContent html={html} />
- *   <CitationInteractive
- *     containerRef={ref}
- *     trigger="hover"
- *     onCitationEnter={setActive}
- *     onCitationLeave={scheduleClose}
- *   />
- * </div>
- * {active && <MyPopover anchorEl={active.anchorEl} … />}
- * ```
+ * hover 下同一圆标只 emit 一次 enter（mouseover 会在子节点间反复冒泡），
+ * 避免宿主 setState 重渲导致圆标 :hover 闪烁。
  */
 export function CitationInteractive({
   containerRef,
@@ -63,14 +48,23 @@ export function CitationInteractive({
     const root = containerRef.current;
     if (!root) return;
 
+    /** 当前已 enter 的圆标；用于去重与判断是否真的 leave。 */
+    let currentEl: HTMLElement | null = null;
+
     const emitEnter = (el: HTMLElement, e?: Event) => {
+      if (el === currentEl) return;
+      currentEl = el;
       e?.preventDefault();
       e?.stopPropagation();
       const attrs = readCitationAttrs(el);
       enterRef.current({ index: attrs.index, attrs, anchorEl: el });
     };
 
-    const emitLeave = () => leaveRef.current();
+    const emitLeave = () => {
+      if (!currentEl) return;
+      currentEl = null;
+      leaveRef.current();
+    };
 
     const onClick = (e: MouseEvent) => {
       const el = findCitationRefElement(e.target, root);
@@ -78,7 +72,6 @@ export function CitationInteractive({
         emitEnter(el, e);
         return;
       }
-      // 点在容器内非圆标处 → leave（浮层 portal 到 body 时点浮层不会进这里）
       emitLeave();
     };
 
@@ -88,11 +81,9 @@ export function CitationInteractive({
         emitEnter(el, e);
         return;
       }
-      // 正文内非圆标
       emitLeave();
     };
 
-    // 离开整篇正文（含去 portal 浮层的路径）→ leave；宿主 delay + 浮层 pointer 取消
     const onRootMouseLeave = () => emitLeave();
 
     const onKeyDown = (e: KeyboardEvent) => {
