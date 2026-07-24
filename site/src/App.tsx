@@ -261,16 +261,15 @@ function ComponentsPage() {
           <Snippet
             code={`// Editor / Preview (NodeView)
 <MarkdownPreview renderCitation={({ index, defaultDom }) => (
-  <Popover content={lookup(index)}>{defaultDom}</Popover>
+  <Popover trigger="click" content={lookup(index)}>{defaultDom}</Popover>
 )} />
 
-// SSR reader — library emits events; host owns open state
+// SSR reader — click only; host owns open state
 const [active, setActive] = useState(null);
 <ReportContentInteractive
   html={html}
-  trigger="hover"
   onCitationEnter={setActive}
-  onCitationLeave={scheduleClose}
+  onCitationLeave={() => setActive(null)}
 />
 {active && <Popover anchorEl={active.anchorEl}>{lookup(active.index)}</Popover>}`}
           />
@@ -472,7 +471,7 @@ function DemosPage() {
       <DemoBlock
         anchor="demo-citations-ssr"
         title="SSR reader + citations"
-        description="renderReportHtml produces static pills; CitationInteractive only emits enter/leave — host owns Popover open state and delay-close (pointerenter on the floating panel cancels leave)."
+        description="renderReportHtml produces static pills; click a pill — CitationInteractive emits enter/leave, host owns the Popover. Inner <a> does not navigate (pointer-events:none); use the panel link."
       >
         <CitationSsrDemo />
       </DemoBlock>
@@ -480,10 +479,9 @@ function DemosPage() {
         <h4>Props 说明</h4>
         <p>
           Use <code>ReportContentInteractive</code> or compose{' '}
-          <code>ReportContent</code> + <code>CitationInteractive</code>. Callbacks:{' '}
+          <code>ReportContent</code> + <code>CitationInteractive</code>. Click only:{' '}
           <code>onCitationEnter(ctx)</code> / <code>onCitationLeave()</code>. Render
-          your Popover outside; bridge portal hover with host pointer handlers — no
-          library marker required.
+          your Popover outside the content tree.
         </p>
       </div>
 

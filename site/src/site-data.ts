@@ -162,9 +162,8 @@ export const CITATION_API: ApiRow[] = [
 
 export const CITATION_INTERACTIVE_API: ApiRow[] = [
   { name: 'containerRef', desc: 'Ref to the element wrapping ReportContent HTML', type: 'RefObject<HTMLElement | null>' },
-  { name: 'onCitationEnter', desc: 'Pill activated (hover/click); host opens Popover', type: 'OnCitationEnter' },
-  { name: 'onCitationLeave', desc: 'Left pill/root or Escape; host closes (often with delay)', type: 'OnCitationLeave' },
-  { name: 'trigger', desc: 'click (default) or hover', type: "'click' | 'hover'", defaultVal: "'click'" },
+  { name: 'onCitationEnter', desc: 'Pill clicked; host opens Popover', type: 'OnCitationEnter' },
+  { name: 'onCitationLeave', desc: 'Click outside / same pill again / Escape; host closes', type: 'OnCitationLeave' },
 ];
 
 export const THEME_VARS: ApiRow[] = [

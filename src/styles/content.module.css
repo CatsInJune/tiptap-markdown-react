@@ -270,6 +270,8 @@
   justify-content: center;
   width: 100%;
   height: 100%;
+  /* 点击交给圆标 / Popover，不跟 href 跳转；看原文走浮层链接 */
+  pointer-events: none;
 }
 
 .editorContent :global(span.citation-ref:hover),

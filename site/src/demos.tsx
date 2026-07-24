@@ -176,7 +176,7 @@ export function CitationDemo() {
   );
 }
 
-/** SSR HTML + CitationInteractive：库只报事件，宿主管 Popover 开关 */
+/** SSR HTML + CitationInteractive：仅 click，宿主管 Popover */
 export function CitationSsrDemo() {
   const html = useMemo(
     () =>
@@ -185,35 +185,15 @@ export function CitationSsrDemo() {
   );
 
   const [active, setActive] = useState<CitationEnterContext | null>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const clearCloseTimer = useCallback(() => {
-    if (closeTimerRef.current != null) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleClose = useCallback(() => {
-    clearCloseTimer();
-    closeTimerRef.current = setTimeout(() => {
-      closeTimerRef.current = null;
+  const onCitationEnter = useCallback((ctx: CitationEnterContext) => {
+    const source = CITATION_SOURCES.find((s) => s.index === ctx.index);
+    if (!source?.excerpt) {
       setActive(null);
-    }, 200);
-  }, [clearCloseTimer]);
-
-  const onCitationEnter = useCallback(
-    (ctx: CitationEnterContext) => {
-      const source = CITATION_SOURCES.find((s) => s.index === ctx.index);
-      if (!source?.excerpt) {
-        scheduleClose();
-        return;
-      }
-      clearCloseTimer();
-      setActive(ctx);
-    },
-    [clearCloseTimer, scheduleClose],
-  );
+      return;
+    }
+    setActive(ctx);
+  }, []);
 
   const source = active
     ? CITATION_SOURCES.find((s) => s.index === active.index)
@@ -224,9 +204,8 @@ export function CitationSsrDemo() {
     <div className="previewDemo">
       <ReportContentInteractive
         html={html}
-        trigger="hover"
         onCitationEnter={onCitationEnter}
-        onCitationLeave={scheduleClose}
+        onCitationLeave={() => setActive(null)}
       />
       {active && source?.excerpt && rect ? (
         <div
@@ -239,8 +218,6 @@ export function CitationSsrDemo() {
             zIndex: 50,
           }}
           role="dialog"
-          onPointerEnter={clearCloseTimer}
-          onPointerLeave={scheduleClose}
         >
           <div className="citationPopoverTitle">Original excerpt</div>
           <div className="citationPopoverBody">{source.excerpt}</div>
