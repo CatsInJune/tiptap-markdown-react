@@ -19,7 +19,7 @@ export interface CitationInteractiveProps {
   /** 指针进入 / 点击圆标。宿主据此 setState 打开自己的 Popover。 */
   onCitationEnter: OnCitationEnter;
   /**
-   * 离开圆标区域（hover：离开圆标或正文根；click：点正文非圆标处）或 Escape。
+   * 离开圆标区域（hover：真正离开圆标；click：点正文非圆标处）或 Escape。
    * 库立即回调，不做延迟——延迟关闭与 portal 桥接由宿主管。
    */
   onCitationLeave: OnCitationLeave;
@@ -30,8 +30,8 @@ export interface CitationInteractiveProps {
 /**
  * SSR 阅读页脚注增强：只做事件委托，**不持有 open 状态**。
  *
- * hover 下同一圆标只 emit 一次 enter（mouseover 会在子节点间反复冒泡），
- * 避免宿主 setState 重渲导致圆标 :hover 闪烁。
+ * hover 用 pointerover / pointerout + relatedTarget 判断，避免在「正文其它节点
+ * 的冒泡 mouseover」上误 leave（那是圆标闪烁的常见根因）。
  */
 export function CitationInteractive({
   containerRef,
@@ -48,14 +48,11 @@ export function CitationInteractive({
     const root = containerRef.current;
     if (!root) return;
 
-    /** 当前已 enter 的圆标；用于去重与判断是否真的 leave。 */
     let currentEl: HTMLElement | null = null;
 
-    const emitEnter = (el: HTMLElement, e?: Event) => {
+    const emitEnter = (el: HTMLElement) => {
       if (el === currentEl) return;
       currentEl = el;
-      e?.preventDefault();
-      e?.stopPropagation();
       const attrs = readCitationAttrs(el);
       enterRef.current({ index: attrs.index, attrs, anchorEl: el });
     };
@@ -69,38 +66,48 @@ export function CitationInteractive({
     const onClick = (e: MouseEvent) => {
       const el = findCitationRefElement(e.target, root);
       if (el) {
-        emitEnter(el, e);
+        e.preventDefault();
+        e.stopPropagation();
+        emitEnter(el);
         return;
       }
       emitLeave();
     };
 
-    const onMouseOver = (e: MouseEvent) => {
+    const onPointerOver = (e: PointerEvent) => {
       const el = findCitationRefElement(e.target, root);
-      if (el) {
-        emitEnter(el, e);
+      if (el) emitEnter(el);
+    };
+
+    const onPointerOut = (e: PointerEvent) => {
+      if (!currentEl) return;
+      const related = e.relatedTarget;
+      // 仍在当前圆标内（子节点之间移动）
+      if (related instanceof Node && currentEl.contains(related)) return;
+      // 移到另一圆标
+      const next = findCitationRefElement(related, root);
+      if (next) {
+        emitEnter(next);
         return;
       }
       emitLeave();
     };
-
-    const onRootMouseLeave = () => emitLeave();
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') emitLeave();
     };
 
     if (trigger === 'hover') {
-      root.addEventListener('mouseover', onMouseOver);
-      root.addEventListener('mouseleave', onRootMouseLeave);
+      root.addEventListener('pointerover', onPointerOver);
+      root.addEventListener('pointerout', onPointerOut);
     } else {
       root.addEventListener('click', onClick);
     }
     document.addEventListener('keydown', onKeyDown);
 
     return () => {
-      root.removeEventListener('mouseover', onMouseOver);
-      root.removeEventListener('mouseleave', onRootMouseLeave);
+      root.removeEventListener('pointerover', onPointerOver);
+      root.removeEventListener('pointerout', onPointerOut);
       root.removeEventListener('click', onClick);
       document.removeEventListener('keydown', onKeyDown);
     };

@@ -6,8 +6,12 @@ export function findCitationRefElement(
   target: EventTarget | null,
   root: ParentNode,
 ): HTMLElement | null {
-  if (!(target instanceof Element)) return null;
-  const el = target.closest('.citation-ref');
+  let node: Node | null = null;
+  if (target instanceof Element) node = target;
+  else if (target instanceof Text) node = target.parentElement;
+  else if (target instanceof Node) node = target.parentElement;
+  if (!(node instanceof Element)) return null;
+  const el = node.closest('.citation-ref');
   if (!(el instanceof HTMLElement)) return null;
   if (!root.contains(el)) return null;
   return el;

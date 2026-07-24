@@ -30,6 +30,18 @@ describe('findCitationRefElement', () => {
     root.innerHTML = '<p class="body">plain</p>';
     expect(findCitationRefElement(root.querySelector('p'), root)).toBeNull();
   });
+
+  it('Text 节点目标也能找到圆标', () => {
+    const root = document.createElement('div');
+    root.innerHTML =
+      '<span class="citation-ref" data-index="2">2</span>';
+    const span = root.querySelector('.citation-ref')!;
+    const text = span.firstChild;
+    expect(text?.nodeType).toBe(Node.TEXT_NODE);
+    expect(findCitationRefElement(text, root)?.getAttribute('data-index')).toBe(
+      '2',
+    );
+  });
 });
 
 describe('readCitationAttrs', () => {
