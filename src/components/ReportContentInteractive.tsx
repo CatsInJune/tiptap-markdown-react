@@ -10,6 +10,8 @@ export interface ReportContentInteractiveProps
   /** 与编辑器 `renderCitation` 同构：按 index 查数据、渲染 Popover。 */
   renderCitation: RenderCitationInteractive;
   trigger?: 'click' | 'hover';
+  /** 透传 {@link CitationInteractive} hover 延迟关闭。 */
+  hoverCloseDelayMs?: number;
 }
 
 /**
@@ -19,6 +21,7 @@ export interface ReportContentInteractiveProps
 export function ReportContentInteractive({
   renderCitation,
   trigger,
+  hoverCloseDelayMs,
   className,
   html,
   ...rest
@@ -32,6 +35,7 @@ export function ReportContentInteractive({
         containerRef={ref}
         renderCitation={renderCitation}
         trigger={trigger}
+        hoverCloseDelayMs={hoverCloseDelayMs}
       />
     </div>
   );

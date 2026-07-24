@@ -473,7 +473,7 @@ function DemosPage() {
       <DemoBlock
         anchor="demo-citations-ssr"
         title="SSR reader + citations"
-        description="renderReportHtml produces static pills; CitationInteractive / ReportContentInteractive event-delegates clicks and hands index + anchorEl to your Popover."
+        description="renderReportHtml produces static pills; CitationInteractive / ReportContentInteractive event-delegates hover/click and hands index + anchorEl to your Popover. Mark the floating root with data-tmr-citation-popover so hover can move onto a portaled panel."
       >
         <CitationSsrDemo />
       </DemoBlock>
@@ -483,6 +483,9 @@ function DemosPage() {
           Use <code>ReportContentInteractive</code> or compose{' '}
           <code>ReportContent</code> + <code>CitationInteractive</code>. Slot
           signature: <code>{'({ index, anchorEl, close }) => ReactNode'}</code>.
+          Hover: leave a pill schedules close (default 200ms); put{' '}
+          <code>data-tmr-citation-popover</code> on the popover content to cancel
+          while the pointer is over it.
         </p>
       </div>
 

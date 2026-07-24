@@ -192,6 +192,7 @@ export function CitationSsrDemo() {
       return (
         <div
           className="citationPopover citationPopoverFixed"
+          data-tmr-citation-popover
           style={{
             position: 'fixed',
             top: rect.top - 8,
@@ -228,7 +229,11 @@ export function CitationSsrDemo() {
 
   return (
     <div className="previewDemo">
-      <ReportContentInteractive html={html} renderCitation={renderCitation} />
+      <ReportContentInteractive
+        html={html}
+        trigger="hover"
+        renderCitation={renderCitation}
+      />
     </div>
   );
 }

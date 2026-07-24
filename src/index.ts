@@ -28,6 +28,7 @@ export { CodeBlockView } from './components/CodeBlockView';
 export { ReportContent, type ReportContentProps } from './ReportContent';
 export {
   CitationInteractive,
+  CITATION_POPOVER_ATTR,
   type CitationInteractiveProps,
 } from './components/CitationInteractive';
 export {
