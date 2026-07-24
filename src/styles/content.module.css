@@ -273,7 +273,8 @@
 }
 
 .editorContent :global(span.citation-ref:hover),
-.editorContent :global(span.citation-ref:focus-within) {
+.editorContent :global(span.citation-ref:focus-within),
+.editorContent :global(span.citation-ref[data-tmr-citation-active]) {
   background: var(--tmr-citation-bg-hover, var(--tmr-accent, #ff6719));
   border-color: var(--tmr-citation-bg-hover, var(--tmr-accent, #ff6719));
   color: var(--tmr-citation-fg-hover, #ffffff);
