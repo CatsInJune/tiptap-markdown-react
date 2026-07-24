@@ -14,6 +14,12 @@ import {
   type Editor,
 } from '@tiptap/react';
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
+import {
+  enrichMarkdownCitations,
+  type SourceRef,
+} from '../citationUtils';
+import type { RenderCitation } from '../citationTypes';
+import { createCitationRef } from '../createCitationRef';
 import { baseExtensions, lowlight } from '../extensions';
 import type { CodeBlockLabels } from '../labels';
 import { MarkdownFileDrop } from '../markdownFileDrop';
@@ -109,6 +115,16 @@ export interface MarkdownWysiwygEditorHandle {
 export interface MarkdownWysiwygEditorProps {
   /** 初始 markdown 内容。 */
   initialMarkdown?: string;
+  /**
+   * 初始脚注来源：按 index 对齐 `[^n]`，写入 citationRef 的 url/title。
+   * 仅影响初始 content；后续插入请用 `insertMarkdown(editor, md, sources)`。
+   */
+  sources?: SourceRef[];
+  /**
+   * 脚注圆标 NodeView 插槽。消费方用 Popover 包住 `defaultDom`，
+   * 用 `index` 查自己的数据源。仅初始化时生效。
+   */
+  renderCitation?: RenderCitation;
   placeholder?: string;
   /** editor 实例就绪 / 销毁时回调，供外部工具栏使用。 */
   onEditorReady?: (editor: Editor | null) => void;
@@ -142,6 +158,8 @@ export const MarkdownWysiwygEditor = forwardRef<
 >(function MarkdownWysiwygEditor(
   {
     initialMarkdown = '',
+    sources,
+    renderCitation,
     placeholder,
     onEditorReady,
     onTocChange,
@@ -153,11 +171,17 @@ export const MarkdownWysiwygEditor = forwardRef<
   },
   ref,
 ) {
+  const preparedInitial = enrichMarkdownCitations(
+    initialMarkdown,
+    sources ?? [],
+  );
+
   const editor = useEditor({
     extensions: [
       ...baseExtensions,
       CodeBlock.configure({ lowlight, codeBlockLabels }),
       ImageWithConfirmDelete.configure({ inline: false }),
+      createCitationRef({ renderCitation }),
       Markdown,
       TableOfContents.configure({
         getId: makeTocGetId(),
@@ -173,7 +197,7 @@ export const MarkdownWysiwygEditor = forwardRef<
       ...(markdownFileDrop ? [MarkdownFileDrop] : []),
       ...(extraExtensions ?? []),
     ],
-    content: initialMarkdown,
+    content: preparedInitial,
     contentType: 'markdown',
     // Next.js SSR：服务端不立即渲染，避免 hydration 不一致
     immediatelyRender: false,

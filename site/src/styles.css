@@ -1235,6 +1235,69 @@ a {
   }
 }
 
+/* Citation Popover demo (host-owned UI via renderCitation slot) */
+.citationPopover {
+  z-index: 50;
+  max-width: 320px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #eaeaea);
+  background: #fff;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 12%);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.citationPopoverTitle {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text, #1b1b1b);
+  margin-bottom: 6px;
+}
+
+.citationPopoverBody {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted, #6b6b6b);
+}
+
+.citationPopoverDivider {
+  height: 1px;
+  background: var(--border, #eaeaea);
+  margin: 10px 0 8px;
+}
+
+.citationPopoverLink {
+  font-size: 12px;
+  color: var(--accent, #ff6719);
+  text-decoration: none;
+  font-weight: 550;
+}
+
+.citationPopoverLink:hover {
+  text-decoration: underline;
+}
+
+.citationPopoverArrow {
+  fill: #fff;
+  stroke: var(--border, #eaeaea);
+  stroke-width: 1px;
+}
+
+.citationPopoverClose {
+  margin-top: 10px;
+  display: inline-flex;
+  border: none;
+  background: transparent;
+  color: var(--muted, #6b6b6b);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.citationPopoverClose:hover {
+  color: var(--text, #1b1b1b);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   .aurora::before,

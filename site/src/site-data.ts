@@ -31,6 +31,7 @@ export const COMPONENT_NAV: NavGroup[] = [
     items: [
       { id: 'preview', label: 'MarkdownPreview', href: '#preview' },
       { id: 'report-content', label: 'ReportContent', href: '#report-content' },
+      { id: 'citations', label: 'Citations [^n]', href: '#citations' },
     ],
   },
   {
@@ -63,6 +64,8 @@ export const DEMO_NAV: NavGroup[] = [
     title: 'Reading',
     items: [
       { id: 'demo-preview', label: 'Client Preview', href: '#demo-preview' },
+      { id: 'demo-citations', label: 'Citation pills', href: '#demo-citations' },
+      { id: 'demo-citations-ssr', label: 'SSR + citations', href: '#demo-citations-ssr' },
       { id: 'demo-markdown-out', label: 'Markdown Output', href: '#demo-markdown-out' },
     ],
   },
@@ -85,6 +88,8 @@ export interface ApiRow {
 
 export const EDITOR_API: ApiRow[] = [
   { name: 'initialMarkdown', desc: 'Initial markdown content', type: 'string', defaultVal: "''" },
+  { name: 'sources', desc: 'Initial citation sources for [^n] (url/title on citationRef). Init-only', type: 'SourceRef[]', defaultVal: '—' },
+  { name: 'renderCitation', desc: 'NodeView slot to wrap citation pills (Popover etc.). Init-only', type: 'RenderCitation', defaultVal: '—' },
   { name: 'placeholder', desc: 'Empty-state placeholder', type: 'string', defaultVal: '—' },
   { name: 'onEditorReady', desc: 'Called when editor is ready / destroyed', type: '(editor: Editor | null) => void', defaultVal: '—' },
   { name: 'onTocChange', desc: 'TOC updates when headings change', type: '(items: TocItem[]) => void', defaultVal: '—' },
@@ -113,6 +118,8 @@ export const TOOLBAR_API: ApiRow[] = [
 
 export const PREVIEW_API: ApiRow[] = [
   { name: 'markdown', desc: 'Markdown string to render', type: 'string' },
+  { name: 'sources', desc: 'Optional: attach url/title onto [^n] nodes by index', type: 'SourceRef[]', defaultVal: '—' },
+  { name: 'renderCitation', desc: 'NodeView slot: wrap the pill (e.g. host Popover). Data lookup is host-owned', type: 'RenderCitation', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
 ];
 
@@ -130,8 +137,33 @@ export const REPORT_CONTENT_API: ApiRow[] = [
 
 export const RENDER_HTML_API: ApiRow[] = [
   { name: 'markdown', desc: 'Input markdown string', type: 'string' },
+  { name: 'lockedTitles / options.lockedTitles', desc: 'Paywalled section titles (TOC locked)', type: 'string[]', defaultVal: '[]' },
+  { name: 'options.sources', desc: 'Citation sources aligned by index to [^n]', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'returns.html', desc: 'Rendered HTML string', type: 'string' },
   { name: 'returns.toc', desc: 'Extracted table of contents', type: 'TocItem[]' },
+];
+
+export const INSERT_MARKDOWN_API: ApiRow[] = [
+  { name: 'editor', desc: 'Tiptap Editor instance', type: 'Editor' },
+  { name: 'markdown', desc: 'Markdown string to insert at cursor position', type: 'string' },
+  { name: 'sources', desc: 'Optional citation sources; enriches [^n] before insert', type: 'SourceRef[]', defaultVal: '[]' },
+];
+
+export const CITATION_API: ApiRow[] = [
+  { name: 'renderCitation', desc: 'Editor/Preview NodeView slot: ({ index, attrs, defaultDom }) => ReactNode', type: 'RenderCitation' },
+  { name: 'CitationInteractive', desc: 'SSR reader enhancer: event-delegates .citation-ref, calls renderCitation with anchorEl', type: 'Component' },
+  { name: 'ReportContentInteractive', desc: 'Convenience: ReportContent + CitationInteractive', type: 'Component' },
+  { name: 'renderCitation (interactive)', desc: 'SSR slot: ({ index, attrs, anchorEl, close }) => ReactNode', type: 'RenderCitationInteractive' },
+  { name: 'createCitationRef({ renderCitation })', desc: 'Client CitationRef + NodeView', type: '() => Extension' },
+  { name: 'CitationRef', desc: 'Pure schema node for SSR HTML (no React)', type: 'Node' },
+  { name: 'findCitationRefElement / readCitationAttrs', desc: 'DOM helpers for custom delegation', type: 'function' },
+  { name: 'enrichMarkdownCitations / applyCitationSources', desc: 'Optional helpers to attach url/title by index', type: 'function' },
+];
+
+export const CITATION_INTERACTIVE_API: ApiRow[] = [
+  { name: 'containerRef', desc: 'Ref to the element wrapping ReportContent HTML', type: 'RefObject<HTMLElement | null>' },
+  { name: 'renderCitation', desc: 'Called when a .citation-ref is activated', type: 'RenderCitationInteractive' },
+  { name: 'trigger', desc: 'click (default) or hover', type: "'click' | 'hover'", defaultVal: "'click'" },
 ];
 
 export const THEME_VARS: ApiRow[] = [
@@ -142,17 +174,17 @@ export const THEME_VARS: ApiRow[] = [
   { name: '--tmr-body-font', desc: 'Body font family', type: 'font-family' },
   { name: '--tmr-font-size', desc: 'Base font size', type: 'length', defaultVal: '16px' },
   { name: '--tmr-line-height', desc: 'Body line height', type: 'number', defaultVal: '1.7' },
+  { name: '--tmr-citation-bg', desc: 'Citation pill background (default matches toolbar active wash)', type: 'color', defaultVal: '#fff3ec' },
+  { name: '--tmr-citation-fg', desc: 'Citation pill text / number', type: 'color', defaultVal: '#ff6719' },
+  { name: '--tmr-citation-border', desc: 'Citation pill border', type: 'color', defaultVal: '#ffd4b8' },
+  { name: '--tmr-citation-bg-hover', desc: 'Citation pill hover background', type: 'color', defaultVal: '#ff6719' },
+  { name: '--tmr-citation-fg-hover', desc: 'Citation pill hover text', type: 'color', defaultVal: '#ffffff' },
 ];
 
 export const SCROLL_TO_TOC_HEADING_API: ApiRow[] = [
   { name: 'headingId', desc: 'TOC item id, matches the data-toc-id attribute on the target heading', type: 'string' },
   { name: 'scrollContainer', desc: 'The overflow:auto container element to animate', type: 'HTMLElement' },
   { name: 'options.duration', desc: 'Animation duration in ms (default 400)', type: 'number', defaultVal: '400' },
-];
-
-export const INSERT_MARKDOWN_API: ApiRow[] = [
-  { name: 'editor', desc: 'Tiptap Editor instance', type: 'Editor' },
-  { name: 'markdown', desc: 'Markdown string to insert at cursor position', type: 'string' },
 ];
 
 export const TOC_UTIL_API: ApiRow[] = [
@@ -167,7 +199,7 @@ export const PACKAGE_FEATURES = [
   { icon: '👁', title: 'Editor + Preview + SSR', body: 'Client editor, live preview, and server-side renderReportHtml for SEO pages.' },
   { icon: '🔗', title: 'Stable TOC anchors', body: 'Shared slug logic between editor, preview, and published reader.' },
   { icon: '🎯', title: 'Themeable', body: 'All colors and fonts exposed as --tmr-* CSS variables.' },
-  { icon: '⚡', title: 'RSC-safe server entry', body: 'tiptap-markdown-react/server has no client code.' },
+  { icon: '📎', title: 'Citation pills', body: 'Parse [^n] into mid-line circular markers; hosts supply sources + optional Popover.' },
 ];
 
 export const DEMO_MD = `# Meet the editor
@@ -247,6 +279,42 @@ console.log(sum(2, 3));
 | Alpha  | 1     |
 | Beta   | 2     |
 `;
+
+export const CITATION_MD = `## Revenue growth
+
+- 2023Q4: 889亿美元[^3]
+- 2024Q4: 1,106亿美元[^4]
+- 2025Q3: 1,083亿美元[^5]
+
+FY2025 营收同比 -1.21%[^1]，生意模式底层结构未变[^3]。
+`;
+
+export const CITATION_SOURCES = [
+  {
+    index: '1',
+    url: 'https://example.com/fy2025-report#kpi',
+    title: 'FY2025 年报',
+    excerpt: '营业收入同比 -1.21%；归母净利润同比 -4.53%。',
+  },
+  {
+    index: '3',
+    url: 'https://example.com/fy2023q4',
+    title: '2023Q4 财报',
+    excerpt: '营业收入：88,881,036,000.0美元',
+  },
+  {
+    index: '4',
+    url: 'https://example.com/fy2024q4',
+    title: '2024Q4 财报',
+    excerpt: '营业收入：110,600,000,000美元',
+  },
+  {
+    index: '5',
+    url: 'https://example.com/fy2025q3',
+    title: '2025Q3 财报',
+    excerpt: '营业收入：108,300,000,000美元',
+  },
+];
 
 export const SAMPLE_TOC = [
   { id: 'intro', level: 1, text: 'Introduction', locked: false },

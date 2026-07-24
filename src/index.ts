@@ -26,6 +26,14 @@ export { CodeBlockView } from './components/CodeBlockView';
 
 // ── 只读静态正文（也在 ./server 导出，供纯客户端场景直接用） ──
 export { ReportContent, type ReportContentProps } from './ReportContent';
+export {
+  CitationInteractive,
+  type CitationInteractiveProps,
+} from './components/CitationInteractive';
+export {
+  ReportContentInteractive,
+  type ReportContentInteractiveProps,
+} from './components/ReportContentInteractive';
 
 // ── 扩展（供组合 extraExtensions 或自建管线） ──
 export {
@@ -34,6 +42,23 @@ export {
   pureCodeBlock,
   pureImage,
 } from './extensions';
+export { CitationRef } from './CitationRef';
+export { createCitationRef } from './createCitationRef';
+export type {
+  RenderCitation,
+  RenderCitationContext,
+  RenderCitationInteractive,
+  RenderCitationInteractiveContext,
+} from './citationTypes';
+export {
+  findCitationRefElement,
+  readCitationAttrs,
+} from './citationDom';
+export {
+  applyCitationSources,
+  enrichMarkdownCitations,
+  type SourceRef,
+} from './citationUtils';
 export { MarkdownPaste, looksLikeMarkdown } from './markdownPaste';
 export { MarkdownFileDrop } from './markdownFileDrop';
 

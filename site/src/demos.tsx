@@ -1,16 +1,23 @@
 import '@tiptap/markdown';
 import type { Editor } from '@tiptap/react';
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import * as Popover from '@radix-ui/react-popover';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   EditorToolbar,
   MarkdownPreview,
   MarkdownWysiwygEditor,
   ReportContent,
+  ReportContentInteractive,
   TocPanel,
+  type RenderCitation,
+  type RenderCitationInteractive,
   type TocItem,
 } from 'tiptap-markdown-react';
+import { renderReportHtml } from 'tiptap-markdown-react/server';
 import {
   CODEBLOCK_MD,
+  CITATION_MD,
+  CITATION_SOURCES,
   DEMO_MD,
   INGEST_MD,
   PREVIEW_MD,
@@ -114,6 +121,114 @@ export function PreviewDemo({ markdown = PREVIEW_MD }: { markdown?: string }) {
   return (
     <div className="previewDemo">
       <MarkdownPreview markdown={markdown} />
+    </div>
+  );
+}
+
+/** 脚注圆标：库渲 pill，消费方用 renderCitation 挂 Popover */
+export function CitationDemo() {
+  const renderCitation: RenderCitation = useCallback(({ index, defaultDom }) => {
+    const source = CITATION_SOURCES.find((s) => s.index === index);
+    if (!source?.excerpt) return defaultDom;
+    return (
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <span style={{ display: 'inline', cursor: 'pointer' }}>
+            {defaultDom}
+          </span>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            side="top"
+            sideOffset={8}
+            className="citationPopover"
+          >
+            <div className="citationPopoverTitle">Original excerpt</div>
+            <div className="citationPopoverBody">{source.excerpt}</div>
+            {source.url && (
+              <>
+                <div className="citationPopoverDivider" />
+                <a
+                  className="citationPopoverLink"
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View source
+                </a>
+              </>
+            )}
+            <Popover.Arrow className="citationPopoverArrow" />
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    );
+  }, []);
+
+  return (
+    <div className="previewDemo">
+      <MarkdownPreview
+        markdown={CITATION_MD}
+        sources={CITATION_SOURCES}
+        renderCitation={renderCitation}
+      />
+    </div>
+  );
+}
+
+/** SSR HTML + CitationInteractive：静态圆标上挂宿主 Popover */
+export function CitationSsrDemo() {
+  const html = useMemo(
+    () =>
+      renderReportHtml(CITATION_MD, { sources: CITATION_SOURCES }).html,
+    [],
+  );
+
+  const renderCitation: RenderCitationInteractive = useCallback(
+    ({ index, anchorEl, close }) => {
+      const source = CITATION_SOURCES.find((s) => s.index === index);
+      if (!source?.excerpt) return null;
+      const rect = anchorEl.getBoundingClientRect();
+      return (
+        <div
+          className="citationPopover citationPopoverFixed"
+          style={{
+            position: 'fixed',
+            top: rect.top - 8,
+            left: rect.left + rect.width / 2,
+            transform: 'translate(-50%, -100%)',
+            zIndex: 50,
+          }}
+          role="dialog"
+        >
+          <div className="citationPopoverTitle">Original excerpt</div>
+          <div className="citationPopoverBody">{source.excerpt}</div>
+          {source.url && (
+            <>
+              <div className="citationPopoverDivider" />
+              <a
+                className="citationPopoverLink"
+                href={source.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={close}
+              >
+                View source
+              </a>
+            </>
+          )}
+          <button type="button" className="citationPopoverClose" onClick={close}>
+            Close
+          </button>
+        </div>
+      );
+    },
+    [],
+  );
+
+  return (
+    <div className="previewDemo">
+      <ReportContentInteractive html={html} renderCitation={renderCitation} />
     </div>
   );
 }

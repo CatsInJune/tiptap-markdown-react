@@ -1,6 +1,8 @@
 import 'tiptap-markdown-react/style.css';
 import {
   CodeBlockDemo,
+  CitationDemo,
+  CitationSsrDemo,
   EditorDemo,
   EditorTocDemo,
   HeroDemo,
@@ -13,6 +15,8 @@ import {
   ToolbarDemo,
 } from './demos';
 import {
+  CITATION_API,
+  CITATION_INTERACTIVE_API,
   COMPONENT_NAV,
   DEMO_NAV,
   EDITOR_API,
@@ -55,7 +59,7 @@ function HomePage() {
       <section className="hero">
         <div className="badges">
           <span className="badge">
-            npm <b>v0.3.0</b>
+            npm <b>v0.4.0</b>
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
@@ -140,7 +144,10 @@ function Composer() {
         <h3>2. Client preview</h3>
         <Snippet
           code={`import { MarkdownPreview } from 'tiptap-markdown-react';
-<MarkdownPreview markdown={markdown} />`}
+<MarkdownPreview
+  markdown={markdown}
+  sources={[{ index: '1', url: 'https://…', title: 'FY2025' }]}
+/>`}
         />
         <h3>3. Server reader (SEO)</h3>
         <Snippet
@@ -220,6 +227,7 @@ function ComponentsPage() {
           'Same rendering pipeline as the editor',
           'Syntax highlighting via lowlight',
           'Stable heading anchors for deep links',
+          'Citation pills via [^n] + optional sources',
         ]}
         demo={
           <DemoBlock title="Client preview">
@@ -227,6 +235,47 @@ function ComponentsPage() {
           </DemoBlock>
         }
         api={PREVIEW_API}
+      />
+
+      <ComponentSection
+        id="citations"
+        title="Citations [^n]"
+        description="Inline circular citation pills aligned with body text (not super/subscript). Library renders the marker; hosts mount Popover via renderCitation NodeView slot."
+        importName="createCitationRef, RenderCitation"
+        features={[
+          'Parses [^n] via CitationRef markdownTokenizer',
+          'Mid-line accent-wash circular pills (CSS .citation-ref)',
+          'renderCitation slot: wrap defaultDom with host Popover',
+          'Data source lookup is 100% host-owned',
+        ]}
+        demo={
+          <DemoBlock
+            title="Citation pills + host Popover"
+            description="Click a pill — Popover is Radix in this demo; invret can use antd the same way."
+          >
+            <CitationDemo />
+          </DemoBlock>
+        }
+        api={CITATION_API}
+        extra={
+          <Snippet
+            code={`// Editor / Preview (NodeView)
+<MarkdownPreview renderCitation={({ index, defaultDom }) => (
+  <Popover content={lookup(index)}>{defaultDom}</Popover>
+)} />
+
+// SSR reader (DOM delegation)
+const { html } = renderReportHtml(md);
+<ReportContentInteractive
+  html={html}
+  renderCitation={({ index, anchorEl, close }) => (
+    <Popover anchorEl={anchorEl} onClose={close}>
+      {lookup(index)}
+    </Popover>
+  )}
+/>`}
+          />
+        }
       />
 
       <ComponentSection
@@ -292,7 +341,10 @@ function ComponentsPage() {
           <Snippet
             code={`import { renderReportHtml } from 'tiptap-markdown-react/server';
 
-const { html, toc } = renderReportHtml(markdown, ['Advanced Usage']);`}
+const { html, toc } = renderReportHtml(markdown, {
+  lockedTitles: ['Advanced Usage'],
+  sources: [{ index: '1', url: 'https://…' }],
+});`}
           />
         }
         api={RENDER_HTML_API}
@@ -403,6 +455,38 @@ function DemosPage() {
       </div>
 
       <DemoBlock
+        anchor="demo-citations"
+        title="Citation pills"
+        description="[^n] becomes a mid-line circular number. Host mounts Popover via renderCitation NodeView slot — library never owns your source schema."
+      >
+        <CitationDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          Pass <code>renderCitation={'{({ index, defaultDom }) => …}'}</code> to
+          wrap each pill. Look up your own data by <code>index</code>. Optional{' '}
+          <code>sources</code> only attaches url/title onto nodes.
+        </p>
+      </div>
+
+      <DemoBlock
+        anchor="demo-citations-ssr"
+        title="SSR reader + citations"
+        description="renderReportHtml produces static pills; CitationInteractive / ReportContentInteractive event-delegates clicks and hands index + anchorEl to your Popover."
+      >
+        <CitationSsrDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          Use <code>ReportContentInteractive</code> or compose{' '}
+          <code>ReportContent</code> + <code>CitationInteractive</code>. Slot
+          signature: <code>{'({ index, anchorEl, close }) => ReactNode'}</code>.
+        </p>
+      </div>
+
+      <DemoBlock
         anchor="demo-markdown-out"
         title="Markdown Output"
         description="Edit on the left — live Markdown export on the right."
@@ -496,6 +580,18 @@ function ApiPage() {
         <h3>MarkdownPreview</h3>
         <ApiTable rows={PREVIEW_API} />
 
+        <h3>Citations</h3>
+        <p className="componentDesc">
+          <code>[^n]</code> is parsed into a mid-line circular pill. Mount host UI
+          with <code>renderCitation</code> on the editor/preview (NodeView), or{' '}
+          <code>CitationInteractive</code> / <code>ReportContentInteractive</code>{' '}
+          on SSR HTML (DOM delegation). Same <code>index</code> lookup; different
+          mount. The library does not define your source schema.
+        </p>
+        <ApiTable rows={CITATION_API} />
+        <h4>CitationInteractive</h4>
+        <ApiTable rows={CITATION_INTERACTIVE_API} />
+
         <h3>TocPanel</h3>
         <ApiTable rows={TOC_API} />
 
@@ -523,8 +619,10 @@ function ApiPage() {
 
         <h4>insertMarkdown</h4>
         <p className="componentDesc">
-          Programmatically insert a markdown string at the cursor position. Equivalent to{' '}
-          <code>editor.chain().focus().insertContent(md, {'{'}contentType:'markdown'{'}'}).run()</code>.
+          Programmatically insert a markdown string at the cursor position. Optional{' '}
+          <code>sources</code> enriches <code>[^n]</code> before insert. Equivalent to{' '}
+          <code>editor.chain().focus().insertContent(md, {'{'}contentType:'markdown'{'}'}).run()</code>{' '}
+          when sources are omitted.
         </p>
         <ApiTable rows={INSERT_MARKDOWN_API} />
 
@@ -534,7 +632,7 @@ function ApiPage() {
 
       <section id="api-server" className="apiSection">
         <h2>tiptap-markdown-react/server</h2>
-        <h3>renderReportHtml(markdown, lockedTitles?)</h3>
+        <h3>renderReportHtml(markdown, lockedTitlesOrOptions?)</h3>
         <ApiTable rows={RENDER_HTML_API} />
         <Snippet
           code={`import {
@@ -543,7 +641,16 @@ function ApiPage() {
   extractToc,
   makeTocGetId,
   baseExtensions,
-} from 'tiptap-markdown-react/server';`}
+} from 'tiptap-markdown-react/server';
+
+// legacy: second arg is lockedTitles[]
+renderReportHtml(markdown, ['Advanced Usage']);
+
+// with citations:
+renderReportHtml(markdown, {
+  lockedTitles: ['Advanced Usage'],
+  sources: [{ index: '1', url: 'https://…' }],
+});`}
         />
       </section>
 

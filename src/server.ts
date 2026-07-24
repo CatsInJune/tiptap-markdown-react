@@ -8,7 +8,17 @@ export {
   pureCodeBlock,
   pureImage,
 } from './extensions';
+export { CitationRef } from './CitationRef';
+export {
+  applyCitationSources,
+  enrichMarkdownCitations,
+  type SourceRef,
+} from './citationUtils';
 export { ReportContent, type ReportContentProps } from './ReportContent';
-export { renderReportHtml, type RenderedReport } from './renderReportHtml';
+export {
+  renderReportHtml,
+  type RenderedReport,
+  type RenderReportHtmlOptions,
+} from './renderReportHtml';
 export { extractToc, type TocItem } from './toc/extractToc';
 export { makeTocGetId } from './toc/tocSlug';

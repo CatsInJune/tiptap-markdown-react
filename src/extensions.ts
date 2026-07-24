@@ -22,11 +22,11 @@ import { common, createLowlight } from 'lowlight';
  * 分层动机：交互增强依赖 @tiptap/react / 浏览器，会污染 server bundle（RSC）。
  * base 保持纯 schema，server import 它只引入节点定义，无 React 代码。
  *
- * 关键边界：CodeBlock 与 Image「会被编辑器增强」，**不放进 base**——否则编辑器
- * 追加增强版会与 base 的纯版同名冲突（Tiptap 报 "Duplicate extension names"）。
- * 改为：base 不含这两个节点，由调用方按需注入：
- *   - 编辑器注入「增强版」（React 视图 / 删除快捷键）
- *   - server / 预览注入「纯版」（pureCodeBlock / pureImage）
+ * 关键边界：CodeBlock / Image / CitationRef「会被客户端增强」，**不放进 base**——
+ * 否则编辑器追加增强版会与 base 的纯版同名冲突（Tiptap 报 "Duplicate extension names"）。
+ * 改为：base 不含这三类，由调用方按需注入：
+ *   - 编辑器 / 预览注入「增强版」（React NodeView）
+ *   - server 注入「纯版」（pureCodeBlock / pureImage / CitationRef）
  */
 
 // lowlight 实例：代码块语法高亮。导出供编辑器增强版与 server 纯版共用同一实例。
@@ -43,9 +43,9 @@ export const pureCodeBlock = CodeBlockLowlight.configure({ lowlight });
 export const pureImage = Image.configure({ inline: false });
 
 /**
- * 三处共用的纯 schema 扩展——**不含 CodeBlock / Image**（见上方边界说明）。
- * 编辑器：`[...baseExtensions, 增强CodeBlock, 增强Image, Markdown]`
- * server/预览：`[...baseExtensions, pureCodeBlock, pureImage, Markdown]`
+ * 三处共用的纯 schema 扩展——**不含 CodeBlock / Image / CitationRef**（见上方边界说明）。
+ * 编辑器：`[...baseExtensions, 增强CodeBlock, 增强Image, createCitationRef(), Markdown]`
+ * server/预览：`[...baseExtensions, pureCodeBlock, pureImage, CitationRef, …]`
  */
 export const baseExtensions: AnyExtension[] = [
   // 禁用 StarterKit 内置 codeBlock，统一改用带 lowlight 的代码块（由调用方注入）
