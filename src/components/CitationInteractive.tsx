@@ -64,13 +64,16 @@ export function CitationInteractive({
       leaveRef.current();
     };
 
+    const ACTIVE_ATTR = 'data-tmr-citation-active';
+
     const onClick = (e: MouseEvent) => {
       const el = findCitationRefElement(e.target, root);
       if (el) {
         // 捕获阶段就取消默认，避免圆标内 <a> 跳转
         e.preventDefault();
         e.stopPropagation();
-        if (el === currentEl) {
+        // 仅当该圆标仍处于打开态时再点才关闭（宿主可能已外部关闭，attr 已清）
+        if (el === currentEl && el.hasAttribute(ACTIVE_ATTR)) {
           emitLeave();
           return;
         }
