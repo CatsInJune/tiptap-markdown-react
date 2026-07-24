@@ -68,6 +68,11 @@ export function CitationInteractive({
       if (el) {
         e.preventDefault();
         e.stopPropagation();
+        // 再点同一圆标 → 关闭（toggle）
+        if (el === currentEl) {
+          emitLeave();
+          return;
+        }
         emitEnter(el);
         return;
       }
