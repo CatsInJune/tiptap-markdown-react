@@ -148,7 +148,9 @@
   outline: 2px solid var(--tmr-accent, #ff6719);
 }
 
-/* 表格：细边框、表头浅灰；外包 .tableWrapper 横滑（编辑器 NodeView + SSR renderWrapper） */
+/* 表格：细边框、表头浅灰；外包 .tableWrapper（编辑器 NodeView + SSR renderWrapper）
+ * 桌面：width:100% + 允许换行，整表落在阅读列内（与改前一致）
+ * 窄屏：max-content + nowrap，避免列被挤扁，wrapper 内横滑 */
 .editorContent :global(.tableWrapper) {
   max-width: 100%;
   overflow-x: auto;
@@ -158,11 +160,8 @@
 
 .editorContent :global(table) {
   border-collapse: collapse;
-  /* 勿用 fixed+width:100%：窄屏会把多列均分挤扁、文字狂换行，且撑不出横滑 */
   table-layout: auto;
-  width: max-content;
-  min-width: 100%;
-  max-width: none;
+  width: 100%;
   margin: 0;
   overflow: visible;
   font-size: 0.92em;
@@ -181,12 +180,27 @@
   text-align: left;
   position: relative;
   min-width: 60px;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .editorContent :global(table th) {
   background: var(--tmr-table-header-bg, #f7f7f7);
   font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .editorContent :global(table) {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+  }
+
+  .editorContent :global(table td),
+  .editorContent :global(table th) {
+    white-space: nowrap;
+    word-break: normal;
+  }
 }
 
 /* 选中的单元格高亮 */
