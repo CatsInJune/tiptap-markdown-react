@@ -148,14 +148,29 @@
   outline: 2px solid var(--tmr-accent, #ff6719);
 }
 
-/* 表格：细边框、表头浅灰、可拖拽列宽 */
+/* 表格：细边框、表头浅灰；外包 .tableWrapper 横滑（编辑器 NodeView + SSR renderWrapper） */
+.editorContent :global(.tableWrapper) {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1em 0;
+}
+
 .editorContent :global(table) {
   border-collapse: collapse;
-  table-layout: fixed;
-  width: 100%;
-  margin: 1em 0;
-  overflow: hidden;
+  /* 勿用 fixed+width:100%：窄屏会把多列均分挤扁、文字狂换行，且撑不出横滑 */
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  margin: 0;
+  overflow: visible;
   font-size: 0.92em;
+}
+
+/* 无 wrapper 的遗留 HTML（旧缓存）仍给一点外边距 */
+.editorContent :global(:not(.tableWrapper) > table) {
+  margin: 1em 0;
 }
 
 .editorContent :global(table td),
@@ -166,6 +181,7 @@
   text-align: left;
   position: relative;
   min-width: 60px;
+  white-space: nowrap;
 }
 
 .editorContent :global(table th) {
@@ -191,10 +207,6 @@
   width: 4px;
   background: var(--tmr-accent, #ff6719);
   cursor: col-resize;
-}
-
-.editorContent :global(.tableWrapper) {
-  overflow-x: auto;
 }
 
 /* 任务清单 */

@@ -58,7 +58,14 @@ export const baseExtensions: AnyExtension[] = [
   Highlight.configure({ multicolor: true }),
   Superscript,
   Subscript,
-  TableKit.configure({ table: { resizable: true } }),
+  TableKit.configure({
+    table: {
+      resizable: true,
+      // SSR/renderHTML 默认不包 wrapper；阅读页无 NodeView 时宽表会被挤扁。
+      // 与编辑器 TableView 的 `.tableWrapper` 对齐，静态 HTML 也可 overflow-x。
+      renderWrapper: true,
+    },
+  }),
   TaskList,
   TaskItem.configure({ nested: true }),
 ];
