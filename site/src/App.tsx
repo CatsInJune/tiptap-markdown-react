@@ -1,5 +1,6 @@
 import 'tiptap-markdown-react/style.css';
 import {
+  CommentAnchorDemo,
   CodeBlockDemo,
   CitationDemo,
   CitationSsrDemo,
@@ -51,6 +52,20 @@ const COLOR_PALETTE_API = [
   { name: 'value', desc: 'Currently applied color (shows checkmark)', type: 'string', defaultVal: '—' },
   { name: 'onPick', desc: 'Called when a swatch is clicked; null clears', type: '(color: string | null) => void' },
   { name: 'labels', desc: 'Label overrides', type: 'Partial<ColorPaletteLabels>', defaultVal: '—' },
+];
+
+const COMMENT_ANCHOR_API = [
+  { name: 'comments', desc: 'Decoded comment anchors (segments). Mapped onto text ranges as edit-session marks', type: 'CommentRef[]', defaultVal: '—' },
+  { name: 'activeCommentId', desc: 'Controlled active comment id (mark/block emphasis)', type: 'string | null', defaultVal: 'null' },
+  { name: 'onCommentClick', desc: 'Clicked a mark or gutter — commentIds + anchorEl (anchorEl null for gutter)', type: '(payload: CommentClickPayload) => void', defaultVal: '—' },
+  { name: 'onActiveCommentChange', desc: 'Active id changed from inside the editor', type: '(id: string | null) => void', defaultVal: '—' },
+  { name: 'showCommentGutter', desc: 'Render block-left gutter bubbles', type: 'boolean', defaultVal: 'true' },
+];
+
+const COMMENT_REF_API = [
+  { name: 'focusComment', desc: 'Set active, scroll to first mark, place cursor at range start', type: '(id: string) => boolean', defaultVal: '—' },
+  { name: 'nextComment', desc: 'Jump to next/prev comment in document order', type: "(dir?: 'next' | 'prev') => string | null", defaultVal: '—' },
+  { name: 'getCommentIds', desc: 'Deduplicated comment ids in document order', type: '() => string[]', defaultVal: '—' },
 ];
 
 function HomePage() {
@@ -216,6 +231,29 @@ function ComponentsPage() {
           </DemoBlock>
         }
         api={TOOLBAR_API}
+      />
+
+      <ComponentSection
+        id="comment-anchors"
+        title="Comment Anchors"
+        description="Edit-session review annotations: map decoded comment segments onto text ranges as marks, render a block-left gutter, and report clicks. Read-only preview never renders comments; getMarkdown() strips all marks."
+        importName="MarkdownWysiwygEditor (comments), CommentPopover"
+        features={[
+          'Segments → text-range marks (commentMapper + overlap merge)',
+          'Overlapping comments merge into data-comment-ids',
+          'Gutter bubbles + active mark/block emphasis (--tmr-* variables)',
+          'focusComment / nextComment ref methods; paste/drop strips marks',
+        ]}
+        demo={
+          <DemoBlock
+            title="Edit-session review"
+            description="Click a highlighted span (or gutter) to open CommentPopover; sidebar buttons focus via ref methods. MarkdownPreview ignores comments."
+          >
+            <CommentAnchorDemo />
+          </DemoBlock>
+        }
+        api={COMMENT_ANCHOR_API}
+        refApi={COMMENT_REF_API}
       />
 
       <ComponentSection

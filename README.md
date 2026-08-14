@@ -114,6 +114,46 @@ export default async function Page() {
 }
 ```
 
+### 4. Comment anchoring (edit session only)
+
+Review / annotation workflows: pass decoded comment segments to the editor; the
+library maps them onto text ranges as `commentAnchor` marks, renders a block-left
+gutter, and reports clicks back to you. **Marks are session-only** — `getMarkdown()`
+strips them, undo history ignores them, and the read-only `MarkdownPreview` never
+renders them.
+
+```tsx
+const comments: CommentRef[] = [
+  {
+    commentId: 'c1',
+    author: 'agent',
+    segments: [{ exact: '寒武纪成立于2016年' }],
+    body: 'Add a source for this claim.',
+  },
+];
+
+<MarkdownWysiwygEditor
+  ref={ref}
+  initialMarkdown={md}
+  comments={comments}
+  activeCommentId={activeId}
+  onActiveCommentChange={setActiveId}
+  onCommentClick={({ commentIds, anchorEl }) => openPopover(commentIds[0], anchorEl)}
+/>
+```
+
+- **Ref methods**: `focusComment(id)` (active + scroll + cursor to range start),
+  `nextComment('next' | 'prev')`, `getCommentIds()`.
+- **Overlap**: multiple comments on the same text merge into one mark with
+  `data-comment-ids="1 2"`; clicks report all ids.
+- **Popover**: `CommentPopover` (Radix) anchors to the clicked mark; content is
+  host-owned (`renderComment`-style children).
+- **Guards**: paste / drop strips marks via `transformPasted`; anchor application
+  is excluded from undo history.
+- **Segments**: `CommentSegment[]` (`{ blockHash?, prefix?, exact, suffix? }`).
+  Capture them from a document with the same text model (see `commentMapper` /
+  `blockTextHash`) so re-anchoring is exact.
+
 ## Theming
 
 Override any of these CSS variables on an ancestor (e.g. `:root` or the editor container):
@@ -130,6 +170,11 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `--tmr-min-height` | `420px` | Editor min height |
 | `--tmr-code-bg` | `#f4f4f4` | Inline code background |
 | `--tmr-table-header-bg` | `#f7f7f7` | Table header background |
+| `--tmr-comment-bg` | `rgba(255, 213, 79, 0.32)` | Comment mark background |
+| `--tmr-comment-bg-active` | `rgba(255, 183, 0, 0.55)` | Active comment mark background |
+| `--tmr-comment-ring` | `rgba(219, 171, 10, 0.55)` | Active mark / block outline ring |
+| `--tmr-comment-gutter-bg` | `#f4b400` | Gutter bubble background |
+| `--tmr-popover-bg` | `#fff` | CommentPopover background |
 
 ## API
 
@@ -138,6 +183,7 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | Prop | Type | Description |
 | --- | --- | --- |
 | `initialMarkdown` | `string` | Initial content (markdown). |
+| `editable` | `boolean` | `false` renders read-only with the **same** extensions/NodeViews/styles — interactive controls (code-block language dropdown, delete) collapse. Comments are ignored when `false`. Default `true`. |
 | `placeholder` | `string` | Placeholder for the empty document. |
 | `onEditorReady` | `(editor: Editor \| null) => void` | Get the Tiptap instance (for the toolbar). |
 | `onTocChange` | `(items: TocItem[]) => void` | Fires when headings change. |
@@ -147,7 +193,8 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `codeBlockLabels` | `Partial<CodeBlockLabels>` | Localize the code block UI. |
 | `className` | `string` | Class on the scroll container. |
 
-Ref handle (`MarkdownWysiwygEditorHandle`): `getMarkdown()`, `getHTML()`, `getJSON()`, `getEditor()`.
+Ref handle (`MarkdownWysiwygEditorHandle`): `getMarkdown()`, `getHTML()`, `getJSON()`, `getEditor()`,
+`focusComment(id)`, `nextComment(dir?)`, `getCommentIds()`.
 
 #### Markdown in: paste, drop, import
 

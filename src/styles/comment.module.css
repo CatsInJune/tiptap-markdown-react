@@ -1,0 +1,81 @@
+/* 评论锚定样式（编辑会话专属，只读态不渲染）。
+   全部走 :global + --tmr-* 变量，与库其它样式约定一致。 */
+
+:global(.tmr-comment) {
+  background: var(--tmr-comment-bg, rgba(255, 213, 79, 0.32));
+  border-radius: 3px;
+  padding: 0 1px;
+  cursor: pointer;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background 0.12s ease;
+}
+
+:global(.tmr-comment:hover) {
+  background: var(--tmr-comment-bg-hover, rgba(255, 213, 79, 0.5));
+}
+
+/* active：sidebar 点评论 / 编辑器内点 mark 后的强调态 */
+:global(.tmr-comment.tmr-comment-active) {
+  background: var(--tmr-comment-bg-active, rgba(255, 183, 0, 0.55));
+  box-shadow: 0 0 0 2px var(--tmr-comment-ring, rgba(191, 121, 0, 0.35));
+}
+
+/* active 评论所在 block 的外框 */
+:global(.tmr-comment-block-active) {
+  box-shadow: 0 0 0 3px var(--tmr-comment-ring, rgba(219, 171, 10, 0.55));
+  border-radius: 4px;
+}
+
+/* block 左缘 gutter 气泡（Decoration.widget，side:-1 前置） */
+:global(.tmr-comment-gutter) {
+  position: absolute;
+  left: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--tmr-comment-gutter-bg, #f4b400);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+:global(.tmr-comment-gutter:hover) {
+  background: var(--tmr-comment-gutter-bg-hover, #dd9f00);
+}
+
+.popoverAnchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.popoverContent {
+  min-width: 320px;
+  max-width: 420px;
+  background: var(--tmr-popover-bg, #fff);
+  border: 1px solid var(--tmr-border, #e4e2dd);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 12px 14px;
+  font-family: var(--tmr-body-font, inherit);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--tmr-text, #363737);
+  outline: none;
+}
+
+.popoverContent :global(.tmr-popover-arrow) {
+  fill: var(--tmr-popover-bg, #fff);
+}

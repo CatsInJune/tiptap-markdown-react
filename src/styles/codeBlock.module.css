@@ -52,6 +52,21 @@
   flex-shrink: 0;
 }
 
+/* 只读态语言徽标：无下拉 / 删除交互，样式对齐 langTrigger 但不可点 */
+.langBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  margin: 8px 12px;
+  border-radius: 8px;
+  background: #f0f0f0;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  user-select: none;
+}
+
 /* 下拉菜单气泡：白底圆角、细边框、轻阴影，最大高度可滚动 */
 .langMenu {
   z-index: 50;

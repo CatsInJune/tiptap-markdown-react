@@ -24,6 +24,7 @@ export const COMPONENT_NAV: NavGroup[] = [
     items: [
       { id: 'editor', label: 'MarkdownWysiwygEditor', href: '#editor' },
       { id: 'toolbar', label: 'EditorToolbar', href: '#toolbar' },
+      { id: 'comment-anchors', label: 'Comment Anchors', href: '#comment-anchors' },
     ],
   },
   {
@@ -88,6 +89,7 @@ export interface ApiRow {
 
 export const EDITOR_API: ApiRow[] = [
   { name: 'initialMarkdown', desc: 'Initial markdown content', type: 'string', defaultVal: "''" },
+  { name: 'editable', desc: 'Read-only mode: same extensions/NodeViews/styles as editing; interactive controls collapse. Comments ignored when false', type: 'boolean', defaultVal: 'true' },
   { name: 'sources', desc: 'Initial citation sources for [^n] (url/title on citationRef). Init-only', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'renderCitation', desc: 'NodeView slot to wrap citation pills (Popover etc.). Init-only', type: 'RenderCitation', defaultVal: '—' },
   { name: 'placeholder', desc: 'Empty-state placeholder', type: 'string', defaultVal: '—' },

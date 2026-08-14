@@ -3,6 +3,7 @@ import type { Editor } from '@tiptap/react';
 import * as Popover from '@radix-ui/react-popover';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
+  CommentPopover,
   EditorToolbar,
   MarkdownPreview,
   MarkdownWysiwygEditor,
@@ -10,6 +11,8 @@ import {
   ReportContentInteractive,
   TocPanel,
   type CitationEnterContext,
+  type CommentRef,
+  type MarkdownWysiwygEditorHandle,
   type RenderCitation,
   type TocItem,
 } from 'tiptap-markdown-react';
@@ -84,6 +87,144 @@ export function ToolbarDemo() {
           onEditorReady={setEditor}
         />
       </div>
+    </div>
+  );
+}
+
+const COMMENT_SAMPLE_MD = `# 寒武纪深度研究
+
+寒武纪成立于2016年，是中国目前少数全面掌握AI芯片全栈自研能力的独立芯片设计企业。
+
+FY2025 营收 649,720 万元，同比 +453.2%，扭亏为盈。
+`;
+
+const COMMENT_SAMPLE_COMMENTS: CommentRef[] = [
+  {
+    commentId: 'c1',
+    author: 'agent',
+    state: 'open',
+    segments: [{ exact: '寒武纪成立于2016年' }],
+    body: '【无依据】请补充成立年份的来源。',
+  },
+  {
+    commentId: 'c2',
+    author: 'user',
+    state: 'open',
+    segments: [{ exact: '649,720 万元' }],
+    body: '确认营收口径为人民币万元。',
+  },
+];
+
+/**
+ * 评论锚定 Demo：编辑态高亮 + gutter + sidebar 联动 + CommentPopover。
+ * 只读态（MarkdownPreview）不渲染任何评论。
+ */
+export function CommentAnchorDemo() {
+  const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
+  const [active, setActive] = useState<string | null>(null);
+  const [readonly, setReadonly] = useState(false);
+  const [popover, setPopover] = useState<{
+    commentId: string;
+    anchorEl: HTMLElement;
+  } | null>(null);
+
+  const byId = useMemo(
+    () => new Map(COMMENT_SAMPLE_COMMENTS.map((c) => [c.commentId, c])),
+    [],
+  );
+
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 13 }}>
+          <input
+            type="checkbox"
+            checked={readonly}
+            onChange={(e) => {
+              setReadonly(e.target.checked);
+              setPopover(null);
+            }}
+          />
+          Read-only ({readonly ? 'same component, comments off' : 'edit mode'})
+        </label>
+        <MarkdownWysiwygEditor
+          ref={editorRef}
+          initialMarkdown={COMMENT_SAMPLE_MD}
+          editable={!readonly}
+          comments={COMMENT_SAMPLE_COMMENTS}
+          activeCommentId={active}
+          onActiveCommentChange={setActive}
+          onCommentClick={({ commentIds, anchorEl }) => {
+            if (anchorEl) {
+              setPopover({ commentId: commentIds[0], anchorEl });
+            }
+          }}
+        />
+      </div>
+
+      <aside
+        style={{
+          width: 220,
+          flexShrink: 0,
+          border: '1px solid #e4e2dd',
+          borderRadius: 8,
+          padding: 10,
+          fontSize: 13,
+        }}
+      >
+        <div style={{ fontWeight: 600, marginBottom: 8 }}>Comments</div>
+        {COMMENT_SAMPLE_COMMENTS.map((c) => (
+          <button
+            key={c.commentId}
+            type="button"
+            onClick={() => editorRef.current?.focusComment(c.commentId)}
+            style={{
+              display: 'block',
+              width: '100%',
+              textAlign: 'left',
+              marginBottom: 6,
+              padding: '6px 8px',
+              borderRadius: 6,
+              border:
+                active === c.commentId
+                  ? '1px solid #f4b400'
+                  : '1px solid #e4e2dd',
+              background: active === c.commentId ? '#fff6d9' : '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            {c.body}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => editorRef.current?.nextComment('next')}
+          style={{ marginTop: 4 }}
+        >
+          Next comment
+        </button>
+      </aside>
+
+      {!readonly && (
+        <CommentPopover
+          open={!!popover}
+          onOpenChange={(open) => {
+            if (!open) setPopover(null);
+          }}
+          anchorEl={popover?.anchorEl ?? null}
+        >
+          {popover && byId.get(popover.commentId) && (
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>
+                {byId.get(popover.commentId)!.body}
+              </div>
+              <button type="button" onClick={() => setPopover(null)}>
+                Close
+              </button>
+            </div>
+          )}
+        </CommentPopover>
+      )}
     </div>
   );
 }

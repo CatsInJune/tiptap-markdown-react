@@ -9,6 +9,17 @@ export {
   pureImage,
 } from './extensions';
 export { CitationRef } from './CitationRef';
+export { CommentMark, type CommentMarkOptions, type CommentInterval } from './commentAnchor/CommentMark';
+export {
+  mapCommentAnchors,
+  mergeCommentIntervals,
+  blockTextHash,
+  type CommentSegment,
+  type CommentAnchorInput,
+  type CommentAnchorResult,
+  type CommentAnchorStatus,
+  type CommentRange,
+} from './commentAnchor/commentMapper';
 export {
   applyCitationSources,
   enrichMarkdownCitations,

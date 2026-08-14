@@ -41,6 +41,7 @@ export function CodeBlockView({
   updateAttributes,
   deleteNode,
   extension,
+  editor,
 }: NodeViewProps) {
   const labels: CodeBlockLabels = {
     ...defaultCodeBlockLabels,
@@ -53,58 +54,66 @@ export function CodeBlockView({
     ? current.value === ''
       ? labels.autoDetect
       : current.label
-    : labels.autoDetect;
+      : labels.autoDetect;
+  const editable = editor.isEditable;
 
   return (
     <NodeViewWrapper className={styles.wrapper}>
-      <div className={styles.header} contentEditable={false}>
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <button
-              type="button"
-              className={styles.langTrigger}
-              aria-label="Code language"
-            >
-              <span>{currentLabel}</span>
-              <ChevronDownIcon size={14} className={styles.langChevron} />
-            </button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content
-              className={styles.langMenu}
-              sideOffset={4}
-              align="end"
-            >
-              {LANGUAGES.map((l) => {
-                const optionLabel =
-                  l.value === '' ? labels.autoDetect : l.label;
-                const selected = l.value === language;
-                return (
-                  <DropdownMenu.Item
-                    key={l.value}
-                    className={`${styles.langItem}${selected ? ` ${styles.langItemSelected}` : ''}`}
-                    onSelect={() => updateAttributes({ language: l.value })}
-                  >
-                    <span className={styles.langItemCheck}>
-                      {selected ? <CheckIcon size={14} /> : null}
-                    </span>
-                    {optionLabel}
-                  </DropdownMenu.Item>
-                );
-              })}
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
-        <button
-          type="button"
-          className={styles.deleteBtn}
-          title={labels.delete}
-          aria-label={labels.delete}
-          onClick={() => deleteNode()}
-        >
-          <TrashIcon />
-        </button>
-      </div>
+      {editable ? (
+        <div className={styles.header} contentEditable={false}>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button
+                type="button"
+                className={styles.langTrigger}
+                aria-label="Code language"
+              >
+                <span>{currentLabel}</span>
+                <ChevronDownIcon size={14} className={styles.langChevron} />
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className={styles.langMenu}
+                sideOffset={4}
+                align="end"
+              >
+                {LANGUAGES.map((l) => {
+                  const optionLabel =
+                    l.value === '' ? labels.autoDetect : l.label;
+                  const selected = l.value === language;
+                  return (
+                    <DropdownMenu.Item
+                      key={l.value}
+                      className={`${styles.langItem}${selected ? ` ${styles.langItemSelected}` : ''}`}
+                      onSelect={() => updateAttributes({ language: l.value })}
+                    >
+                      <span className={styles.langItemCheck}>
+                        {selected ? <CheckIcon size={14} /> : null}
+                      </span>
+                      {optionLabel}
+                    </DropdownMenu.Item>
+                  );
+                })}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+          <button
+            type="button"
+            className={styles.deleteBtn}
+            title={labels.delete}
+            aria-label={labels.delete}
+            onClick={() => deleteNode()}
+          >
+            <TrashIcon />
+          </button>
+        </div>
+      ) : (
+        // 只读：只展示语言标签，无下拉 / 删除等交互件
+        <div className={styles.langBadge} contentEditable={false}>
+          {currentLabel}
+        </div>
+      )}
       <pre className={styles.pre}>
         {/* code 标签是代码块标准内容容器；v3 类型未含 'code'，运行时有效，故断言 */}
         <NodeViewContent as={'code' as 'div'} />

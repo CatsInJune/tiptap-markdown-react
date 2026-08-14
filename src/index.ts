@@ -72,13 +72,54 @@ export { scrollToTocHeading } from './toc/scrollToTocHeading';
 export {
   defaultCodeBlockLabels,
   defaultColorPaletteLabels,
+  defaultCommentLabels,
   defaultTocLabels,
   defaultToolbarLabels,
   type CodeBlockLabels,
   type ColorPaletteLabels,
+  type CommentLabels,
   type TocLabels,
   type ToolbarLabels,
 } from './labels';
+
+// ── 评论锚定（编辑态专属） ──
+export { CommentMark, type CommentMarkOptions, type CommentInterval } from './commentAnchor/CommentMark';
+export {
+  mapCommentAnchors,
+  mergeCommentIntervals,
+  blockTextHash,
+  type CommentSegment,
+  type CommentAnchorInput,
+  type CommentAnchorResult,
+  type CommentAnchorStatus,
+  type CommentRange,
+} from './commentAnchor/commentMapper';
+export {
+  commentAnchorPlugin,
+  commentAnchorExtension,
+  commentAnchorPluginKey,
+  stripCommentAnchorMarks,
+  COMMENT_ACTIVE_META,
+  COMMENT_CLICK_META,
+  COMMENT_GUTTER_META,
+  type CommentAnchorPluginOptions,
+  type CommentAnchorPluginState,
+  type CommentGutterPayload,
+} from './commentAnchor/commentAnchorPlugin';
+export {
+  applyCommentAnchorsToEditor,
+  collectCommentIds,
+  commentRangesById,
+  focusComment,
+  nextComment,
+} from './commentAnchor/commentAnchorController';
+export { CommentPopover, type CommentPopoverProps } from './commentAnchor/CommentPopover';
+export type {
+  CommentRef,
+  CommentClickPayload,
+  RenderComment,
+  RenderCommentContext,
+} from './commentAnchor/commentTypes';
 
 // ── 其它 ──
 export { useIsMobile } from './hooks/useIsMobile';

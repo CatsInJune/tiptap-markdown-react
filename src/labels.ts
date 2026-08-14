@@ -119,3 +119,23 @@ export const defaultCodeBlockLabels: CodeBlockLabels = {
   autoDetect: 'Auto-detect',
   delete: 'Delete code block',
 };
+
+export interface CommentLabels {
+  open: string;
+  resolved: string;
+  dismissed: string;
+  outdated: string;
+  ambiguous: string;
+  partial: string;
+  gutterTitle: string;
+}
+
+export const defaultCommentLabels: CommentLabels = {
+  open: 'Open',
+  resolved: 'Resolved',
+  dismissed: 'Dismissed',
+  outdated: 'Outdated',
+  ambiguous: 'Ambiguous',
+  partial: 'Partially matched',
+  gutterTitle: 'Comment',
+};
