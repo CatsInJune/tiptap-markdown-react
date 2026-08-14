@@ -1,24 +1,19 @@
 /* 评论锚定样式（编辑会话专属，只读态不渲染）。
    全部走 :global + --tmr-* 变量，与库其它样式约定一致。 */
 
-/* 评论锚定：仅黄色边框，无背景填充（不打扰正文阅读）。 */
+/* 评论锚定默认无视觉样式：mark 只承载锚定位置，不打扰正文阅读。
+   只有 active 评论（侧栏点评论 → focusComment）才显示黄色边框 + block 外框。 */
 :global(.tmr-comment) {
+  cursor: default;
+}
+
+/* active：侧栏点评论后的强调态（黄色边框，无背景填充） */
+:global(.tmr-comment.tmr-comment-active) {
   border-radius: 3px;
   padding: 0 1px;
-  cursor: default;
   box-shadow: 0 0 0 1.5px var(--tmr-comment-ring, rgba(219, 171, 10, 0.75));
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
-  transition: box-shadow 0.12s ease;
-}
-
-:global(.tmr-comment:hover) {
-  box-shadow: 0 0 0 2px var(--tmr-comment-ring, rgba(219, 171, 10, 0.9));
-}
-
-/* active：侧栏点评论后的强调态（加粗边框，仍无背景） */
-:global(.tmr-comment.tmr-comment-active) {
-  box-shadow: 0 0 0 2.5px var(--tmr-comment-ring, rgba(191, 121, 0, 0.95));
 }
 
 /* active 评论所在 block 的外框 */

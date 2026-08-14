@@ -149,9 +149,9 @@ const comments: CommentRef[] = [
 - **Popover**: `CommentPopover` (Radix) anchors to the clicked mark; content is
   host-owned (`renderComment`-style children).
 - **One-way hosts**: pass `commentInteractive={false}` and
-  `showCommentGutter={false}` to make editor-side clicks inert — highlights are
-  driven purely by `focusComment(id)` from a sidebar (mark style is border-only,
-  no background fill).
+  `showCommentGutter={false}` to make editor-side clicks inert — marks are
+  invisible by default and only the **active** comment (driven by
+  `focusComment(id)` from a sidebar) shows a yellow border + block outline.
 - **Guards**: paste / drop strips marks via `transformPasted`; anchor application
   is excluded from undo history.
 - **Segments**: `CommentSegment[]` (`{ blockHash?, prefix?, exact, suffix? }`).
