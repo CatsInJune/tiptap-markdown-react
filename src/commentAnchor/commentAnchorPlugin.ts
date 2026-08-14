@@ -39,6 +39,12 @@ export interface CommentGutterPayload {
 export interface CommentAnchorPluginOptions {
   /** 是否在 block 左缘渲染评论 gutter 气泡，默认 true。 */
   showGutter?: boolean;
+  /**
+   * 编辑器内点 mark 是否参与交互（默认 true：设 active + 上报 click meta）。
+   * 设 false 后点击 mark 完全惰性（不设 active、不上报），适合「只靠侧栏单项
+   * 驱动滚动定位」的宿主。
+   */
+  interactive?: boolean;
 }
 
 export interface CommentAnchorPluginState {
@@ -156,6 +162,7 @@ export function commentAnchorPlugin(
   options: CommentAnchorPluginOptions = {},
 ): Plugin<CommentAnchorPluginState> {
   const showGutter = options.showGutter !== false;
+  const interactive = options.interactive !== false;
 
   return new Plugin<CommentAnchorPluginState>({
     key: commentAnchorPluginKey,
@@ -220,6 +227,8 @@ export function commentAnchorPlugin(
       },
 
       handleClick(view: EditorView, pos: number, event: MouseEvent) {
+        // 惰性模式：编辑器内点击 mark 不产生任何交互（侧栏单项驱动）。
+        if (!interactive) return false;
         const target = event.target as Element | null;
         const el = target?.closest?.(
           'mark.tmr-comment[data-comment-ids]',

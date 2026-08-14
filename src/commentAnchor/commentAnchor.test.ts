@@ -59,7 +59,7 @@ function buildEditor(content: string): Editor {
 
 function buildEditorWithPlugin(
   content: string,
-  options: { showGutter?: boolean } = {},
+  options: { showGutter?: boolean; interactive?: boolean } = {},
 ): Editor {
   return new Editor({
     extensions: [
@@ -564,6 +564,41 @@ describe('commentAnchorPlugin · 装饰与交互', () => {
       node.marks.some((m) => m.type.name === 'commentAnchor'),
     ).toBe(false);
     expect(node.text).toBe('思元370');
+  });
+
+  it('interactive:false → 点击 mark 惰性（不设 active、不上报 click）', () => {
+    const editor = buildEditorWithPlugin(SAMPLE_MD, {
+      showGutter: false,
+      interactive: false,
+    });
+    applyCommentAnchorsToEditor(editor, [
+      { commentId: '1', segments: [{ exact: '寒武纪成立于2016年' }] },
+    ]);
+    const metas: string[] = [];
+    const onTr = ({
+      transaction,
+    }: {
+      transaction: { getMeta: (k: string) => unknown };
+    }) => {
+      if (transaction.getMeta(COMMENT_ACTIVE_META) !== undefined)
+        metas.push('active');
+      if (transaction.getMeta(COMMENT_CLICK_META) !== undefined)
+        metas.push('click');
+    };
+    editor.on('transaction', onTr);
+    const markEl = editor.view.dom.querySelector(
+      'mark.tmr-comment[data-comment-ids~="1"]',
+    ) as HTMLElement | null;
+    expect(markEl).not.toBeNull();
+    markEl!.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+    editor.view.someProp('handleClick', (fn) => {
+      fn(editor.view, 1, { target: markEl } as unknown as MouseEvent);
+    });
+    expect(metas).toEqual([]);
+    editor.off('transaction', onTr);
+    editor.destroy();
   });
 });
 

@@ -148,6 +148,10 @@ const comments: CommentRef[] = [
   `data-comment-ids="1 2"`; clicks report all ids.
 - **Popover**: `CommentPopover` (Radix) anchors to the clicked mark; content is
   host-owned (`renderComment`-style children).
+- **One-way hosts**: pass `commentInteractive={false}` and
+  `showCommentGutter={false}` to make editor-side clicks inert — highlights are
+  driven purely by `focusComment(id)` from a sidebar (mark style is border-only,
+  no background fill).
 - **Guards**: paste / drop strips marks via `transformPasted`; anchor application
   is excluded from undo history.
 - **Segments**: `CommentSegment[]` (`{ blockHash?, prefix?, exact, suffix? }`).
@@ -170,8 +174,6 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `--tmr-min-height` | `420px` | Editor min height |
 | `--tmr-code-bg` | `#f4f4f4` | Inline code background |
 | `--tmr-table-header-bg` | `#f7f7f7` | Table header background |
-| `--tmr-comment-bg` | `rgba(255, 213, 79, 0.32)` | Comment mark background |
-| `--tmr-comment-bg-active` | `rgba(255, 183, 0, 0.55)` | Active comment mark background |
 | `--tmr-comment-ring` | `rgba(219, 171, 10, 0.55)` | Active mark / block outline ring |
 | `--tmr-comment-gutter-bg` | `#f4b400` | Gutter bubble background |
 | `--tmr-popover-bg` | `#fff` | CommentPopover background |

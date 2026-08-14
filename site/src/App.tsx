@@ -60,6 +60,7 @@ const COMMENT_ANCHOR_API = [
   { name: 'onCommentClick', desc: 'Clicked a mark or gutter — commentIds + anchorEl (anchorEl null for gutter)', type: '(payload: CommentClickPayload) => void', defaultVal: '—' },
   { name: 'onActiveCommentChange', desc: 'Active id changed from inside the editor', type: '(id: string | null) => void', defaultVal: '—' },
   { name: 'showCommentGutter', desc: 'Render block-left gutter bubbles', type: 'boolean', defaultVal: 'true' },
+  { name: 'commentInteractive', desc: 'Editor-side mark clicks are inert (one-way sidebar-driven hosts pass false)', type: 'boolean', defaultVal: 'true' },
 ];
 
 const COMMENT_REF_API = [

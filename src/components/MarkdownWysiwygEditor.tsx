@@ -189,6 +189,11 @@ export interface MarkdownWysiwygEditorProps {
   onActiveCommentChange?: (commentId: string | null) => void;
   /** 是否在 block 左缘渲染评论 gutter 气泡，默认 true。 */
   showCommentGutter?: boolean;
+  /**
+   * 编辑器内点评论 mark 是否可交互（设 active / 上报 click），默认 true。
+   * 只靠侧栏单项驱动滚动定位时传 false。
+   */
+  commentInteractive?: boolean;
 }
 
 /**
@@ -217,6 +222,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     onCommentClick,
     onActiveCommentChange,
     showCommentGutter = true,
+    commentInteractive = true,
   },
   ref,
 ) {
@@ -232,7 +238,10 @@ export const MarkdownWysiwygEditor = forwardRef<
       ImageWithConfirmDelete.configure({ inline: false }),
       createCitationRef({ renderCitation }),
       CommentMark,
-      commentAnchorExtension({ showGutter: showCommentGutter }),
+      commentAnchorExtension({
+        showGutter: showCommentGutter,
+        interactive: commentInteractive,
+      }),
       Markdown,
       TableOfContents.configure({
         getId: makeTocGetId(),
