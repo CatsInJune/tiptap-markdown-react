@@ -14,14 +14,14 @@
 :global(.tmr-comment.tmr-comment-active) {
   border-radius: 3px;
   padding: 0 1px;
-  box-shadow: 0 0 0 1.5px var(--tmr-comment-ring, rgba(219, 171, 10, 0.75));
+  box-shadow: 0 0 0 1px var(--tmr-comment-ring, rgba(219, 171, 10, 0.75));
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
 
 /* active 评论所在 block 的外框 */
 :global(.tmr-comment-block-active) {
-  box-shadow: 0 0 0 3px var(--tmr-comment-ring, rgba(219, 171, 10, 0.55));
+  box-shadow: 0 0 0 1.5px var(--tmr-comment-ring, rgba(219, 171, 10, 0.55));
   border-radius: 4px;
 }
 

@@ -6,11 +6,16 @@ import Superscript from '@tiptap/extension-superscript';
 import { TableKit } from '@tiptap/extension-table';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
-import { Color, FontSize, TextStyle } from '@tiptap/extension-text-style';
+import {
+  Color,
+  FontSize,
+  TextStyle,
+} from '@tiptap/extension-text-style';
 // AnyExtension 从 @tiptap/react 取（它 re-export 自 core），避免新增 @tiptap/core 直接依赖
 import type { AnyExtension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
+import type { JSONContent } from '@tiptap/core';
 
 /**
  * 编辑器的「内容 schema 级」扩展集——纯节点/标记定义，不含任何 React NodeView
@@ -32,6 +37,41 @@ import { common, createLowlight } from 'lowlight';
 // lowlight 实例：代码块语法高亮。导出供编辑器增强版与 server 纯版共用同一实例。
 export const lowlight = createLowlight(common);
 
+/**
+ * 颜色 / 字号的 markdown 往返：markdown 没有原生颜色语法，序列化为行内 HTML
+ * `<span style="...">`（marked 支持行内 HTML，Tiptap 解析端经 parseHTML 还原成
+ * TextStyle/Color/FontSize mark）。否则 getMarkdown() 会把这些 mark 静默剥掉，
+ * 保存后再预览颜色丢失。
+ *
+ * 注意：Color / FontSize 通过 `types: [TextStyle.name]` 把 color / fontSize
+ * 属性挂在 **textStyle** mark 的 attrs 上，文档里出现的 mark 类型名是
+ * `textStyle`——所以 renderMarkdown 必须扩展在 TextStyle 上，序列化器才能按
+ * mark 类型名查到 handler。
+ */
+const MarkdownTextStyle = TextStyle.extend({
+  renderMarkdown(
+    node: { attrs?: Record<string, unknown> },
+    helpers: {
+      renderChildren: (
+        nodes: JSONContent | JSONContent[],
+        separator?: string,
+      ) => string;
+    },
+  ) {
+    const { color, fontSize } = (node.attrs ?? {}) as {
+      color?: string;
+      fontSize?: string;
+    };
+    const styles: string[] = [];
+    if (color) styles.push(`color:${color}`);
+    if (fontSize) styles.push(`font-size:${fontSize}`);
+    if (styles.length === 0) return '';
+    // getMarkOpening 用占位符调用 renderChildren()（无需传节点），类型按签名兜底转换。
+    const children = (helpers.renderChildren as () => string)();
+    return `<span style="${styles.join(';')}">${children}</span>`;
+  },
+});
+
 /** 纯版代码块（无 React 视图）：server / 预览用，产出带高亮 class 的静态结构。 */
 export const pureCodeBlock = CodeBlockLowlight.configure({ lowlight });
 
@@ -50,7 +90,7 @@ export const pureImage = Image.configure({ inline: false });
 export const baseExtensions: AnyExtension[] = [
   // 禁用 StarterKit 内置 codeBlock，统一改用带 lowlight 的代码块（由调用方注入）
   StarterKit.configure({ codeBlock: false }),
-  TextStyle,
+  MarkdownTextStyle,
   Color.configure({ types: [TextStyle.name] }),
   // 正文字号：官方 FontSize（v3 起并入 text-style 包），以内联样式挂在 TextStyle
   // 的 <span> 上（如 style="font-size: 16px"），与 Color 同基座，三端共用。
