@@ -5,6 +5,9 @@
    只有 active 评论（侧栏点评论 → focusComment）才显示黄色边框 + block 外框。 */
 :global(.tmr-comment) {
   cursor: default;
+  /* 关键：<mark> 有浏览器 UA 默认黄色背景（background-color: yellow），
+     必须显式透明，否则锚定 mark 会漏出默认底色。 */
+  background: transparent;
 }
 
 /* active：侧栏点评论后的强调态（黄色边框，无背景填充） */
