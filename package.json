@@ -28,7 +28,8 @@
     "**/*.css"
   ],
   "files": [
-    "dist"
+    "dist",
+    "THIRD_PARTY_LICENSES.md"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
