@@ -16,6 +16,7 @@ import type { AnyExtension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
 import type { JSONContent } from '@tiptap/core';
+import { reportBlockMath, reportInlineMath } from './math';
 
 /**
  * 编辑器的「内容 schema 级」扩展集——纯节点/标记定义，不含任何 React NodeView
@@ -108,4 +109,6 @@ export const baseExtensions: AnyExtension[] = [
   }),
   TaskList,
   TaskItem.configure({ nested: true }),
+  reportInlineMath,
+  reportBlockMath,
 ];

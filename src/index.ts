@@ -2,6 +2,8 @@
 
 // 副作用：增强 Editor.insertContent / getMarkdown 的 @tiptap/markdown 类型。
 import '@tiptap/markdown';
+import 'katex/dist/katex.min.css';
+import './styles/math.css';
 
 // ── 编辑器 / 预览 ──
 export {

@@ -35,8 +35,10 @@ import {
 } from '../icons';
 import { defaultToolbarLabels, type ToolbarLabels } from '../labels';
 import { insertMarkdown } from '../insertMarkdown';
+import { subscribeMathClick, type MathKind } from '../math';
 import styles from '../styles/toolbar.module.css';
 import { ColorPalette } from './ColorPalette';
+import { MathEditorPopover } from './MathEditorPopover';
 
 /** More 菜单里注入的自定义项（宿主用它扩展工具栏，如「导入项目报告」）。 */
 export interface ExtraToolbarItem {
@@ -398,6 +400,48 @@ export function EditorToolbar({
   };
   const canEditFontSize = editorFocused && state.isParagraph;
 
+  const [mathEdit, setMathEdit] = useState<{
+    kind: MathKind;
+    mode: 'insert' | 'edit';
+    pos?: number;
+    latex: string;
+  } | null>(null);
+
+  useEffect(() => subscribeMathClick((payload) => {
+    setMathEdit({
+      kind: payload.kind,
+      mode: 'edit',
+      pos: payload.pos,
+      latex: payload.latex,
+    });
+  }), []);
+
+  const openInsertMath = (kind: MathKind) => {
+    const { from, to } = editor.state.selection;
+    const selected =
+      from === to ? '' : editor.state.doc.textBetween(from, to, ' ');
+    setMathEdit({ kind, mode: 'insert', latex: selected });
+  };
+
+  const applyMath = (latex: string) => {
+    if (!mathEdit) return;
+    const { kind, mode, pos } = mathEdit;
+    setMathEdit(null);
+    if (mode === 'edit' && pos != null) {
+      if (kind === 'inline') {
+        chain().updateInlineMath({ latex, pos }).run();
+      } else {
+        chain().updateBlockMath({ latex, pos }).run();
+      }
+      return;
+    }
+    if (kind === 'inline') {
+      chain().insertContent({ type: 'inlineMath', attrs: { latex } }).run();
+    } else {
+      chain().insertContent({ type: 'blockMath', attrs: { latex } }).run();
+    }
+  };
+
   const scriptActive = state.superscript
     ? 'superscript'
     : state.subscript
@@ -691,6 +735,18 @@ export function EditorToolbar({
                 {t.codeBlock}
               </span>
             </MenuItem>
+            <MenuItem onSelect={() => openInsertMath('inline')}>
+              <span className={styles.styleItem}>
+                <span className={styles.styleIcon}>√x</span>
+                {t.inlineMath}
+              </span>
+            </MenuItem>
+            <MenuItem onSelect={() => openInsertMath('block')}>
+              <span className={styles.styleItem}>
+                <span className={styles.styleIcon}>∑</span>
+                {t.blockMath}
+              </span>
+            </MenuItem>
             <MenuItem onSelect={() => chain().setHorizontalRule().run()}>
               <span className={styles.styleItem}>
                 <span className={styles.styleIcon}>—</span>
@@ -740,6 +796,19 @@ export function EditorToolbar({
         hidden
         onChange={handleMdFileChange}
       />
+
+      {mathEdit ? (
+        <MathEditorPopover
+          kind={mathEdit.kind}
+          latex={mathEdit.latex}
+          title={mathEdit.kind === 'inline' ? t.inlineMath : t.blockMath}
+          placeholder={t.mathPlaceholder}
+          doneLabel={t.mathDone}
+          cancelLabel={t.mathCancel}
+          onConfirm={applyMath}
+          onCancel={() => setMathEdit(null)}
+        />
+      ) : null}
 
       {/* 表格工具条（右键召唤） */}
       {tableMenu &&

@@ -307,3 +307,13 @@
   border-color: var(--tmr-citation-bg-hover, var(--tmr-accent, #ff6719));
   color: var(--tmr-citation-fg-hover, #ffffff);
 }
+
+.editorContent :global(.tiptap-mathematics-render[data-type='inline-math']) {
+  display: inline;
+}
+
+.editorContent :global(.tiptap-mathematics-render[data-type='block-math']) {
+  margin: 0.9em 0;
+  overflow-x: auto;
+  text-align: center;
+}

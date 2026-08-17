@@ -23,6 +23,7 @@ import {
   CITATION_SOURCES,
   DEMO_MD,
   INGEST_MD,
+  MATH_MD,
   PREVIEW_MD,
   SAMPLE_TOC,
 } from './site-data';
@@ -253,6 +254,33 @@ export function CodeBlockDemo() {
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor initialMarkdown={CODEBLOCK_MD} />
       </div>
+    </div>
+  );
+}
+
+/** 公式：工具栏插入 + 点击编辑；金额保持文本 */
+export function MathDemo() {
+  const [editor, setEditor] = useState<Editor | null>(null);
+  return (
+    <div className="editorDemo">
+      {editor && <EditorToolbar editor={editor} />}
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor
+          initialMarkdown={MATH_MD}
+          placeholder="Insert an equation from More…"
+          onEditorReady={setEditor}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** SSR 阅读页公式（无 NodeView） */
+export function MathSsrDemo() {
+  const html = useMemo(() => renderReportHtml(MATH_MD).html, []);
+  return (
+    <div className="previewDemo">
+      <ReportContent html={html} />
     </div>
   );
 }

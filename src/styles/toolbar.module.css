@@ -266,3 +266,96 @@
 .popoverContent {
   z-index: 1000;
 }
+
+.mathOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 24%);
+}
+
+.mathPopover {
+  width: min(420px, calc(100vw - 32px));
+  padding: 14px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.mathTitle {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sb-text, #363737);
+}
+
+.mathTextarea {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--sb-border, #ececec);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--sb-text, #363737);
+  resize: vertical;
+}
+
+.mathTextarea:focus {
+  outline: 2px solid var(--sb-accent, #ff6719);
+  outline-offset: 1px;
+}
+
+.mathPreview {
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  background: #f7f7f7;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.mathActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mathBtn {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--sb-border, #ececec);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--sb-text, #363737);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mathBtn:hover:not(:disabled) {
+  background: #f3f3f3;
+}
+
+.mathBtnPrimary {
+  border-color: var(--sb-accent, #ff6719);
+  background: var(--sb-accent, #ff6719);
+  color: #fff;
+}
+
+.mathBtnPrimary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.mathBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

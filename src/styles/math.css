@@ -1,0 +1,8 @@
+.tiptap-mathematics-render--editable {
+  cursor: pointer;
+}
+
+.tiptap-mathematics-render.inline-math-error,
+.tiptap-mathematics-render.block-math-error {
+  color: #c0392b;
+}

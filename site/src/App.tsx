@@ -9,6 +9,8 @@ import {
   HeroDemo,
   MarkdownIngestDemo,
   MarkdownOutputDemo,
+  MathDemo,
+  MathSsrDemo,
   PreviewDemo,
   ReportContentDemo,
   ThemeDemo,
@@ -23,6 +25,8 @@ import {
   EDITOR_API,
   EDITOR_REF_API,
   INSERT_MARKDOWN_API,
+  MATH_API,
+  MATH_LABELS_API,
   PACKAGE_FEATURES,
   PREVIEW_API,
   RENDER_HTML_API,
@@ -75,7 +79,7 @@ function HomePage() {
       <section className="hero">
         <div className="badges">
           <span className="badge">
-            npm <b>v0.4.0</b>
+            npm <b>v0.8.0</b>
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
@@ -222,6 +226,7 @@ function ComponentsPage() {
         importName="EditorToolbar"
         features={[
           'Headings, lists, tables, links, colors, alignment',
+          'More menu: code block, equations, table, import markdown',
           'Radix Popover / DropdownMenu — no native selects',
           'extraToolbarItems for custom More-menu entries',
           'Partial ToolbarLabels for i18n',
@@ -232,6 +237,45 @@ function ComponentsPage() {
           </DemoBlock>
         }
         api={TOOLBAR_API}
+      />
+
+      <ComponentSection
+        id="equations"
+        title="Equations"
+        description="KaTeX inline and block math. Insert from the toolbar More menu; click a formula to edit LaTeX with live preview. Typing $ / $$ never converts — dollar amounts stay text. Markdown round-trip uses $$."
+        importName="EditorToolbar, renderReportHtml"
+        features={[
+          'More → Inline equation / Block equation (no keyboard shortcut)',
+          'Click formula → LaTeX popover with live KaTeX preview',
+          'Inline $$x$$ vs block newline-wrapped $$; single $ is never math',
+          'SSR renderReportHtml emits .katex HTML (no NodeView required)',
+        ]}
+        demo={
+          <DemoBlock
+            title="Insert and edit"
+            description="Use More → Inline / Block equation. Click a rendered formula to change the LaTeX."
+          >
+            <MathDemo />
+          </DemoBlock>
+        }
+        api={MATH_API}
+        extra={
+          <>
+            <h4>ToolbarLabels</h4>
+            <ApiTable rows={MATH_LABELS_API} />
+            <Snippet
+              code={`editor.commands.insertInlineMath({ latex: 'E = mc^2' })
+editor.commands.insertBlockMath({ latex: '\\\\sum x' })
+
+// markdown on disk
+// inline: $$E = mc^2$$
+// block:
+// $$
+// \\\\frac{a}{b}
+// $$`}
+            />
+          </>
+        }
       />
 
       <ComponentSection
@@ -474,6 +518,22 @@ function DemosPage() {
         </p>
       </div>
 
+      <DemoBlock
+        anchor="demo-equations"
+        title="Equations"
+        description="More menu inserts inline / block math. Click a formula to edit. $24.4B stays text."
+      >
+        <MathDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          No extra editor props. Localize via <code>labels.inlineMath</code> /{' '}
+          <code>labels.blockMath</code> / <code>labels.mathPlaceholder</code>.
+          Commands: <code>insertInlineMath</code> / <code>insertBlockMath</code>.
+        </p>
+      </div>
+
       <h2 className="demoGroupTitle">Reading</h2>
 
       <DemoBlock
@@ -488,6 +548,21 @@ function DemosPage() {
         <p>
           Pass any markdown string to <code>markdown</code>. Styles come from{' '}
           <code>tiptap-markdown-react/style.css</code>.
+        </p>
+      </div>
+
+      <DemoBlock
+        anchor="demo-equations-ssr"
+        title="SSR equations"
+        description="renderReportHtml emits KaTeX HTML so reading pages work without the editor NodeView."
+      >
+        <MathSsrDemo />
+      </DemoBlock>
+      <div className="propsNote">
+        <h4>Props 说明</h4>
+        <p>
+          Same markdown as the editor demo. Hosts already importing{' '}
+          <code>tiptap-markdown-react/style.css</code> get KaTeX fonts/styles.
         </p>
       </div>
 
@@ -614,6 +689,22 @@ function ApiPage() {
 
         <h3>EditorToolbar</h3>
         <ApiTable rows={TOOLBAR_API} />
+        <p className="componentDesc">
+          More menu includes <em>Inline equation</em> / <em>Block equation</em>.
+          Click a rendered formula to edit LaTeX. Labels:{' '}
+          <code>inlineMath</code>, <code>blockMath</code>,{' '}
+          <code>mathPlaceholder</code>, <code>mathDone</code>,{' '}
+          <code>mathCancel</code>.
+        </p>
+        <ApiTable rows={MATH_LABELS_API} />
+
+        <h3>Equations</h3>
+        <p className="componentDesc">
+          Math lives in <code>baseExtensions</code> (editor, preview, and SSR).
+          Markdown uses <code>$$</code> only; a single <code>$</code> is always
+          a dollar sign. There is no typing shortcut.
+        </p>
+        <ApiTable rows={MATH_API} />
 
         <h3>MarkdownPreview</h3>
         <ApiTable rows={PREVIEW_API} />

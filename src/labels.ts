@@ -44,6 +44,11 @@ export interface ToolbarLabels {
   tableAddRowBefore: string;
   tableAddRowAfter: string;
   tableDeleteRow: string;
+  inlineMath: string;
+  blockMath: string;
+  mathPlaceholder: string;
+  mathDone: string;
+  mathCancel: string;
 }
 
 export const defaultToolbarLabels: ToolbarLabels = {
@@ -86,6 +91,11 @@ export const defaultToolbarLabels: ToolbarLabels = {
   tableAddRowBefore: 'Add row before',
   tableAddRowAfter: 'Add row after',
   tableDeleteRow: 'Delete row',
+  inlineMath: 'Inline equation',
+  blockMath: 'Block equation',
+  mathPlaceholder: 'E = mc^2',
+  mathDone: 'Done',
+  mathCancel: 'Cancel',
 };
 
 export interface ColorPaletteLabels {

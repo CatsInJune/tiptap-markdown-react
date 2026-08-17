@@ -3,6 +3,7 @@
 A batteries-included, self-styled **Markdown WYSIWYG editor + reader** suite built on [Tiptap v3](https://tiptap.dev). Markdown in, markdown out — plus a table of contents, a client preview, and a server-side (RSC/SSR) renderer for SEO-friendly reading pages. No Ant Design, no icon library; themeable via CSS variables.
 
 - **Markdown-first**: content goes in and comes out as markdown (`getMarkdown()`), with `getHTML()` / `getJSON()` also exposed.
+- **Equations**: toolbar inserts inline / block math (KaTeX). Markdown round-trip uses `$$…$$` (inline) and newline-wrapped `$$` (block). Typing `$` / `$$` stays as text so dollar amounts are safe.
 - **Own opinionated UI**: toolbar, color palette, code block, and table of contents ship styled out of the box. Zero `antd`. Dropdowns/popovers use [Radix](https://www.radix-ui.com/) primitives; icons are inline SVG.
 - **Editor + Preview + Static reader**: edit, live client-side preview, and a pure `renderReportHtml()` for server rendering (Next.js Server Components / ISR).
 - **Table of contents**: stable, shareable slug anchors that match between the editor preview and the published reading page.
@@ -158,6 +159,23 @@ const comments: CommentRef[] = [
   Capture them from a document with the same text model (see `commentMapper` /
   `blockTextHash`) so re-anchoring is exact.
 
+### 5. Equations (KaTeX)
+
+Insert from the toolbar **More** menu (`Inline equation` / `Block equation`). Click an existing formula to edit LaTeX with a live preview. There is no keyboard shortcut and typing `$` / `$$` does **not** convert to math.
+
+Markdown on disk:
+
+- Inline: `$$E = mc^2$$`
+- Block:
+
+```md
+$$
+\frac{a}{b}
+$$
+```
+
+Single `$` is always a dollar sign (`$24.4B`, `US$`, even `$24.4B$`). Importing markdown that already uses `$$` still renders as math. SSR (`renderReportHtml`) emits KaTeX HTML so reading pages work without the editor NodeView.
+
 ## Theming
 
 Override any of these CSS variables on an ancestor (e.g. `:root` or the editor container):
@@ -217,6 +235,8 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 | `onError` | `(err: unknown) => void` | Side-effect error callback (e.g. failed upload). |
 | `labels` | `Partial<ToolbarLabels>` | i18n labels. |
 | `extraToolbarItems` | `ExtraToolbarItem[]` | Custom items appended to the "More" menu. |
+| `labels.inlineMath` / `blockMath` | `string` | More-menu equation items. |
+| `labels.mathPlaceholder` / `mathDone` / `mathCancel` | `string` | Equation editor popover. |
 
 ### `<MarkdownPreview>` (client)
 

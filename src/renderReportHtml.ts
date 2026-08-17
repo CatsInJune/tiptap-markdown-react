@@ -11,6 +11,7 @@ import {
 } from './citationUtils';
 import { CitationRef } from './CitationRef';
 import { baseExtensions, pureCodeBlock, pureImage } from './extensions';
+import { renderMathElementHtml } from './math';
 import { extractToc, type TocItem } from './toc/extractToc';
 import { makeTocGetId } from './toc/tocSlug';
 
@@ -86,7 +87,18 @@ export function renderReportHtml(
   try {
     // 给 heading 注入 id / data-toc-id（server 端，renderToHTMLString 前）。
     const jsonWithIds = generateTocIds(json, extensions);
-    const html = renderToHTMLString({ extensions, content: jsonWithIds });
+    const html = renderToHTMLString({
+      extensions,
+      content: jsonWithIds,
+      options: {
+        nodeMapping: {
+          inlineMath: ({ node }) =>
+            renderMathElementHtml(String(node.attrs?.latex ?? ''), false),
+          blockMath: ({ node }) =>
+            renderMathElementHtml(String(node.attrs?.latex ?? ''), true),
+        },
+      },
+    });
     return { html, toc: extractToc(jsonWithIds, lockedTitles) };
   } catch (e) {
     // 某些 markdown 经 parse 产出的 JSON 可能在 heading 内嵌套 block 级子节点，

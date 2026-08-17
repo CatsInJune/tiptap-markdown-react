@@ -24,6 +24,7 @@ export const COMPONENT_NAV: NavGroup[] = [
     items: [
       { id: 'editor', label: 'MarkdownWysiwygEditor', href: '#editor' },
       { id: 'toolbar', label: 'EditorToolbar', href: '#toolbar' },
+      { id: 'equations', label: 'Equations', href: '#equations' },
       { id: 'comment-anchors', label: 'Comment Anchors', href: '#comment-anchors' },
     ],
   },
@@ -59,12 +60,14 @@ export const DEMO_NAV: NavGroup[] = [
       { id: 'demo-markdown-in', label: 'Paste / Drop / Import', href: '#demo-markdown-in' },
       { id: 'demo-toolbar', label: 'Toolbar + Image', href: '#demo-toolbar' },
       { id: 'demo-codeblock', label: 'Code Block', href: '#demo-codeblock' },
+      { id: 'demo-equations', label: 'Equations', href: '#demo-equations' },
     ],
   },
   {
     title: 'Reading',
     items: [
       { id: 'demo-preview', label: 'Client Preview', href: '#demo-preview' },
+      { id: 'demo-equations-ssr', label: 'SSR equations', href: '#demo-equations-ssr' },
       { id: 'demo-citations', label: 'Citation pills', href: '#demo-citations' },
       { id: 'demo-citations-ssr', label: 'SSR + citations', href: '#demo-citations-ssr' },
       { id: 'demo-markdown-out', label: 'Markdown Output', href: '#demo-markdown-out' },
@@ -195,6 +198,24 @@ export const TOC_UTIL_API: ApiRow[] = [
   { name: 'looksLikeMarkdown(text)', desc: 'Heuristic: does plain-text contain markdown patterns?', type: '(text: string) => boolean' },
 ];
 
+export const MATH_API: ApiRow[] = [
+  { name: 'insert', desc: 'Toolbar More → Inline equation / Block equation. No keyboard shortcut; typing $ / $$ stays text', type: 'toolbar' },
+  { name: 'edit', desc: 'Click a rendered formula to edit LaTeX with live KaTeX preview', type: 'onClick popover' },
+  { name: 'inline markdown', desc: 'Single-line $$latex$$ serializes as inlineMath', type: '$$E = mc^2$$' },
+  { name: 'block markdown', desc: 'Newline-wrapped $$ is blockMath', type: '$$\\nlatex\\n$$' },
+  { name: 'dollar amounts', desc: 'Single $ is never math — $24.4B, US$, even $24.4B$ stay text', type: 'text' },
+  { name: 'commands', desc: 'editor.commands.insertInlineMath / insertBlockMath / updateInlineMath / updateBlockMath', type: '{ latex: string }' },
+  { name: 'SSR', desc: 'renderReportHtml emits KaTeX HTML (.katex) so /p works without NodeView', type: 'renderToString' },
+];
+
+export const MATH_LABELS_API: ApiRow[] = [
+  { name: 'inlineMath', desc: 'More menu: insert inline equation', type: 'string', defaultVal: 'Inline equation' },
+  { name: 'blockMath', desc: 'More menu: insert block equation', type: 'string', defaultVal: 'Block equation' },
+  { name: 'mathPlaceholder', desc: 'LaTeX textarea placeholder', type: 'string', defaultVal: 'E = mc^2' },
+  { name: 'mathDone', desc: 'Confirm button', type: 'string', defaultVal: 'Done' },
+  { name: 'mathCancel', desc: 'Cancel button', type: 'string', defaultVal: 'Cancel' },
+];
+
 export const PACKAGE_FEATURES = [
   { icon: '📝', title: 'Markdown in/out', body: 'Author and export as Markdown. getHTML() and getJSON() available too.' },
   { icon: '🎨', title: 'Opinionated UI', body: 'Toolbar, color palette, code blocks, TOC — styled out of the box, zero Ant Design.' },
@@ -202,6 +223,7 @@ export const PACKAGE_FEATURES = [
   { icon: '🔗', title: 'Stable TOC anchors', body: 'Shared slug logic between editor, preview, and published reader.' },
   { icon: '🎯', title: 'Themeable', body: 'All colors and fonts exposed as --tmr-* CSS variables.' },
   { icon: '📎', title: 'Citation pills', body: 'Parse [^n] into mid-line circular markers; hosts supply sources + optional Popover.' },
+  { icon: '∑', title: 'KaTeX equations', body: 'Toolbar insert for inline / block math. Markdown uses $$; single $ is always a dollar sign.' },
 ];
 
 export const DEMO_MD = `# Meet the editor
@@ -215,6 +237,12 @@ This panel is **tiptap-markdown-react** running live. Everything is stored and e
 - Tables, blockquotes, dividers
 
 > Right-click inside a table to add or remove rows and columns.
+
+Inline math: revenue is $$R = P \times Q$$. Block math:
+
+$$
+\sum_{i=1}^{n} x_i = X
+$$
 
 \`\`\`ts
 function greet(name: string) {
@@ -263,6 +291,19 @@ def fibonacci(n: int) -> list[int]:
 Press Backspace below the block to select it first (orange border), then delete.
 `;
 
+export const MATH_MD = `## Equations
+
+Insert from **More → Inline equation / Block equation**. Click a formula to edit LaTeX.
+
+Revenue is $$R = P \\times Q$$. Dollar amounts stay text: Temu GMV is $24.4B, not a formula.
+
+$$
+\\sum_{i=1}^{n} x_i = X
+$$
+
+Typing \`$24.4B\` or even \`$24.4B$\` never becomes math. Importing markdown that already uses \`$$…$$\` still renders.
+`;
+
 export const PREVIEW_MD = `# Published article preview
 
 This is how **MarkdownPreview** renders the same markdown as the editor — same extensions, same styles.
@@ -280,6 +321,8 @@ console.log(sum(2, 3));
 | ------ | ----- |
 | Alpha  | 1     |
 | Beta   | 2     |
+
+Inline math $$a^2 + b^2 = c^2$$ and a dollar amount $24.4B stay distinct.
 `;
 
 export const CITATION_MD = `## Revenue growth

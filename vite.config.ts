@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
 // 库模式：产出 ESM 双入口（. / server）+ 单一 style.css + .d.ts。
-// react / react-dom 走 peer（external）；@tiptap/* / lowlight 在 dependencies 中
+// react / react-dom 走 peer（external）；@tiptap/* / katex / lowlight 在 dependencies 中
 // 由 npm 传递安装，构建仍 external 以避免打进 dist、保证单例 schema。
 export default defineConfig({
   plugins: [
@@ -28,6 +28,7 @@ export default defineConfig({
         /^react($|\/)/,
         /^react-dom($|\/)/,
         /^@tiptap\//,
+        'katex',
         'lowlight',
         /^lowlight\//,
         /^@radix-ui\//,
