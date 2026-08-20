@@ -1,6 +1,5 @@
 'use client';
 
-import * as Popover from '@radix-ui/react-popover';
 import type { Editor } from '@tiptap/react';
 import {
   useEffect,
@@ -8,9 +7,11 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type RefObject,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { renderMathHtml, type MathKind } from '../math';
 import styles from '../styles/toolbar.module.css';
 
@@ -27,33 +28,57 @@ export interface MathEditorPopoverProps {
   onCancel: () => void;
 }
 
-function getMathAnchorRect(
+function resolveNodeEl(editor: Editor, pos: number): HTMLElement | null {
+  const dom = editor.view.nodeDOM(pos);
+  if (dom instanceof HTMLElement) return dom;
+  if (dom instanceof Node) return dom.parentElement;
+  return null;
+}
+
+/** 相对编辑器外壳的坐标：浮层挂在壳内，随 .scrollArea 一起滚，避免 fixed 脱锚。 */
+function getMathLayerStyle(
   editor: Editor,
   kind: MathKind,
+  mode: 'insert' | 'edit',
   pos?: number,
-): DOMRect {
+): CSSProperties {
+  const host = editor.view.dom.parentElement;
+  if (!host) return {};
+  const hostRect = host.getBoundingClientRect();
   const editorRect = editor.view.dom.getBoundingClientRect();
+  const gap = mode === 'edit' ? 0 : 6;
+  const blockWidth = editor.view.dom.clientWidth;
+
   if (pos != null) {
-    const dom = editor.view.nodeDOM(pos);
-    const el =
-      dom instanceof HTMLElement
-        ? dom
-        : dom instanceof Node
-          ? dom.parentElement
-          : null;
+    const el = resolveNodeEl(editor, pos);
     if (el) {
       const r = el.getBoundingClientRect();
       if (kind === 'block') {
-        return new DOMRect(editorRect.left, r.top, editorRect.width, r.height);
+        return {
+          left: editorRect.left - hostRect.left,
+          top: r.top - hostRect.top + gap,
+          width: blockWidth,
+        };
       }
-      return r;
+      return {
+        left: r.left - hostRect.left,
+        top: r.top - hostRect.top + gap,
+      };
     }
   }
+
   const coords = editor.view.coordsAtPos(editor.state.selection.from);
   if (kind === 'block') {
-    return new DOMRect(editorRect.left, coords.bottom, editorRect.width, 0);
+    return {
+      left: editorRect.left - hostRect.left,
+      top: coords.bottom - hostRect.top + gap,
+      width: blockWidth,
+    };
   }
-  return new DOMRect(coords.left, coords.bottom, 0, 0);
+  return {
+    left: coords.left - hostRect.left,
+    top: coords.bottom - hostRect.top + gap,
+  };
 }
 
 export function MathEditorPopover({
@@ -69,26 +94,26 @@ export function MathEditorPopover({
   onCancel,
 }: MathEditorPopoverProps) {
   const [draft, setDraft] = useState(latex);
-  const [rect, setRect] = useState(() => getMathAnchorRect(editor, kind, pos));
+  const [layerStyle, setLayerStyle] = useState<CSSProperties>(() =>
+    getMathLayerStyle(editor, kind, mode, pos),
+  );
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-  const confirmedRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const isBlock = kind === 'block';
+  const host = editor.view.dom.parentElement;
 
   useEffect(() => {
     setDraft(latex);
   }, [latex]);
 
   useEffect(() => {
-    const update = () => setRect(getMathAnchorRect(editor, kind, pos));
+    const update = () =>
+      setLayerStyle(getMathLayerStyle(editor, kind, mode, pos));
     update();
     window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
-    };
-  }, [editor, kind, pos]);
+    return () => window.removeEventListener('resize', update);
+  }, [editor, kind, mode, pos]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -96,19 +121,24 @@ export function MathEditorPopover({
 
   useEffect(() => {
     if (pos == null) return;
-    const dom = editor.view.nodeDOM(pos);
-    const el =
-      dom instanceof HTMLElement
-        ? dom
-        : dom instanceof Node
-          ? dom.parentElement
-          : null;
+    const el = resolveNodeEl(editor, pos);
     if (!el) return;
     el.classList.add('tmr-math-editing');
     return () => {
       el.classList.remove('tmr-math-editing');
     };
   }, [editor, pos]);
+
+  useEffect(() => {
+    const onPtr = (e: PointerEvent) => {
+      const target = e.target;
+      if (!(target instanceof Node)) return;
+      if (rootRef.current?.contains(target)) return;
+      onCancel();
+    };
+    document.addEventListener('pointerdown', onPtr);
+    return () => document.removeEventListener('pointerdown', onPtr);
+  }, [onCancel]);
 
   const preview = useMemo(
     () => renderMathHtml(draft.trim(), isBlock),
@@ -119,7 +149,6 @@ export function MathEditorPopover({
 
   const submit = () => {
     if (!canSubmit) return;
-    confirmedRef.current = true;
     onConfirm(draft.trim());
   };
 
@@ -160,87 +189,72 @@ export function MathEditorPopover({
     />
   );
 
-  return (
-    <Popover.Root
-      open
-      onOpenChange={(open) => {
-        if (!open && !confirmedRef.current) onCancel();
-      }}
+  if (!host) return null;
+
+  return createPortal(
+    <div
+      ref={rootRef}
+      className={styles.mathLayer}
+      style={layerStyle}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby={titleId}
     >
-      <Popover.Anchor asChild>
-        <span
-          className={styles.mathAnchor}
-          style={{ left: rect.left, top: rect.top }}
-        />
-      </Popover.Anchor>
-      <Popover.Portal>
-        <Popover.Content
-          className={styles.mathContent}
-          side="bottom"
-          align="start"
-          sideOffset={mode === 'edit' ? 0 : 6}
-          collisionPadding={12}
-          style={isBlock ? { width: Math.max(rect.width, 280) } : undefined}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
+      <div
+        className={
+          isBlock
+            ? `${styles.mathStack} ${styles.mathStackBlock}`
+            : styles.mathStack
+        }
+      >
+        {showHint ? (
           <div
+            id={titleId}
             className={
               isBlock
-                ? `${styles.mathStack} ${styles.mathStackBlock}`
-                : styles.mathStack
+                ? `${styles.mathHint} ${styles.mathHintBlock}`
+                : styles.mathHint
             }
-            role="dialog"
-            aria-modal="false"
-            aria-labelledby={titleId}
           >
-            {showHint ? (
-              <div
-                id={titleId}
-                className={
-                  isBlock
-                    ? `${styles.mathHint} ${styles.mathHintBlock}`
-                    : styles.mathHint
-                }
-              >
-                <span className={styles.mathHintIcon} aria-hidden>
-                  {isBlock ? 'TeX' : '√x'}
-                </span>
-                {newLabel}
-              </div>
-            ) : (
-              <div
-                id={titleId}
-                className={
-                  isBlock ? styles.mathPreviewBlock : styles.mathPreviewInline
-                }
-                dangerouslySetInnerHTML={{ __html: preview }}
-              />
-            )}
-            <div
-              className={
-                isBlock
-                  ? `${styles.mathField} ${styles.mathFieldBlock}`
-                  : styles.mathField
-              }
-            >
-              {field}
-              <button
-                type="button"
-                className={styles.mathDone}
-                disabled={!canSubmit}
-                title={isBlock ? `${doneLabel} (⌘/Ctrl+Enter)` : `${doneLabel} (Enter)`}
-                onClick={submit}
-              >
-                {doneLabel}
-                <span className={styles.mathDoneKbd} aria-hidden>
-                  ↵
-                </span>
-              </button>
-            </div>
+            <span className={styles.mathHintIcon} aria-hidden>
+              {isBlock ? 'TeX' : '√x'}
+            </span>
+            {newLabel}
           </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+        ) : (
+          <div
+            id={titleId}
+            className={
+              isBlock ? styles.mathPreviewBlock : styles.mathPreviewInline
+            }
+            dangerouslySetInnerHTML={{ __html: preview }}
+          />
+        )}
+        <div
+          className={
+            isBlock
+              ? `${styles.mathField} ${styles.mathFieldBlock}`
+              : styles.mathField
+          }
+        >
+          {field}
+          <button
+            type="button"
+            className={styles.mathDone}
+            disabled={!canSubmit}
+            title={
+              isBlock ? `${doneLabel} (⌘/Ctrl+Enter)` : `${doneLabel} (Enter)`
+            }
+            onClick={submit}
+          >
+            {doneLabel}
+            <span className={styles.mathDoneKbd} aria-hidden>
+              ↵
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>,
+    host,
   );
 }

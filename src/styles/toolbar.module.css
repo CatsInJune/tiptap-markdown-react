@@ -267,20 +267,9 @@
   z-index: 1000;
 }
 
-.mathAnchor {
-  position: fixed;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.mathContent {
-  z-index: 1100;
-  padding: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  outline: none;
+.mathLayer {
+  position: absolute;
+  z-index: 6;
 }
 
 .mathStack {
