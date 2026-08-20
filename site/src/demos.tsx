@@ -258,7 +258,7 @@ export function CodeBlockDemo() {
   );
 }
 
-/** 公式：工具栏插入 + 点击编辑；金额保持文本 */
+/** 公式：工具栏插入 + 点击原地编辑；金额保持文本 */
 export function MathDemo() {
   const [editor, setEditor] = useState<Editor | null>(null);
   return (

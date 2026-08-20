@@ -161,7 +161,7 @@ const comments: CommentRef[] = [
 
 ### 5. Equations (KaTeX)
 
-Insert from the toolbar **More** menu (`Inline equation` / `Block equation`). Click an existing formula to edit. The editor is an anchored chip + live KaTeX preview + pill input with **Done**; inline confirms with Enter, block with ⌘/Ctrl+Enter. There is no typing shortcut and `$` / `$$` does **not** convert to math.
+Insert from the toolbar **More** menu (`Inline equation` / `Block equation`). Click an existing formula to edit: the rendered KaTeX stays in the document (highlighted), and a pill input anchors **below** it. Typing updates that same formula in place — there is no second preview in the popover. Empty inserts still show a chip / hint bar. Inline confirms with Enter, block with ⌘/Ctrl+Enter. There is no typing shortcut and `$` / `$$` does **not** convert to math.
 
 Markdown on disk:
 
@@ -236,7 +236,7 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 | `labels` | `Partial<ToolbarLabels>` | i18n labels. |
 | `extraToolbarItems` | `ExtraToolbarItem[]` | Custom items appended to the "More" menu. |
 | `labels.inlineMath` / `blockMath` | `string` | More-menu equation items. |
-| `labels.mathPlaceholder` / `mathDone` / `mathNewInline` / `mathNewBlock` | `string` | Equation editor (chip, preview, Done). |
+| `labels.mathPlaceholder` / `mathDone` / `mathNewInline` / `mathNewBlock` | `string` | Equation editor (empty chip/hint, input, Done). |
 
 ### `<MarkdownPreview>` (client)
 

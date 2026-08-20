@@ -200,7 +200,7 @@ export const TOC_UTIL_API: ApiRow[] = [
 
 export const MATH_API: ApiRow[] = [
   { name: 'insert', desc: 'Toolbar More → Inline equation / Block equation. No keyboard shortcut; typing $ / $$ stays text', type: 'toolbar' },
-  { name: 'edit', desc: 'Click a formula: live KaTeX chip/bar above a pill input; Done / Enter (⌘Enter for block)', type: 'anchored popover' },
+  { name: 'edit', desc: 'Click a formula: KaTeX stays in the document (highlighted); pill input anchors below and updates it in place; Done / Enter (⌘Enter for block)', type: 'anchored popover' },
   { name: 'inline markdown', desc: 'Single-line $$latex$$ serializes as inlineMath', type: '$$E = mc^2$$' },
   { name: 'block markdown', desc: 'Newline-wrapped $$ is blockMath', type: '$$\\nlatex\\n$$' },
   { name: 'dollar amounts', desc: 'Single $ is never math — $24.4B, US$, even $24.4B$ stay text', type: 'text' },
@@ -214,8 +214,8 @@ export const MATH_LABELS_API: ApiRow[] = [
   { name: 'mathPlaceholder', desc: 'LaTeX input placeholder', type: 'string', defaultVal: 'E = mc^2' },
   { name: 'mathDone', desc: 'Confirm button', type: 'string', defaultVal: 'Done' },
   { name: 'mathCancel', desc: 'Unused in UI (Escape / click outside still cancels)', type: 'string', defaultVal: 'Cancel' },
-  { name: 'mathNewInline', desc: 'Empty inline editor chip', type: 'string', defaultVal: 'New equation' },
-  { name: 'mathNewBlock', desc: 'Empty block editor hint bar', type: 'string', defaultVal: 'Add a TeX equation' },
+  { name: 'mathNewInline', desc: 'Empty inline insert chip (before the first LaTeX character)', type: 'string', defaultVal: 'New equation' },
+  { name: 'mathNewBlock', desc: 'Empty block insert hint bar (before the first LaTeX character)', type: 'string', defaultVal: 'Add a TeX equation' },
 ];
 
 export const PACKAGE_FEATURES = [
@@ -225,7 +225,7 @@ export const PACKAGE_FEATURES = [
   { icon: '🔗', title: 'Stable TOC anchors', body: 'Shared slug logic between editor, preview, and published reader.' },
   { icon: '🎯', title: 'Themeable', body: 'All colors and fonts exposed as --tmr-* CSS variables.' },
   { icon: '📎', title: 'Citation pills', body: 'Parse [^n] into mid-line circular markers; hosts supply sources + optional Popover.' },
-  { icon: '∑', title: 'KaTeX equations', body: 'Toolbar insert for inline / block math. Markdown uses $$; single $ is always a dollar sign.' },
+  { icon: '∑', title: 'KaTeX equations', body: 'Toolbar insert; click to edit in place. Markdown uses $$; single $ is always a dollar sign.' },
 ];
 
 export const DEMO_MD = `# Meet the editor
@@ -295,7 +295,7 @@ Press Backspace below the block to select it first (orange border), then delete.
 
 export const MATH_MD = `## Equations
 
-Insert from **More → Inline equation / Block equation**. Click a formula to edit LaTeX.
+Insert from **More → Inline equation / Block equation**. Click a formula to edit LaTeX in place.
 
 Revenue is $$R = P \\times Q$$. Dollar amounts stay text: Temu GMV is $24.4B, not a formula.
 

@@ -79,7 +79,7 @@ function HomePage() {
       <section className="hero">
         <div className="badges">
           <span className="badge">
-            npm <b>v0.8.0</b>
+            npm <b>v0.8.4</b>
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
@@ -242,18 +242,18 @@ function ComponentsPage() {
       <ComponentSection
         id="equations"
         title="Equations"
-        description="KaTeX inline and block math. Insert from the toolbar More menu; click a formula to edit LaTeX with live preview. Typing $ / $$ never converts — dollar amounts stay text. Markdown round-trip uses $$."
+        description="KaTeX inline and block math. Insert from the toolbar More menu; click a formula to edit LaTeX in place (the document formula updates live; the popover is input-only). Typing $ / $$ never converts — dollar amounts stay text. Markdown round-trip uses $$."
         importName="EditorToolbar, renderReportHtml"
         features={[
           'More → Inline equation / Block equation (no keyboard shortcut)',
-          'Click formula → LaTeX popover with live KaTeX preview',
+          'Click formula → in-place KaTeX + LaTeX input below (Notion-style)',
           'Inline $$x$$ vs block newline-wrapped $$; single $ is never math',
           'SSR renderReportHtml emits .katex HTML (no NodeView required)',
         ]}
         demo={
           <DemoBlock
             title="Insert and edit"
-            description="Use More → Inline / Block equation. Click a rendered formula to change the LaTeX."
+            description="Use More → Inline / Block equation. Click a rendered formula: it stays in the page and updates as you type."
           >
             <MathDemo />
           </DemoBlock>
@@ -521,7 +521,7 @@ function DemosPage() {
       <DemoBlock
         anchor="demo-equations"
         title="Equations"
-        description="More menu inserts inline / block math. Click a formula to edit at the caret. $24.4B stays text."
+        description="More menu inserts inline / block math. Click a formula to edit in place (input below, live KaTeX in the document). $24.4B stays text."
       >
         <MathDemo />
       </DemoBlock>
@@ -692,7 +692,7 @@ function ApiPage() {
         <ApiTable rows={TOOLBAR_API} />
         <p className="componentDesc">
           More menu includes <em>Inline equation</em> / <em>Block equation</em>.
-          Click a rendered formula to edit LaTeX. Labels:{' '}
+          Click a rendered formula to edit LaTeX in place. Labels:{' '}
           <code>inlineMath</code>, <code>blockMath</code>,{' '}
           <code>mathPlaceholder</code>, <code>mathDone</code>,{' '}
           <code>mathNewInline</code>, <code>mathNewBlock</code>.
