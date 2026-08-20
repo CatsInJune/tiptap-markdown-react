@@ -6,3 +6,8 @@
 .tiptap-mathematics-render.block-math-error {
   color: #c0392b;
 }
+
+/* 编辑中：占位仍在，视觉交给浮层预览，避免正文公式与预览叠两份 */
+.tiptap-mathematics-render.tmr-math-editing {
+  visibility: hidden;
+}

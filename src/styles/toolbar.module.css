@@ -267,95 +267,147 @@
   z-index: 1000;
 }
 
-.mathOverlay {
+.mathAnchor {
   position: fixed;
-  inset: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.mathContent {
   z-index: 1100;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
+
+.mathStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mathStackBlock {
+  align-items: stretch;
+  width: 100%;
+}
+
+.mathHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--tmr-code-bg, #f4f4f4);
+  color: var(--tmr-muted, #777777);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.mathHintBlock {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.mathHintIcon {
+  font-family: ui-serif, Georgia, 'Times New Roman', serif;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.mathPreviewInline {
+  display: inline-flex;
+  max-width: min(440px, calc(100vw - 24px));
+  padding: 4px 10px;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: #fff3ec;
+  color: var(--tmr-text, #363737);
+}
+
+.mathPreviewBlock {
+  width: 100%;
+  min-height: 48px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: var(--tmr-code-bg, #f4f4f4);
+  text-align: center;
+  color: var(--tmr-text, #363737);
+}
+
+.mathPreviewBlock :global(.katex-display) {
+  margin: 0;
+}
+
+.mathField {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: rgb(0 0 0 / 24%);
+  gap: 8px;
+  width: min(440px, calc(100vw - 24px));
+  padding: 6px 6px 6px 14px;
+  background: var(--tmr-popover-bg, #fff);
+  border: 1px solid var(--tmr-toolbar-border, #ececec);
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
 }
 
-.mathPopover {
-  width: min(420px, calc(100vw - 32px));
-  padding: 14px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow:
-    0 6px 24px rgba(0, 0, 0, 0.12),
-    0 0 0 1px rgba(0, 0, 0, 0.06);
-}
-
-.mathTitle {
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--sb-text, #363737);
-}
-
-.mathTextarea {
-  display: block;
+.mathFieldBlock {
+  align-items: flex-start;
   width: 100%;
+  border-radius: 12px;
+  padding: 10px 10px 10px 14px;
+}
+
+.mathInput {
+  flex: 1;
+  min-width: 0;
   margin: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--sb-border, #ececec);
-  border-radius: 6px;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
   line-height: 1.45;
-  color: var(--sb-text, #363737);
-  resize: vertical;
+  color: var(--tmr-text, #363737);
+  resize: none;
 }
 
-.mathTextarea:focus {
-  outline: 2px solid var(--sb-accent, #ff6719);
-  outline-offset: 1px;
+.mathInput:focus {
+  outline: none;
 }
 
-.mathPreview {
-  min-height: 44px;
-  margin-top: 8px;
-  padding: 8px 10px;
-  overflow-x: auto;
-  background: #f7f7f7;
-  border-radius: 6px;
-  text-align: center;
-}
-
-.mathActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.mathBtn {
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--sb-border, #ececec);
-  border-radius: 6px;
-  background: #fff;
-  color: var(--sb-text, #363737);
-  font-size: 13px;
+.mathDone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--tmr-accent, #ff6719);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.mathBtn:hover:not(:disabled) {
-  background: #f3f3f3;
-}
-
-.mathBtnPrimary {
-  border-color: var(--sb-accent, #ff6719);
-  background: var(--sb-accent, #ff6719);
-  color: #fff;
-}
-
-.mathBtnPrimary:hover:not(:disabled) {
+.mathDone:hover:not(:disabled) {
   filter: brightness(0.95);
 }
 
-.mathBtn:disabled {
+.mathDone:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.mathDoneKbd {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
 }

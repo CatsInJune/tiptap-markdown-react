@@ -799,12 +799,16 @@ export function EditorToolbar({
 
       {mathEdit ? (
         <MathEditorPopover
+          editor={editor}
           kind={mathEdit.kind}
+          mode={mathEdit.mode}
+          pos={mathEdit.pos}
           latex={mathEdit.latex}
-          title={mathEdit.kind === 'inline' ? t.inlineMath : t.blockMath}
+          newLabel={
+            mathEdit.kind === 'inline' ? t.mathNewInline : t.mathNewBlock
+          }
           placeholder={t.mathPlaceholder}
           doneLabel={t.mathDone}
-          cancelLabel={t.mathCancel}
           onConfirm={applyMath}
           onCancel={() => setMathEdit(null)}
         />

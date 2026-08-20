@@ -521,7 +521,7 @@ function DemosPage() {
       <DemoBlock
         anchor="demo-equations"
         title="Equations"
-        description="More menu inserts inline / block math. Click a formula to edit. $24.4B stays text."
+        description="More menu inserts inline / block math. Click a formula to edit at the caret. $24.4B stays text."
       >
         <MathDemo />
       </DemoBlock>
@@ -529,7 +529,8 @@ function DemosPage() {
         <h4>Props 说明</h4>
         <p>
           No extra editor props. Localize via <code>labels.inlineMath</code> /{' '}
-          <code>labels.blockMath</code> / <code>labels.mathPlaceholder</code>.
+          <code>labels.blockMath</code> / <code>labels.mathNewInline</code> /{' '}
+          <code>labels.mathPlaceholder</code>.
           Commands: <code>insertInlineMath</code> / <code>insertBlockMath</code>.
         </p>
       </div>
@@ -694,7 +695,7 @@ function ApiPage() {
           Click a rendered formula to edit LaTeX. Labels:{' '}
           <code>inlineMath</code>, <code>blockMath</code>,{' '}
           <code>mathPlaceholder</code>, <code>mathDone</code>,{' '}
-          <code>mathCancel</code>.
+          <code>mathNewInline</code>, <code>mathNewBlock</code>.
         </p>
         <ApiTable rows={MATH_LABELS_API} />
 

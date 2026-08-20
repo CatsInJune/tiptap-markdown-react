@@ -200,7 +200,7 @@ export const TOC_UTIL_API: ApiRow[] = [
 
 export const MATH_API: ApiRow[] = [
   { name: 'insert', desc: 'Toolbar More → Inline equation / Block equation. No keyboard shortcut; typing $ / $$ stays text', type: 'toolbar' },
-  { name: 'edit', desc: 'Click a rendered formula to edit LaTeX with live KaTeX preview', type: 'onClick popover' },
+  { name: 'edit', desc: 'Click a formula: live KaTeX chip/bar above a pill input; Done / Enter (⌘Enter for block)', type: 'anchored popover' },
   { name: 'inline markdown', desc: 'Single-line $$latex$$ serializes as inlineMath', type: '$$E = mc^2$$' },
   { name: 'block markdown', desc: 'Newline-wrapped $$ is blockMath', type: '$$\\nlatex\\n$$' },
   { name: 'dollar amounts', desc: 'Single $ is never math — $24.4B, US$, even $24.4B$ stay text', type: 'text' },
@@ -211,9 +211,11 @@ export const MATH_API: ApiRow[] = [
 export const MATH_LABELS_API: ApiRow[] = [
   { name: 'inlineMath', desc: 'More menu: insert inline equation', type: 'string', defaultVal: 'Inline equation' },
   { name: 'blockMath', desc: 'More menu: insert block equation', type: 'string', defaultVal: 'Block equation' },
-  { name: 'mathPlaceholder', desc: 'LaTeX textarea placeholder', type: 'string', defaultVal: 'E = mc^2' },
+  { name: 'mathPlaceholder', desc: 'LaTeX input placeholder', type: 'string', defaultVal: 'E = mc^2' },
   { name: 'mathDone', desc: 'Confirm button', type: 'string', defaultVal: 'Done' },
-  { name: 'mathCancel', desc: 'Cancel button', type: 'string', defaultVal: 'Cancel' },
+  { name: 'mathCancel', desc: 'Unused in UI (Escape / click outside still cancels)', type: 'string', defaultVal: 'Cancel' },
+  { name: 'mathNewInline', desc: 'Empty inline editor chip', type: 'string', defaultVal: 'New equation' },
+  { name: 'mathNewBlock', desc: 'Empty block editor hint bar', type: 'string', defaultVal: 'Add a TeX equation' },
 ];
 
 export const PACKAGE_FEATURES = [

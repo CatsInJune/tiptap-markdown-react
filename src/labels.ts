@@ -49,6 +49,8 @@ export interface ToolbarLabels {
   mathPlaceholder: string;
   mathDone: string;
   mathCancel: string;
+  mathNewInline: string;
+  mathNewBlock: string;
 }
 
 export const defaultToolbarLabels: ToolbarLabels = {
@@ -96,6 +98,8 @@ export const defaultToolbarLabels: ToolbarLabels = {
   mathPlaceholder: 'E = mc^2',
   mathDone: 'Done',
   mathCancel: 'Cancel',
+  mathNewInline: 'New equation',
+  mathNewBlock: 'Add a TeX equation',
 };
 
 export interface ColorPaletteLabels {
