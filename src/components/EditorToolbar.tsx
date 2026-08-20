@@ -405,6 +405,7 @@ export function EditorToolbar({
     mode: 'insert' | 'edit';
     pos?: number;
     latex: string;
+    isNew?: boolean;
   } | null>(null);
 
   useEffect(() => subscribeMathClick((payload) => {
@@ -420,7 +421,35 @@ export function EditorToolbar({
     const { from, to } = editor.state.selection;
     const selected =
       from === to ? '' : editor.state.doc.textBetween(from, to, ' ');
-    setMathEdit({ kind, mode: 'insert', latex: selected });
+    const type = kind === 'inline' ? 'inlineMath' : 'blockMath';
+    const searchFrom = from;
+    chain().insertContent({ type, attrs: { latex: selected } }).run();
+    let pos: number | null = null;
+    editor.state.doc.nodesBetween(
+      searchFrom,
+      editor.state.doc.content.size,
+      (node, nodePos) => {
+        if (pos != null) return false;
+        if (
+          node.type.name === type &&
+          String(node.attrs.latex ?? '') === selected
+        ) {
+          pos = nodePos;
+          return false;
+        }
+      },
+    );
+    if (pos == null) {
+      setMathEdit({ kind, mode: 'insert', latex: selected, isNew: true });
+      return;
+    }
+    setMathEdit({
+      kind,
+      mode: 'edit',
+      pos,
+      latex: selected,
+      isNew: true,
+    });
   };
 
   const applyMath = (latex: string) => {
@@ -440,6 +469,25 @@ export function EditorToolbar({
     } else {
       chain().insertContent({ type: 'blockMath', attrs: { latex } }).run();
     }
+  };
+
+  const cancelMath = () => {
+    if (!mathEdit) return;
+    const { isNew, pos } = mathEdit;
+    if (isNew && pos != null) {
+      const node = editor.state.doc.nodeAt(pos);
+      if (
+        node &&
+        (node.type.name === 'inlineMath' || node.type.name === 'blockMath')
+      ) {
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: pos, to: pos + node.nodeSize })
+          .run();
+      }
+    }
+    setMathEdit(null);
   };
 
   const scriptActive = state.superscript
@@ -804,13 +852,14 @@ export function EditorToolbar({
           mode={mathEdit.mode}
           pos={mathEdit.pos}
           latex={mathEdit.latex}
+          isNew={mathEdit.isNew}
           newLabel={
             mathEdit.kind === 'inline' ? t.mathNewInline : t.mathNewBlock
           }
           placeholder={t.mathPlaceholder}
           doneLabel={t.mathDone}
           onConfirm={applyMath}
-          onCancel={() => setMathEdit(null)}
+          onCancel={cancelMath}
         />
       ) : null}
 

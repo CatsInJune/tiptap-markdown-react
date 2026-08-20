@@ -4,7 +4,6 @@ import type { Editor } from '@tiptap/react';
 import {
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -12,7 +11,7 @@ import {
   type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { renderMathHtml, type MathKind } from '../math';
+import { renderMathInto, type MathKind } from '../math';
 import styles from '../styles/toolbar.module.css';
 
 export interface MathEditorPopoverProps {
@@ -21,6 +20,8 @@ export interface MathEditorPopoverProps {
   mode: 'insert' | 'edit';
   pos?: number;
   latex: string;
+  /** 工具栏新插入：取消时删掉占位节点 */
+  isNew?: boolean;
   newLabel: string;
   placeholder: string;
   doneLabel: string;
@@ -35,34 +36,38 @@ function resolveNodeEl(editor: Editor, pos: number): HTMLElement | null {
   return null;
 }
 
-/** 相对编辑器外壳的坐标：浮层挂在壳内，随 .scrollArea 一起滚，避免 fixed 脱锚。 */
+function mathRenderTarget(el: HTMLElement, isBlock: boolean): HTMLElement {
+  if (!isBlock) return el;
+  return (el.querySelector('.block-math-inner') as HTMLElement | null) ?? el;
+}
+
 function getMathLayerStyle(
   editor: Editor,
   kind: MathKind,
-  mode: 'insert' | 'edit',
   pos?: number,
 ): CSSProperties {
   const host = editor.view.dom.parentElement;
   if (!host) return {};
   const hostRect = host.getBoundingClientRect();
   const editorRect = editor.view.dom.getBoundingClientRect();
-  const gap = mode === 'edit' ? 0 : 6;
+  const gap = 6;
   const blockWidth = editor.view.dom.clientWidth;
 
   if (pos != null) {
     const el = resolveNodeEl(editor, pos);
     if (el) {
       const r = el.getBoundingClientRect();
+      const top = r.bottom - hostRect.top + gap;
       if (kind === 'block') {
         return {
           left: editorRect.left - hostRect.left,
-          top: r.top - hostRect.top + gap,
+          top,
           width: blockWidth,
         };
       }
       return {
         left: r.left - hostRect.left,
-        top: r.top - hostRect.top + gap,
+        top,
       };
     }
   }
@@ -87,6 +92,7 @@ export function MathEditorPopover({
   mode,
   pos,
   latex,
+  isNew = false,
   newLabel,
   placeholder,
   doneLabel,
@@ -95,7 +101,7 @@ export function MathEditorPopover({
 }: MathEditorPopoverProps) {
   const [draft, setDraft] = useState(latex);
   const [layerStyle, setLayerStyle] = useState<CSSProperties>(() =>
-    getMathLayerStyle(editor, kind, mode, pos),
+    getMathLayerStyle(editor, kind, pos),
   );
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
@@ -108,12 +114,11 @@ export function MathEditorPopover({
   }, [latex]);
 
   useEffect(() => {
-    const update = () =>
-      setLayerStyle(getMathLayerStyle(editor, kind, mode, pos));
+    const update = () => setLayerStyle(getMathLayerStyle(editor, kind, pos));
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, [editor, kind, mode, pos]);
+  }, [editor, kind, pos, draft]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -130,22 +135,44 @@ export function MathEditorPopover({
   }, [editor, pos]);
 
   useEffect(() => {
+    if (pos == null) return;
+    const el = resolveNodeEl(editor, pos);
+    if (!el) return;
+    const target = mathRenderTarget(el, isBlock);
+    const src = draft.trim();
+    if (src) renderMathInto(target, src, isBlock);
+    else target.textContent = '';
+  }, [draft, pos, editor, isBlock]);
+
+  useEffect(() => {
+    if (pos == null || isNew) return;
+    const el = resolveNodeEl(editor, pos);
+    if (!el) return;
+    const target = mathRenderTarget(el, isBlock);
+    return () => {
+      const restore = latex.trim();
+      if (restore) renderMathInto(target, restore, isBlock);
+      else target.textContent = '';
+    };
+  }, [pos, editor, isBlock, latex, isNew]);
+
+  useEffect(() => {
     const onPtr = (e: PointerEvent) => {
       const target = e.target;
       if (!(target instanceof Node)) return;
       if (rootRef.current?.contains(target)) return;
+      if (pos != null) {
+        const el = resolveNodeEl(editor, pos);
+        if (el?.contains(target)) return;
+      }
       onCancel();
     };
     document.addEventListener('pointerdown', onPtr);
     return () => document.removeEventListener('pointerdown', onPtr);
-  }, [onCancel]);
+  }, [onCancel, editor, pos]);
 
-  const preview = useMemo(
-    () => renderMathHtml(draft.trim(), isBlock),
-    [draft, isBlock],
-  );
   const canSubmit = draft.trim().length > 0;
-  const showHint = !canSubmit && mode === 'insert';
+  const showHint = !canSubmit && (mode === 'insert' || isNew);
 
   const submit = () => {
     if (!canSubmit) return;
@@ -221,16 +248,9 @@ export function MathEditorPopover({
             </span>
             {newLabel}
           </div>
-        ) : (
-          <div
-            id={titleId}
-            className={
-              isBlock ? styles.mathPreviewBlock : styles.mathPreviewInline
-            }
-            dangerouslySetInnerHTML={{ __html: preview }}
-          />
-        )}
+        ) : null}
         <div
+          id={showHint ? undefined : titleId}
           className={
             isBlock
               ? `${styles.mathField} ${styles.mathFieldBlock}`

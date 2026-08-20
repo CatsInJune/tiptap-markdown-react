@@ -52,6 +52,19 @@ export function renderMathHtml(latex: string, displayMode: boolean): string {
   }
 }
 
+/** 把公式画进已有节点（编辑态原地预览，避免再叠一份 overlay）。 */
+export function renderMathInto(
+  el: HTMLElement,
+  latex: string,
+  displayMode: boolean,
+): void {
+  try {
+    katex.render(latex ?? '', el, { ...KATEX_OPTIONS, displayMode });
+  } catch {
+    el.textContent = latex ?? '';
+  }
+}
+
 export function renderMathElementHtml(
   latex: string,
   displayMode: boolean,

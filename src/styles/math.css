@@ -7,7 +7,8 @@
   color: #c0392b;
 }
 
-/* 编辑中：占位仍在，视觉交给浮层预览，避免正文公式与预览叠两份 */
+/* 编辑中：原文留在文档里，只加高亮；输入盒在下方，避免第二份 KaTeX 字号/行盒对不齐 */
 .tiptap-mathematics-render.tmr-math-editing {
-  visibility: hidden;
+  background: #fff3ec;
+  border-radius: 4px;
 }
