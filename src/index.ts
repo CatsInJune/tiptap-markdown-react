@@ -62,6 +62,7 @@ export {
   enrichMarkdownCitations,
   type SourceRef,
 } from './citationUtils';
+export { stabilizeMarkdown } from './stabilizeMarkdown';
 export { MarkdownPaste, looksLikeMarkdown } from './markdownPaste';
 export { MarkdownFileDrop } from './markdownFileDrop';
 

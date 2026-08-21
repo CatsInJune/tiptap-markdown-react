@@ -31,5 +31,6 @@ export {
   type RenderedReport,
   type RenderReportHtmlOptions,
 } from './renderReportHtml';
+export { stabilizeMarkdown } from './stabilizeMarkdown';
 export { extractToc, type TocItem } from './toc/extractToc';
 export { makeTocGetId } from './toc/tocSlug';

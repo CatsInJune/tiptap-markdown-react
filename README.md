@@ -258,7 +258,8 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 
 | Export | Description |
 | --- | --- |
-| `renderReportHtml(markdown, lockedTitles?)` | `{ html, toc }` — pure markdown → HTML + TOC. |
+| `renderReportHtml(markdown, options?)` | `{ html, toc, ok }` — markdown → HTML。`includeToc` 默认 true；卡片预览传 false。`stabilize` 给流式半成品补未闭合围栏。解析失败 `ok: false`，不把已有 HTML 吞成空串。 |
+| `stabilizeMarkdown(markdown)` | 给未闭合 ` ``` ` / `~~~` 补闭合。 |
 | `ReportContent` | `<ReportContent html={...} />` static reader with editor content styles. |
 | `extractToc`, `makeTocGetId` | TOC helpers. |
 | `baseExtensions`, `pureCodeBlock`, `pureImage`, `lowlight` | Schema-level extensions. |

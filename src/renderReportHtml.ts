@@ -12,6 +12,7 @@ import {
 import { CitationRef } from './CitationRef';
 import { baseExtensions, pureCodeBlock, pureImage } from './extensions';
 import { renderMathElementHtml } from './math';
+import { stabilizeMarkdown } from './stabilizeMarkdown';
 import { extractToc, type TocItem } from './toc/extractToc';
 import { makeTocGetId } from './toc/tocSlug';
 
@@ -35,6 +36,11 @@ import { makeTocGetId } from './toc/tocSlug';
 export interface RenderedReport {
   html: string;
   toc: TocItem[];
+  /**
+   * 管线是否成功。空 markdown 也是 ok。
+   * parse / render 抛错时为 false；调用方可保留上一帧 HTML。
+   */
+  ok: boolean;
 }
 
 export interface RenderReportHtmlOptions {
@@ -42,6 +48,16 @@ export interface RenderReportHtmlOptions {
   lockedTitles?: string[];
   /** 脚注来源，按 index 对齐 `[^n]`。 */
   sources?: SourceRef[];
+  /**
+   * 是否注入标题锚点并返回 toc。默认 true（`/p` 阅读页）。
+   * 卡片预览传 false，跳过 generateTocIds。
+   */
+  includeToc?: boolean;
+  /**
+   * 流式半成品：补未闭合代码围栏。默认 false。
+   * 完整落库稿不要开，以免改已发布 HTML。
+   */
+  stabilize?: boolean;
 }
 
 // [perf] 模块级复用单个 MarkdownManager。每次 `new MarkdownManager` 会让底层 marked
@@ -57,22 +73,67 @@ const sharedManager = new MarkdownManager({
   ],
 });
 
+function htmlFromJson(json: JSONContent): string {
+  const extensions = [
+    ...baseExtensions,
+    pureCodeBlock,
+    pureImage,
+    CitationRef,
+    TableOfContents.configure({ getId: makeTocGetId() }),
+  ];
+  return renderToHTMLString({
+    extensions,
+    content: json,
+    options: {
+      nodeMapping: {
+        inlineMath: ({ node }) =>
+          renderMathElementHtml(String(node.attrs?.latex ?? ''), false),
+        blockMath: ({ node }) =>
+          renderMathElementHtml(String(node.attrs?.latex ?? ''), true),
+      },
+    },
+  });
+}
+
 export function renderReportHtml(
   markdown: string,
   lockedTitlesOrOptions: string[] | RenderReportHtmlOptions = [],
 ): RenderedReport {
-  if (!markdown?.trim()) return { html: '', toc: [] };
+  if (!markdown?.trim()) return { html: '', toc: [], ok: true };
 
   const options: RenderReportHtmlOptions = Array.isArray(lockedTitlesOrOptions)
     ? { lockedTitles: lockedTitlesOrOptions }
     : lockedTitlesOrOptions;
   const lockedTitles = options.lockedTitles ?? [];
   const sources = options.sources ?? [];
+  const includeToc = options.includeToc !== false;
+  const input = options.stabilize ? stabilizeMarkdown(markdown) : markdown;
 
-  const json = applyCitationSources(
-    sharedManager.parse(markdown) as JSONContent,
-    sources,
-  );
+  let json: JSONContent;
+  try {
+    json = applyCitationSources(
+      sharedManager.parse(input) as JSONContent,
+      sources,
+    );
+  } catch (e) {
+    console.error(
+      '[renderReportHtml] markdown parse failed:',
+      (e as Error).message,
+    );
+    return { html: '', toc: [], ok: false };
+  }
+
+  if (!includeToc) {
+    try {
+      return { html: htmlFromJson(json), toc: [], ok: true };
+    } catch (e) {
+      console.error(
+        '[renderReportHtml] render failed (no toc):',
+        (e as Error).message,
+      );
+      return { html: '', toc: [], ok: false };
+    }
+  }
 
   // getId 是有状态去重闭包，每篇必须重置，否则锚点 id 跨调用串号。这份 extensions
   // 只喂 generateTocIds / renderToHTMLString——schema 与 sharedManager 一致（仅 getId
@@ -85,7 +146,6 @@ export function renderReportHtml(
     TableOfContents.configure({ getId: makeTocGetId() }),
   ];
   try {
-    // 给 heading 注入 id / data-toc-id（server 端，renderToHTMLString 前）。
     const jsonWithIds = generateTocIds(json, extensions);
     const html = renderToHTMLString({
       extensions,
@@ -99,15 +159,22 @@ export function renderReportHtml(
         },
       },
     });
-    return { html, toc: extractToc(jsonWithIds, lockedTitles) };
+    return { html, toc: extractToc(jsonWithIds, lockedTitles), ok: true };
   } catch (e) {
     // 某些 markdown 经 parse 产出的 JSON 可能在 heading 内嵌套 block 级子节点，
-    // 导致 generateTocIds 的 setNodeMarkup 校验失败。单篇异常不应拖垮整个构建，
-    // 降级返回空内容。
+    // 导致 generateTocIds 的 setNodeMarkup 校验失败。降级为无 TOC 仍产出正文。
     console.error(
-      '[renderReportHtml] Tiptap pipeline failed, falling back to empty content:',
+      '[renderReportHtml] TOC pipeline failed, rendering without heading ids:',
       (e as Error).message,
     );
-    return { html: '', toc: [] };
+    try {
+      return { html: htmlFromJson(json), toc: [], ok: true };
+    } catch (e2) {
+      console.error(
+        '[renderReportHtml] Tiptap pipeline failed:',
+        (e2 as Error).message,
+      );
+      return { html: '', toc: [], ok: false };
+    }
   }
 }
