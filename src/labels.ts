@@ -29,6 +29,8 @@ export interface ToolbarLabels {
   linkPrompt: string;
   image: string;
   imageUploadFailed: string;
+  /** Markdown 文件导入失败（与图片上传共用 onError 回调时，便于宿主区分文案）。 */
+  importMarkdownFailed: string;
   blockquote: string;
   bulletList: string;
   orderedList: string;
@@ -78,6 +80,7 @@ export const defaultToolbarLabels: ToolbarLabels = {
   linkPrompt: 'Enter URL',
   image: 'Image',
   imageUploadFailed: 'Image upload failed',
+  importMarkdownFailed: 'Markdown import failed',
   blockquote: 'Blockquote',
   bulletList: 'Bullet list',
   orderedList: 'Ordered list',

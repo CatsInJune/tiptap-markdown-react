@@ -1,3 +1,4 @@
+import Code from '@tiptap/extension-code';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
@@ -17,6 +18,15 @@ import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
 import type { JSONContent } from '@tiptap/core';
 import { reportBlockMath, reportInlineMath } from './math';
+
+/**
+ * StarterKit 默认 Code 的 excludes:'_' 禁止与任何其他 mark 共存。
+ * CommonMark 允许 `**bold `code` bold**`；markdown 导入时会抛
+ * RangeError: Invalid collection of marks for node text: bold,code。
+ */
+const InlineCode = Code.extend({
+  excludes: '',
+});
 
 /**
  * 编辑器的「内容 schema 级」扩展集——纯节点/标记定义，不含任何 React NodeView
@@ -89,8 +99,9 @@ export const pureImage = Image.configure({ inline: false });
  * server/预览：`[...baseExtensions, pureCodeBlock, pureImage, CitationRef, …]`
  */
 export const baseExtensions: AnyExtension[] = [
-  // 禁用 StarterKit 内置 codeBlock，统一改用带 lowlight 的代码块（由调用方注入）
-  StarterKit.configure({ codeBlock: false }),
+  // 禁用 StarterKit 内置 codeBlock / code，统一改用 lowlight 代码块 + 可共存的 InlineCode
+  StarterKit.configure({ codeBlock: false, code: false }),
+  InlineCode,
   MarkdownTextStyle,
   Color.configure({ types: [TextStyle.name] }),
   // 正文字号：官方 FontSize（v3 起并入 text-style 包），以内联样式挂在 TextStyle

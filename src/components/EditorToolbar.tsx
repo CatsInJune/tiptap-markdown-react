@@ -55,11 +55,14 @@ export interface EditorToolbarProps {
   editor: Editor;
   /**
    * 图片上传回调：收到文件，返回可访问的图片 URL。未提供则不显示图片按钮。
-   * 抛错会转交 onError。
+   * 抛错会转交 onError(..., 'image')。
    */
   onImageUpload?: (file: File) => Promise<string>;
-  /** 副作用错误回调（图片上传失败等），供宿主弹自己的提示。 */
-  onError?: (err: unknown) => void;
+  /**
+   * 副作用错误回调（图片上传 / Markdown 导入失败），供宿主弹自己的提示。
+   * `source` 区分来源，避免一律显示「图片上传失败」。
+   */
+  onError?: (err: unknown, source?: 'image' | 'markdown') => void;
   labels?: Partial<ToolbarLabels>;
   /** 追加到 More 菜单末尾的自定义项。 */
   extraToolbarItems?: ExtraToolbarItem[];
@@ -349,7 +352,7 @@ export function EditorToolbar({
       chain().setImage({ src: url }).run();
     } catch (err) {
       console.error('image upload failed:', err);
-      onError?.(err);
+      onError?.(err, 'image');
     }
   };
 
@@ -364,7 +367,7 @@ export function EditorToolbar({
       insertMarkdown(editor, text);
     } catch (err) {
       console.error('markdown import failed:', err);
-      onError?.(err);
+      onError?.(err, 'markdown');
     }
   };
 
