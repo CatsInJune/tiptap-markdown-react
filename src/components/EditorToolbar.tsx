@@ -458,14 +458,12 @@ export function EditorToolbar({
     }
   };
 
-  // 导入中的按钮 title：有百分比就带上（宿主经 onProgress 回写）
+  // 进度只写在这个按钮上：上传有真实百分比，转换不装 100%。
   const importTitle = (() => {
     if (!importing) return t.importDocument;
-    const pct =
-      importing.phase === 'upload' && importing.ratio != null
-        ? ` ${Math.round(importing.ratio * 100)}%`
-        : '';
-    return `${t.importDocumentBusy}${pct}`;
+    if (importing.phase === 'convert') return t.importDocumentConverting;
+    const pct = Math.round((importing.ratio ?? 0) * 100);
+    return t.importDocumentUploading(pct);
   })();
 
   const applyTextColor = (color: string | null) => {
