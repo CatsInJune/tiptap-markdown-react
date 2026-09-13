@@ -38,6 +38,7 @@ import type {
   CommentRef,
 } from '../commentAnchor/commentTypes';
 import { baseExtensions, lowlight } from '../extensions';
+import { ImportPlaceholder } from '../importPlaceholder';
 import type { CodeBlockLabels } from '../labels';
 import { MarkdownFileDrop } from '../markdownFileDrop';
 import { MarkdownPaste } from '../markdownPaste';
@@ -236,6 +237,7 @@ export const MarkdownWysiwygEditor = forwardRef<
       ...baseExtensions,
       CodeBlock.configure({ lowlight, codeBlockLabels }),
       ImageWithConfirmDelete.configure({ inline: false }),
+      ImportPlaceholder,
       createCitationRef({ renderCitation }),
       CommentMark,
       commentAnchorExtension({

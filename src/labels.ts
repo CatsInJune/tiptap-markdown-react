@@ -33,14 +33,12 @@ export interface ToolbarLabels {
   importMarkdownFailed: string;
   /** 主栏导入按钮。默认只吃 .md，宿主传 onImportDocument 后可扩展格式。 */
   importDocument: string;
-  /** 导入进行中的按钮 title（未区分阶段时的兜底）。 */
+  /** 导入进行中的按钮 title。 */
   importDocumentBusy: string;
-  /** 上传阶段按钮 title，传入 0–100。 */
+  /** 光标占位：上传阶段，传入 0–100。 */
   importDocumentUploading: (percent: number) => string;
-  /** 转换阶段按钮 title，不要百分比。 */
+  /** 光标占位：转换阶段，不要百分比。 */
   importDocumentConverting: string;
-  /** 导入进行中的取消按钮。 */
-  importDocumentCancel: string;
   /** 非 Markdown 文件导入失败（onError 的 source === 'import'）。 */
   importDocumentFailed: string;
   blockquote: string;
@@ -98,7 +96,6 @@ export const defaultToolbarLabels: ToolbarLabels = {
   importDocumentBusy: 'Importing…',
   importDocumentUploading: (percent) => `Uploading ${percent}%`,
   importDocumentConverting: 'Converting…',
-  importDocumentCancel: 'Cancel',
   importDocumentFailed: 'Import failed',
   blockquote: 'Blockquote',
   bulletList: 'Bullet list',

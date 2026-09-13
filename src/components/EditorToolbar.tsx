@@ -48,7 +48,7 @@ export interface ImportDocumentResult {
   sources?: SourceRef[];
 }
 
-/** 导入进度。宿主自行决定怎么展示（包只据此禁用按钮）。 */
+/** 导入进度。包用来更新光标占位文案并禁用导入按钮。 */
 export interface ImportDocumentProgress {
   /** 0–1。通常只有上传阶段可测；转换阶段可省略。 */
   ratio?: number;
@@ -435,19 +435,28 @@ export function EditorToolbar({
 
     const ctrl = new AbortController();
     importAbortRef.current = ctrl;
-    setImporting({ phase: 'upload' });
+    setImporting({ phase: 'upload', ratio: 0 });
+    const labelOf = (p: ImportDocumentProgress) =>
+      p.phase === 'convert'
+        ? t.importDocumentConverting
+        : t.importDocumentUploading(Math.round((p.ratio ?? 0) * 100));
+    editor.commands.insertImportPlaceholder(labelOf({ phase: 'upload', ratio: 0 }));
     try {
       const raw = await onImportDocument(file, {
         signal: ctrl.signal,
         onProgress: (p) => {
-          if (!ctrl.signal.aborted) setImporting(p);
+          if (ctrl.signal.aborted) return;
+          setImporting(p);
+          editor.commands.updateImportPlaceholder(labelOf(p));
         },
       });
+      editor.commands.removeImportPlaceholder();
       const md = typeof raw === 'string' ? raw : raw.markdown;
       const sources = typeof raw === 'string' ? [] : raw.sources ?? [];
       insertMarkdown(editor, md, sources);
     } catch (err) {
-      // 用户主动取消不算错误，宿主自行提示「已取消」
+      editor.commands.removeImportPlaceholder();
+      // 卸载 abort 不算错误
       if (!ctrl.signal.aborted) {
         console.error('document import failed:', err);
         onError?.(err, 'import');
@@ -458,13 +467,8 @@ export function EditorToolbar({
     }
   };
 
-  // 进度只写在这个按钮上：上传有真实百分比，转换不装 100%。
-  const importTitle = (() => {
-    if (!importing) return t.importDocument;
-    if (importing.phase === 'convert') return t.importDocumentConverting;
-    const pct = Math.round((importing.ratio ?? 0) * 100);
-    return t.importDocumentUploading(pct);
-  })();
+  // 进度写在光标占位上；按钮只区分空闲 / 忙碌。
+  const importTitle = importing ? t.importDocumentBusy : t.importDocument;
 
   const applyTextColor = (color: string | null) => {
     if (color) chain().setColor(color).run();
@@ -836,16 +840,6 @@ export function EditorToolbar({
               >
                 <ImportIcon />
               </ToolbarButton>
-              {importing ? (
-                <button
-                  type="button"
-                  className={styles.importCancel}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => importAbortRef.current?.abort()}
-                >
-                  {t.importDocumentCancel}
-                </button>
-              ) : null}
             </>
           ) : null}
           <ToolbarButton

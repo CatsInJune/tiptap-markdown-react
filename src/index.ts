@@ -48,6 +48,7 @@ export {
   pureImage,
 } from './extensions';
 export { CitationRef } from './CitationRef';
+export { ImportPlaceholder } from './importPlaceholder';
 export { createCitationRef } from './createCitationRef';
 export type {
   RenderCitation,
