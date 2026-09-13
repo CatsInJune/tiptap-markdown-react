@@ -20,6 +20,7 @@ import {
   ColumnBeforeIcon,
   ColumnDeleteIcon,
   ImageIcon,
+  ImportIcon,
   ItalicIcon,
   LinkIcon,
   ListChecksIcon,
@@ -34,11 +35,31 @@ import {
   UndoIcon,
 } from '../icons';
 import { defaultToolbarLabels, type ToolbarLabels } from '../labels';
+import type { SourceRef } from '../citationUtils';
 import { insertMarkdown } from '../insertMarkdown';
 import { subscribeMathClick, type MathKind } from '../math';
 import styles from '../styles/toolbar.module.css';
 import { ColorPalette } from './ColorPalette';
 import { MathEditorPopover } from './MathEditorPopover';
+
+/** `onImportDocument` 的成功返回。给字符串等价于 `{ markdown }`。 */
+export interface ImportDocumentResult {
+  markdown: string;
+  sources?: SourceRef[];
+}
+
+/** 导入进度。包用来更新光标占位文案并禁用导入按钮。 */
+export interface ImportDocumentProgress {
+  /** 0–1。通常只有上传阶段可测；转换阶段可省略。 */
+  ratio?: number;
+  phase: 'upload' | 'convert';
+}
+
+export interface ImportDocumentContext {
+  /** 用户点取消或组件卸载时 abort，宿主据此中断请求。 */
+  signal: AbortSignal;
+  onProgress?: (p: ImportDocumentProgress) => void;
+}
 
 /** More 菜单里注入的自定义项（宿主用它扩展工具栏，如「导入项目报告」）。 */
 export interface ExtraToolbarItem {
@@ -62,7 +83,23 @@ export interface EditorToolbarProps {
    * 副作用错误回调（图片上传 / Markdown 导入失败），供宿主弹自己的提示。
    * `source` 区分来源，避免一律显示「图片上传失败」。
    */
-  onError?: (err: unknown, source?: 'image' | 'markdown') => void;
+  onError?: (err: unknown, source?: 'image' | 'markdown' | 'import') => void;
+  /**
+   * 非 Markdown 文件的转换：收到文件，返回可插入的 Markdown。未提供则导入只吃 .md。
+   * 包内不校验扩展名——格式白名单由宿主的 `importAccept` 与本回调自己负责。
+   * 抛错转交 onError(..., 'import')；`AbortError` 视为用户取消，不报错。
+   */
+  onImportDocument?: (
+    file: File,
+    ctx: ImportDocumentContext,
+  ) => Promise<ImportDocumentResult | string>;
+  /**
+   * 追加到导入 input 的 accept（默认已含 `.md,.markdown,text/markdown`）。
+   * 例：`.doc,.docx,.csv,.pdf`。仅在传了 `onImportDocument` 时生效。
+   */
+  importAccept?: string;
+  /** 是否显示导入按钮，默认 `true`。卡片等场景可关掉。 */
+  showImport?: boolean;
   labels?: Partial<ToolbarLabels>;
   /** 追加到 More 菜单末尾的自定义项。 */
   extraToolbarItems?: ExtraToolbarItem[];
@@ -74,12 +111,14 @@ function ToolbarButton({
   title,
   active,
   disabled,
+  busy,
   onClick,
   children,
 }: {
   title: string;
   active?: boolean;
   disabled?: boolean;
+  busy?: boolean;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -89,6 +128,7 @@ function ToolbarButton({
       title={title}
       aria-label={title}
       aria-pressed={active}
+      aria-busy={busy}
       disabled={disabled}
       className={`${styles.btn} ${active ? styles.btnActive : ''}`}
       // mousedown + preventDefault 防止点击工具栏时编辑器失焦丢选区
@@ -227,6 +267,10 @@ function ColorPopover({
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '30px'] as const;
 
+/** 包内唯一识别的扩展名：命中即本地读文本，其余一律交给宿主回调。 */
+const MD_FILE_RE = /\.(md|markdown)$/i;
+const MD_ACCEPT = '.md,.markdown,text/markdown';
+
 /**
  * 顶部操作栏（antd-free，Radix Popover 菜单 + 内联 SVG 图标）。位置由父级控制，
  * 这里只渲染按钮 + 反映 editor 激活态。不含业务耦合，扩展项经 extraToolbarItems 注入。
@@ -235,6 +279,9 @@ export function EditorToolbar({
   editor,
   onImageUpload,
   onError,
+  onImportDocument,
+  importAccept,
+  showImport = true,
   labels,
   extraToolbarItems,
   className,
@@ -356,20 +403,72 @@ export function EditorToolbar({
     }
   };
 
-  // ── 导入 Markdown：选 .md 文件 → 读文本 → 解析插入光标处 ──
-  const mdFileInputRef = useRef<HTMLInputElement>(null);
-  const handleMdFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── 导入：.md 包内读文本插入；其余原样交给宿主 onImportDocument ──
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState<ImportDocumentProgress | null>(
+    null,
+  );
+  const importAbortRef = useRef<AbortController | null>(null);
+
+  // 卸载（如切路由）中断在飞的导入，避免请求泄漏与卸载后 setState
+  useEffect(() => () => importAbortRef.current?.abort(), []);
+
+  const handleImportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+
+    if (MD_FILE_RE.test(file.name)) {
+      try {
+        insertMarkdown(editor, await file.text());
+      } catch (err) {
+        console.error('markdown import failed:', err);
+        onError?.(err, 'markdown');
+      }
+      return;
+    }
+
+    if (!onImportDocument) {
+      onError?.(new Error(`unsupported file: ${file.name}`), 'import');
+      return;
+    }
+
+    const ctrl = new AbortController();
+    importAbortRef.current = ctrl;
+    setImporting({ phase: 'upload', ratio: 0 });
+    const labelOf = (p: ImportDocumentProgress) =>
+      p.phase === 'convert'
+        ? t.importDocumentConverting
+        : t.importDocumentUploading(Math.round((p.ratio ?? 0) * 100));
+    editor.commands.insertImportPlaceholder(labelOf({ phase: 'upload', ratio: 0 }));
     try {
-      const text = await file.text();
-      insertMarkdown(editor, text);
+      const raw = await onImportDocument(file, {
+        signal: ctrl.signal,
+        onProgress: (p) => {
+          if (ctrl.signal.aborted) return;
+          setImporting(p);
+          editor.commands.updateImportPlaceholder(labelOf(p));
+        },
+      });
+      editor.commands.removeImportPlaceholder();
+      const md = typeof raw === 'string' ? raw : raw.markdown;
+      const sources = typeof raw === 'string' ? [] : raw.sources ?? [];
+      insertMarkdown(editor, md, sources);
     } catch (err) {
-      console.error('markdown import failed:', err);
-      onError?.(err, 'markdown');
+      editor.commands.removeImportPlaceholder();
+      // 卸载 abort 不算错误
+      if (!ctrl.signal.aborted) {
+        console.error('document import failed:', err);
+        onError?.(err, 'import');
+      }
+    } finally {
+      if (importAbortRef.current === ctrl) importAbortRef.current = null;
+      setImporting(null);
     }
   };
+
+  // 进度写在光标占位上；按钮只区分空闲 / 忙碌。
+  const importTitle = importing ? t.importDocumentBusy : t.importDocument;
 
   const applyTextColor = (color: string | null) => {
     if (color) chain().setColor(color).run();
@@ -731,6 +830,18 @@ export function EditorToolbar({
               />
             </>
           ) : null}
+          {showImport ? (
+            <>
+              <ToolbarButton
+                title={importTitle}
+                disabled={!!importing}
+                busy={!!importing}
+                onClick={() => importInputRef.current?.click()}
+              >
+                <ImportIcon />
+              </ToolbarButton>
+            </>
+          ) : null}
           <ToolbarButton
             title={t.blockquote}
             active={state.blockquote}
@@ -817,12 +928,6 @@ export function EditorToolbar({
                 {t.tableInsert}
               </span>
             </MenuItem>
-            <MenuItem onSelect={() => mdFileInputRef.current?.click()}>
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>M↓</span>
-                {t.importMarkdown}
-              </span>
-            </MenuItem>
             {extraToolbarItems?.map((item) => (
               <MenuItem
                 key={item.key}
@@ -839,14 +944,20 @@ export function EditorToolbar({
         </div>
       </div>
 
-      {/* 导入 Markdown 的隐藏文件选择器（More 菜单项触发） */}
-      <input
-        ref={mdFileInputRef}
-        type="file"
-        accept=".md,.markdown,text/markdown"
-        hidden
-        onChange={handleMdFileChange}
-      />
+      {/* 导入的隐藏文件选择器：默认只收 .md，宿主可用 importAccept 追加格式 */}
+      {showImport ? (
+        <input
+          ref={importInputRef}
+          type="file"
+          accept={
+            onImportDocument && importAccept
+              ? `${MD_ACCEPT},${importAccept}`
+              : MD_ACCEPT
+          }
+          hidden
+          onChange={handleImportChange}
+        />
+      ) : null}
 
       {mathEdit ? (
         <MathEditorPopover

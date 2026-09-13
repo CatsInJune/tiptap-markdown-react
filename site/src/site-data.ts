@@ -115,7 +115,10 @@ export const EDITOR_REF_API: ApiRow[] = [
 export const TOOLBAR_API: ApiRow[] = [
   { name: 'editor', desc: 'Tiptap Editor instance (required)', type: 'Editor' },
   { name: 'onImageUpload', desc: 'Upload handler; hides image button if omitted', type: '(file: File) => Promise<string>', defaultVal: '—' },
-  { name: 'onError', desc: 'Side-effect error callback', type: '(err: unknown) => void', defaultVal: '—' },
+  { name: 'onError', desc: 'Side-effect error callback', type: "(err: unknown, source?: 'image' | 'markdown' | 'import') => void", defaultVal: '—' },
+  { name: 'onImportDocument', desc: 'Convert a non-Markdown file to Markdown. Omit and Import only takes .md', type: '(file: File, ctx: ImportDocumentContext) => Promise<ImportDocumentResult | string>', defaultVal: '—' },
+  { name: 'importAccept', desc: 'Extra accept appended to the Import picker, e.g. ".docx,.csv,.pdf"', type: 'string', defaultVal: '—' },
+  { name: 'showImport', desc: 'Show the Import button', type: 'boolean', defaultVal: 'true' },
   { name: 'labels', desc: 'Toolbar label overrides', type: 'Partial<ToolbarLabels>', defaultVal: '—' },
   { name: 'extraToolbarItems', desc: 'Custom items in More menu', type: 'ExtraToolbarItem[]', defaultVal: '—' },
   { name: 'className', desc: 'Extra root class', type: 'string', defaultVal: '—' },
