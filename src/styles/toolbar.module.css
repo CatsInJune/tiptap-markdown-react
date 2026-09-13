@@ -62,6 +62,25 @@
   cursor: not-allowed;
 }
 
+/* 导入中的取消：紧跟导入按钮的小号文字按钮 */
+.importCancel {
+  height: 34px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sb-accent);
+  font-family: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.importCancel:hover {
+  background: #f3f3f3;
+}
+
 /* 表内浮动工具条（BubbleMenu portal 到 body，拿不到 .toolbar 变量，故写死配色） */
 .tableBubble {
   display: flex;

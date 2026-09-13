@@ -21,6 +21,9 @@ export {
   EditorToolbar,
   type EditorToolbarProps,
   type ExtraToolbarItem,
+  type ImportDocumentContext,
+  type ImportDocumentProgress,
+  type ImportDocumentResult,
 } from './components/EditorToolbar';
 export { ColorPalette, type ColorPaletteProps } from './components/ColorPalette';
 export { TocPanel, type TocPanelProps } from './components/TocPanel';

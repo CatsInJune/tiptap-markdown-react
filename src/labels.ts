@@ -31,6 +31,14 @@ export interface ToolbarLabels {
   imageUploadFailed: string;
   /** Markdown 文件导入失败（与图片上传共用 onError 回调时，便于宿主区分文案）。 */
   importMarkdownFailed: string;
+  /** 主栏导入按钮。默认只吃 .md，宿主传 onImportDocument 后可扩展格式。 */
+  importDocument: string;
+  /** 导入进行中的按钮 title。 */
+  importDocumentBusy: string;
+  /** 导入进行中的取消按钮。 */
+  importDocumentCancel: string;
+  /** 非 Markdown 文件导入失败（onError 的 source === 'import'）。 */
+  importDocumentFailed: string;
   blockquote: string;
   bulletList: string;
   orderedList: string;
@@ -38,6 +46,7 @@ export interface ToolbarLabels {
   more: string;
   codeBlock: string;
   hr: string;
+  /** @deprecated 导入入口已移到主栏，改用 `importDocument`。 */
   importMarkdown: string;
   tableInsert: string;
   tableAddColumnBefore: string;
@@ -81,6 +90,10 @@ export const defaultToolbarLabels: ToolbarLabels = {
   image: 'Image',
   imageUploadFailed: 'Image upload failed',
   importMarkdownFailed: 'Markdown import failed',
+  importDocument: 'Import',
+  importDocumentBusy: 'Importing…',
+  importDocumentCancel: 'Cancel',
+  importDocumentFailed: 'Import failed',
   blockquote: 'Blockquote',
   bulletList: 'Bullet list',
   orderedList: 'Ordered list',
