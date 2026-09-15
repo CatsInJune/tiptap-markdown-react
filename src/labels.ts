@@ -31,8 +31,12 @@ export interface ToolbarLabels {
   imageUploadFailed: string;
   /** Markdown 文件导入失败（与图片上传共用 onError 回调时，便于宿主区分文案）。 */
   importMarkdownFailed: string;
-  /** 主栏导入按钮。默认只吃 .md，宿主传 onImportDocument 后可扩展格式。 */
+  /** 主栏导入下拉触发器上的短文案（对齐 style / fontSize）。 */
   importDocument: string;
+  /** 导入触发器 title / aria-label。 */
+  importDocumentHint: string;
+  /** 未传 importMenuItems、但传了 onImportDocument + importAccept 时的第二项。 */
+  importDocumentOther: string;
   /** 导入进行中的按钮 title。 */
   importDocumentBusy: string;
   /** 光标占位：上传阶段，传入 0–100。 */
@@ -48,7 +52,7 @@ export interface ToolbarLabels {
   more: string;
   codeBlock: string;
   hr: string;
-  /** @deprecated 导入入口已移到主栏，改用 `importDocument`。 */
+  /** 导入下拉里的 Markdown 项。 */
   importMarkdown: string;
   tableInsert: string;
   tableAddColumnBefore: string;
@@ -93,6 +97,8 @@ export const defaultToolbarLabels: ToolbarLabels = {
   imageUploadFailed: 'Image upload failed',
   importMarkdownFailed: 'Markdown import failed',
   importDocument: 'Import',
+  importDocumentHint: 'Import a file',
+  importDocumentOther: 'Document',
   importDocumentBusy: 'Importing…',
   importDocumentUploading: (percent) => `Uploading ${percent}%`,
   importDocumentConverting: 'Converting…',
@@ -104,7 +110,7 @@ export const defaultToolbarLabels: ToolbarLabels = {
   more: 'More',
   codeBlock: 'Code block',
   hr: 'Divider',
-  importMarkdown: 'Import Markdown',
+  importMarkdown: 'Markdown',
   tableInsert: 'Insert table',
   tableAddColumnBefore: 'Add column before',
   tableAddColumnAfter: 'Add column after',

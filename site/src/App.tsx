@@ -483,8 +483,8 @@ function DemosPage() {
           <code>markdownFileDrop={'{false}'}</code>. Detection looks only at the
           plain-text content, so copying markdown source from any app (Xcode,
           VS Code, notes) converts, while real rich text (Word / web pages)
-          pastes normally. The toolbar button is localized via{' '}
-          <code>labels.importDocument</code>.
+          pastes normally. The Import dropdown is localized via{' '}
+          <code>labels.importDocument</code> / <code>labels.importDocumentHint</code>.
         </p>
       </div>
 
@@ -680,9 +680,10 @@ function ApiPage() {
           Shift+paste and code blocks are left untouched),{' '}
           <code>markdownFileDrop</code> accepts <code>.md</code> /{' '}
           <code>.markdown</code> files via drag-drop or file paste, and{' '}
-          <code>EditorToolbar</code> ships an <em>Import</em> button on the main
-          bar (<code>labels.importDocument</code>) that reads <code>.md</code>{' '}
-          locally and hands any other file to <code>onImportDocument</code>. The
+          <code>EditorToolbar</code> ships an <em>Import</em> dropdown on the main
+          bar (<code>labels.importDocument</code> / <code>labels.importDocumentHint</code>) that reads <code>.md</code>{' '}
+          locally and hands any other file to <code>onImportDocument</code>. Pass{' '}
+          <code>importMenuItems</code> to split formats. The
           underlying extensions <code>MarkdownPaste</code> /{' '}
           <code>MarkdownFileDrop</code> are exported for custom pipelines.
         </p>

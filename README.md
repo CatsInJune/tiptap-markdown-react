@@ -222,7 +222,7 @@ Three ways to get markdown into the editor, all built in:
 
 - **Paste markdown text** — plain-text paste is heuristically detected (headings, lists, links, fences, tables…) and parsed into rich content. Rich-text (HTML) paste is untouched; Shift+paste always inserts plain text; pasting inside a code block is never converted. Opt out with `markdownPaste={false}`.
 - **Drop / paste `.md` files** — drag a `.md` / `.markdown` file into the editor (inserted at drop point) or paste a copied file (inserted at cursor). Opt out with `markdownFileDrop={false}`.
-- **Toolbar import** — the main-bar **Import** button opens a file picker and inserts the parsed file at the cursor (label: `labels.importDocument`). `.md` / `.markdown` is read in-package; any other file is handed to `onImportDocument`, so hosts decide which formats to accept (`importAccept`) and how to convert them. Without that callback the picker stays `.md`-only.
+- **Toolbar import** — the main-bar **Import** control is a Style/Size-like dropdown (`labels.importDocument` on the trigger, `labels.importDocumentHint` on hover). `.md` / `.markdown` is read in-package; any other file is handed to `onImportDocument`. Pass `importMenuItems` to split formats (Markdown / Word / PDF); otherwise the menu is Markdown-only, plus a Document item when `importAccept` is set. Without `onImportDocument` the picker stays `.md`-only.
 
 The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLikeMarkdown` heuristic) are exported for custom pipelines.
 
@@ -234,8 +234,9 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 | `onImageUpload` | `(file: File) => Promise<string>` | Upload handler returning a URL. Omit to hide the image button. |
 | `onError` | `(err, source?: 'image' \| 'markdown' \| 'import') => void` | Side-effect error callback (e.g. failed upload). |
 | `onImportDocument` | `(file, ctx) => Promise<ImportDocumentResult \| string>` | Converts a non-Markdown file to Markdown. `ctx.signal` aborts on cancel/unmount; `ctx.onProgress` reports upload/convert progress back. Omit and Import only takes `.md`. |
-| `importAccept` | `string` | Extra `accept` for the Import picker, e.g. `.docx,.csv,.pdf`. The package never validates extensions itself. |
-| `showImport` | `boolean` | Show the Import button (default `true`). |
+| `importAccept` | `string` | Extra `accept` used by the default Document menu item when `importMenuItems` is omitted. |
+| `importMenuItems` | `ImportMenuItem[]` | Import dropdown options (`label` + `accept`). Hosts that want Markdown / Word / PDF pass three items. |
+| `showImport` | `boolean` | Show the Import dropdown (default `true`). |
 | `labels` | `Partial<ToolbarLabels>` | i18n labels. |
 | `extraToolbarItems` | `ExtraToolbarItem[]` | Custom items appended to the "More" menu. |
 | `labels.inlineMath` / `blockMath` | `string` | More-menu equation items. |
