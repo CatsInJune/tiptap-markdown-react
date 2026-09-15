@@ -347,7 +347,8 @@ editor.commands.insertBlockMath({ latex: '\\\\sum x' })
   <Popover trigger="click" content={lookup(index)}>{defaultDom}</Popover>
 )} />
 
-// SSR reader — click only; host owns open state
+// SSR reader — import from /reader (no TableKit); host owns open state
+import { ReportContentInteractive } from 'tiptap-markdown-react/reader';
 const [active, setActive] = useState(null);
 <ReportContentInteractive
   html={html}

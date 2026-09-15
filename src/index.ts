@@ -30,7 +30,7 @@ export { ColorPalette, type ColorPaletteProps } from './components/ColorPalette'
 export { TocPanel, type TocPanelProps } from './components/TocPanel';
 export { CodeBlockView } from './components/CodeBlockView';
 
-// ── 只读静态正文（也在 ./server 导出，供纯客户端场景直接用） ──
+// ── 只读静态正文（阅读页请改从 ./reader 引入，避免与 ./server 重复注册 TableKit） ──
 export { ReportContent, type ReportContentProps } from './ReportContent';
 export {
   CitationInteractive,

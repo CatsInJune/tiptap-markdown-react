@@ -4,7 +4,7 @@ import preserveDirectives from 'rollup-preserve-directives';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
-// 库模式：产出 ESM 双入口（. / server）+ 单一 style.css + .d.ts。
+// 库模式：产出 ESM 三入口（. / server / reader）+ 单一 style.css + .d.ts。
 // react / react-dom 走 peer（external）；@tiptap/* / katex / lowlight 在 dependencies 中
 // 由 npm 传递安装，构建仍 external 以避免打进 dist、保证单例 schema。
 export default defineConfig({
@@ -18,6 +18,7 @@ export default defineConfig({
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
         server: resolve(__dirname, 'src/server.ts'),
+        reader: resolve(__dirname, 'src/reader.ts'),
       },
       formats: ['es'],
     },

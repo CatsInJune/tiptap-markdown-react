@@ -1,6 +1,6 @@
 {
   "name": "tiptap-markdown-react",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "A batteries-included, self-styled Markdown WYSIWYG editor and reader suite built on Tiptap v3. Markdown in/out, SSR/static rendering, table of contents, themeable via CSS variables, zero Ant Design.",
   "type": "module",
   "license": "MIT",
@@ -42,6 +42,10 @@
     "./server": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
+    },
+    "./reader": {
+      "types": "./dist/reader.d.ts",
+      "import": "./dist/reader.js"
     },
     "./style.css": "./dist/style.css"
   },

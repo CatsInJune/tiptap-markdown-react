@@ -161,7 +161,7 @@ export const INSERT_MARKDOWN_API: ApiRow[] = [
 export const CITATION_API: ApiRow[] = [
   { name: 'renderCitation', desc: 'Editor/Preview NodeView slot: ({ index, attrs, defaultDom }) => ReactNode', type: 'RenderCitation' },
   { name: 'CitationInteractive', desc: 'SSR reader: event-delegates .citation-ref; emits onCitationEnter / onCitationLeave (no open state)', type: 'Component' },
-  { name: 'ReportContentInteractive', desc: 'Convenience: ReportContent + CitationInteractive', type: 'Component' },
+  { name: 'ReportContentInteractive', desc: 'Convenience: ReportContent + CitationInteractive. Reading pages: import from tiptap-markdown-react/reader', type: 'Component' },
   { name: 'onCitationEnter / onCitationLeave', desc: 'Host-owned open/close; ctx has index + anchorEl', type: 'callbacks' },
   { name: 'createCitationRef({ renderCitation })', desc: 'Client CitationRef + NodeView', type: '() => Extension' },
   { name: 'CitationRef', desc: 'Pure schema node for SSR HTML (no React)', type: 'Node' },

@@ -5,7 +5,7 @@ A batteries-included, self-styled **Markdown WYSIWYG editor + reader** suite bui
 - **Markdown-first**: content goes in and comes out as markdown (`getMarkdown()`), with `getHTML()` / `getJSON()` also exposed.
 - **Equations**: toolbar inserts inline / block math (KaTeX). Markdown round-trip uses `$$…$$` (inline) and newline-wrapped `$$` (block). Typing `$` / `$$` stays as text so dollar amounts are safe.
 - **Own opinionated UI**: toolbar, color palette, code block, and table of contents ship styled out of the box. Zero `antd`. Dropdowns/popovers use [Radix](https://www.radix-ui.com/) primitives; icons are inline SVG.
-- **Editor + Preview + Static reader**: edit, live client-side preview, and a pure `renderReportHtml()` for server rendering (Next.js Server Components / ISR).
+- **Editor + Preview + Static reader**: edit, live client-side preview, and a pure `renderReportHtml()` for server rendering (Next.js Server Components / ISR). Reading pages that only hydrate footnotes should import `tiptap-markdown-react/reader` so they do not load `TableKit`.
 - **Table of contents**: stable, shareable slug anchors that match between the editor preview and the published reading page.
 - **Themeable**: colors and fonts are exposed as `--tmr-*` CSS variables.
 
@@ -92,6 +92,16 @@ export function Preview({ markdown }: { markdown: string }) {
 }
 ```
 
+### Entries (do not mix `.` and `./server` in one client bundle)
+
+| Import | Use on | Loads `TableKit` |
+| --- | --- | --- |
+| `tiptap-markdown-react` | Editor / toolbar / live preview | Yes |
+| `tiptap-markdown-react/server` | Server Components / ISR `renderReportHtml` | Yes |
+| `tiptap-markdown-react/reader` | Client reading pages (`ReportContentInteractive`) | No |
+
+ProseMirror registers table cell selection once per JS realm. Importing **both** `.` and `./server` from a Client Component (or any shared client chunk) can throw `Duplicate use of selection JSON ID cell`. Reading pages should use `./reader` + server-rendered HTML.
+
 ### 3. Server-side / static reader (SEO)
 
 Use the `./server` entry from a Server Component — it has no client code and no hard browser dependency. Render markdown to HTML at request/build time, then output it with `ReportContent` (which applies the same content styles as the editor).
@@ -114,6 +124,31 @@ export default async function Page() {
   );
 }
 ```
+
+Hydrate footnotes on the client **without** loading the editor / `TableKit`:
+
+```tsx
+'use client';
+import {
+  ReportContentInteractive,
+  type CitationEnterContext,
+} from 'tiptap-markdown-react/reader';
+import 'tiptap-markdown-react/style.css';
+
+export function ArticleBody({ html }: { html: string }) {
+  return (
+    <ReportContentInteractive
+      html={html}
+      onCitationEnter={(ctx: CitationEnterContext) => {
+        /* host popover */
+      }}
+      onCitationLeave={() => {}}
+    />
+  );
+}
+```
+
+Do not also import `tiptap-markdown-react` (the editor entry) from that same client module graph.
 
 ### 4. Comment anchoring (edit session only)
 
@@ -267,6 +302,15 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 | `ReportContent` | `<ReportContent html={...} />` static reader with editor content styles. |
 | `extractToc`, `makeTocGetId` | TOC helpers. |
 | `baseExtensions`, `pureCodeBlock`, `pureImage`, `lowlight` | Schema-level extensions. |
+
+### `tiptap-markdown-react/reader` (client reading, no TableKit)
+
+| Export | Description |
+| --- | --- |
+| `ReportContentInteractive` | `ReportContent` + citation click delegation. |
+| `ReportContent`, `CitationInteractive` | Compose your own wrapper. |
+| `SourceRef`, citation DOM/types | Footnote helpers. |
+| `scrollToTocHeading` | Scroll the reading container to a heading. |
 
 ## License
 
