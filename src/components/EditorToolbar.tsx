@@ -20,7 +20,6 @@ import {
   ColumnBeforeIcon,
   ColumnDeleteIcon,
   ImageIcon,
-  ImportIcon,
   ItalicIcon,
   LinkIcon,
   ListChecksIcon,
@@ -35,6 +34,11 @@ import {
   UndoIcon,
 } from '../icons';
 import { defaultToolbarLabels, type ToolbarLabels } from '../labels';
+import {
+  MD_FILE_RE,
+  resolveImportMenuItems,
+  type ImportMenuItem,
+} from '../importMenu';
 import type { SourceRef } from '../citationUtils';
 import { insertMarkdown } from '../insertMarkdown';
 import { subscribeMathClick, type MathKind } from '../math';
@@ -95,16 +99,24 @@ export interface EditorToolbarProps {
   ) => Promise<ImportDocumentResult | string>;
   /**
    * 追加到导入 input 的 accept（默认已含 `.md,.markdown,text/markdown`）。
-   * 例：`.doc,.docx,.csv,.pdf`。仅在传了 `onImportDocument` 时生效。
+   * 例：`.doc,.docx,.csv,.pdf`。未传 `importMenuItems` 且传了 `onImportDocument` 时，
+   * 下拉会多一项「Document」。
    */
   importAccept?: string;
-  /** 是否显示导入按钮，默认 `true`。卡片等场景可关掉。 */
+  /**
+   * 主栏导入下拉的选项。不传则 Markdown；再加 `onImportDocument` + `importAccept`
+   * 时多一项 Document。宿主要拆成 Word / PDF 时自己传入。
+   */
+  importMenuItems?: ImportMenuItem[];
+  /** 是否显示导入下拉，默认 `true`。卡片等场景可关掉。 */
   showImport?: boolean;
   labels?: Partial<ToolbarLabels>;
   /** 追加到 More 菜单末尾的自定义项。 */
   extraToolbarItems?: ExtraToolbarItem[];
   className?: string;
 }
+
+export type { ImportMenuItem };
 
 /** 单个工具栏按钮：激活态高亮，disabled 时灰显。 */
 function ToolbarButton({
@@ -267,10 +279,6 @@ function ColorPopover({
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '30px'] as const;
 
-/** 包内唯一识别的扩展名：命中即本地读文本，其余一律交给宿主回调。 */
-const MD_FILE_RE = /\.(md|markdown)$/i;
-const MD_ACCEPT = '.md,.markdown,text/markdown';
-
 /**
  * 顶部操作栏（antd-free，Radix Popover 菜单 + 内联 SVG 图标）。位置由父级控制，
  * 这里只渲染按钮 + 反映 editor 激活态。不含业务耦合，扩展项经 extraToolbarItems 注入。
@@ -281,6 +289,7 @@ export function EditorToolbar({
   onError,
   onImportDocument,
   importAccept,
+  importMenuItems,
   showImport = true,
   labels,
   extraToolbarItems,
@@ -467,8 +476,23 @@ export function EditorToolbar({
     }
   };
 
+  const importItems = resolveImportMenuItems({
+    labels: t,
+    onImportDocument,
+    importAccept,
+    importMenuItems,
+  });
+
+  const pickImport = (accept: string) => {
+    const input = importInputRef.current;
+    if (!input) return;
+    input.accept = accept;
+    input.value = '';
+    input.click();
+  };
+
   // 进度写在光标占位上；按钮只区分空闲 / 忙碌。
-  const importTitle = importing ? t.importDocumentBusy : t.importDocument;
+  const importTitle = importing ? t.importDocumentBusy : t.importDocumentHint;
 
   const applyTextColor = (color: string | null) => {
     if (color) chain().setColor(color).run();
@@ -831,16 +855,36 @@ export function EditorToolbar({
             </>
           ) : null}
           {showImport ? (
-            <>
-              <ToolbarButton
-                title={importTitle}
-                disabled={!!importing}
-                busy={!!importing}
-                onClick={() => importInputRef.current?.click()}
-              >
-                <ImportIcon />
-              </ToolbarButton>
-            </>
+            <MenuPopover
+              trigger={
+                <button
+                  type="button"
+                  className={styles.styleTrigger}
+                  title={importTitle}
+                  aria-label={importTitle}
+                  aria-busy={!!importing}
+                  disabled={!!importing}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <span className={styles.styleTriggerLabel}>
+                    {t.importDocument}
+                  </span>
+                  <ChevronDownIcon
+                    size={12}
+                    className={styles.styleTriggerCaret}
+                  />
+                </button>
+              }
+            >
+              {importItems.map((item) => (
+                <MenuItem
+                  key={item.key}
+                  onSelect={() => pickImport(item.accept)}
+                >
+                  {item.label}
+                </MenuItem>
+              ))}
+            </MenuPopover>
           ) : null}
           <ToolbarButton
             title={t.blockquote}
@@ -944,16 +988,11 @@ export function EditorToolbar({
         </div>
       </div>
 
-      {/* 导入的隐藏文件选择器：默认只收 .md，宿主可用 importAccept 追加格式 */}
+      {/* 导入的隐藏文件选择器：accept 由下拉选项写入 */}
       {showImport ? (
         <input
           ref={importInputRef}
           type="file"
-          accept={
-            onImportDocument && importAccept
-              ? `${MD_ACCEPT},${importAccept}`
-              : MD_ACCEPT
-          }
           hidden
           onChange={handleImportChange}
         />

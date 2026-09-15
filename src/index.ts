@@ -24,6 +24,7 @@ export {
   type ImportDocumentContext,
   type ImportDocumentProgress,
   type ImportDocumentResult,
+  type ImportMenuItem,
 } from './components/EditorToolbar';
 export { ColorPalette, type ColorPaletteProps } from './components/ColorPalette';
 export { TocPanel, type TocPanelProps } from './components/TocPanel';
