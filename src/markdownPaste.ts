@@ -2,6 +2,7 @@
 import '@tiptap/markdown';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
 
 /**
  * 启发式判断一段纯文本是否「像 markdown」。
@@ -19,7 +20,8 @@ export function looksLikeMarkdown(text: string): boolean {
     /^>\s/m.test(text) || // 引用
     /^```/m.test(text) || // 代码围栏
     /^\|.+\|\s*$/m.test(text) || // 表格行
-    /^(-{3,}|\*{3,})\s*$/m.test(text) // 分割线
+    /^(-{3,}|\*{3,})\s*$/m.test(text) || // 分割线
+    /<!--\s*[\[{][\s\S]*?"chartType"[\s\S]*?-->/.test(text) // 图表注释
   );
 }
 
@@ -64,7 +66,10 @@ export const MarkdownPaste = Extension.create({
             const markdown = editor.markdown;
             if (!markdown) return false;
             try {
-              const json = markdown.parse(text);
+              // 与 insertMarkdown / 初始 content 一致：先把
+              // `<!-- chartType -->` + GFM 表收成 ```tmr-chart，否则
+              // TipTap 会丢掉 HTML 注释，只剩普通表格。
+              const json = markdown.parse(prepareChartMarkdown(text));
               editor.commands.insertContent(json);
               return true;
             } catch (err) {
