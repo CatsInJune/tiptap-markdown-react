@@ -17,5 +17,34 @@
     "@vitejs/plugin-react": "^4.7.0",
     "typescript": "^5.9.3",
     "vite": "^5.4.21"
+  },
+  "pnpm": {
+    "overrides": {
+      "@tiptap/core": "3.27.1",
+      "@tiptap/pm": "3.27.1",
+      "@tiptap/react": "3.27.1",
+      "@tiptap/starter-kit": "3.27.1",
+      "@tiptap/markdown": "3.27.1",
+      "@tiptap/extension-list": "3.27.1",
+      "@tiptap/extensions": "3.27.1",
+      "@tiptap/extension-code-block": "3.27.1",
+      "@tiptap/extension-file-handler": "3.27.1",
+      "@tiptap/extension-text-style": "3.27.1",
+      "@tiptap/extension-bubble-menu": "3.27.1",
+      "@tiptap/extension-floating-menu": "3.27.1",
+      "@tiptap/extension-link": "3.27.1",
+      "@tiptap/extension-blockquote": "3.27.1",
+      "@tiptap/extension-bold": "3.27.1",
+      "@tiptap/extension-code": "3.27.1",
+      "@tiptap/extension-document": "3.27.1",
+      "@tiptap/extension-hard-break": "3.27.1",
+      "@tiptap/extension-heading": "3.27.1",
+      "@tiptap/extension-horizontal-rule": "3.27.1",
+      "@tiptap/extension-italic": "3.27.1",
+      "@tiptap/extension-paragraph": "3.27.1",
+      "@tiptap/extension-strike": "3.27.1",
+      "@tiptap/extension-text": "3.27.1",
+      "@tiptap/extension-underline": "3.27.1"
+    }
   }
 }

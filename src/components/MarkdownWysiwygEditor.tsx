@@ -42,6 +42,9 @@ import { ImportPlaceholder } from '../importPlaceholder';
 import type { CodeBlockLabels } from '../labels';
 import { MarkdownFileDrop } from '../markdownFileDrop';
 import { MarkdownPaste } from '../markdownPaste';
+import { createChart } from '../chart/createChart';
+import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
+import '../styles/chart.css';
 import styles from '../styles/content.module.css';
 import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
@@ -227,9 +230,8 @@ export const MarkdownWysiwygEditor = forwardRef<
   },
   ref,
 ) {
-  const preparedInitial = enrichMarkdownCitations(
-    initialMarkdown,
-    sources ?? [],
+  const preparedInitial = prepareChartMarkdown(
+    enrichMarkdownCitations(initialMarkdown, sources ?? []),
   );
 
   const editor = useEditor({
@@ -238,6 +240,7 @@ export const MarkdownWysiwygEditor = forwardRef<
       CodeBlock.configure({ lowlight, codeBlockLabels }),
       ImageWithConfirmDelete.configure({ inline: false }),
       ImportPlaceholder,
+      createChart({ editable: true }),
       createCitationRef({ renderCitation }),
       CommentMark,
       commentAnchorExtension({

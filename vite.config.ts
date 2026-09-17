@@ -30,6 +30,8 @@ export default defineConfig({
         /^react-dom($|\/)/,
         /^@tiptap\//,
         'katex',
+        'chart.js',
+        /^chart\.js\//,
         'lowlight',
         /^lowlight\//,
         /^@radix-ui\//,

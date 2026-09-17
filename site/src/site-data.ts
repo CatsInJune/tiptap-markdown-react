@@ -25,6 +25,7 @@ export const COMPONENT_NAV: NavGroup[] = [
       { id: 'editor', label: 'MarkdownWysiwygEditor', href: '#editor' },
       { id: 'toolbar', label: 'EditorToolbar', href: '#toolbar' },
       { id: 'equations', label: 'Equations', href: '#equations' },
+      { id: 'charts', label: 'Charts', href: '#charts' },
       { id: 'comment-anchors', label: 'Comment Anchors', href: '#comment-anchors' },
     ],
   },
@@ -61,6 +62,7 @@ export const DEMO_NAV: NavGroup[] = [
       { id: 'demo-toolbar', label: 'Toolbar + Image', href: '#demo-toolbar' },
       { id: 'demo-codeblock', label: 'Code Block', href: '#demo-codeblock' },
       { id: 'demo-equations', label: 'Equations', href: '#demo-equations' },
+      { id: 'demo-charts', label: 'Charts', href: '#demo-charts' },
     ],
   },
   {
@@ -68,6 +70,7 @@ export const DEMO_NAV: NavGroup[] = [
     items: [
       { id: 'demo-preview', label: 'Client Preview', href: '#demo-preview' },
       { id: 'demo-equations-ssr', label: 'SSR equations', href: '#demo-equations-ssr' },
+      { id: 'demo-charts-ssr', label: 'SSR charts', href: '#demo-charts-ssr' },
       { id: 'demo-citations', label: 'Citation pills', href: '#demo-citations' },
       { id: 'demo-citations-ssr', label: 'SSR + citations', href: '#demo-citations-ssr' },
       { id: 'demo-markdown-out', label: 'Markdown Output', href: '#demo-markdown-out' },
@@ -230,6 +233,7 @@ export const PACKAGE_FEATURES = [
   { icon: '🎯', title: 'Themeable', body: 'All colors and fonts exposed as --tmr-* CSS variables.' },
   { icon: '📎', title: 'Citation pills', body: 'Parse [^n] into mid-line circular markers; hosts supply sources + optional Popover.' },
   { icon: '∑', title: 'KaTeX equations', body: 'Toolbar insert; click to edit in place. Markdown uses $$; single $ is always a dollar sign.' },
+  { icon: '📊', title: 'Charts', body: 'Chart.js via HTML comment + GFM table (agentic-ui contract). SSR placeholder + client hydrate.' },
 ];
 
 export const DEMO_MD = `# Meet the editor
@@ -308,6 +312,32 @@ $$
 $$
 
 Typing \`$24.4B\` or even \`$24.4B$\` never becomes math. Importing markdown that already uses \`$$…$$\` still renders.
+`;
+
+export const CHART_MD = `## Charts
+
+LLM / backend style: HTML comment config + GFM table (agentic-ui contract). Click a chart to edit JSON + table.
+
+<!-- {"chartType": "line", "x": "date", "y": "close", "title": "历史价格走势", "dataTime": "2024-01-02"} -->
+| date | close |
+|------|------|
+| 2024-01-01 | 100 |
+| 2024-01-02 | 110 |
+| 2024-01-03 | 105 |
+
+<!-- [{"chartType":"bar","title":"按业务","x":"业务","y":"销量"},{"chartType":"pie","title":"占比","x":"业务","y":"销量"}] -->
+| 业务 | 销量 |
+| ---- | ---- |
+| 收入 | 40 |
+| 成本 | 25 |
+| 利润 | 15 |
+
+<!-- {"chartType": "pie"} -->
+| type | value |
+| ---- | ----- |
+| A | 27 |
+| B | 25 |
+| C | 18 |
 `;
 
 export const PREVIEW_MD = `# Published article preview

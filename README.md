@@ -4,6 +4,7 @@ A batteries-included, self-styled **Markdown WYSIWYG editor + reader** suite bui
 
 - **Markdown-first**: content goes in and comes out as markdown (`getMarkdown()`), with `getHTML()` / `getJSON()` also exposed.
 - **Equations**: toolbar inserts inline / block math (KaTeX). Markdown round-trip uses `$$…$$` (inline) and newline-wrapped `$$` (block). Typing `$` / `$$` stays as text so dollar amounts are safe.
+- **Charts**: agentic-ui-compatible data charts (`<!-- {"chartType":…} -->` + GFM table). Chart.js renders in editor / preview / reader (SSR placeholder → client hydrate). MVP: line, bar, column, pie, donut, area.
 - **Own opinionated UI**: toolbar, color palette, code block, and table of contents ship styled out of the box. Zero `antd`. Dropdowns/popovers use [Radix](https://www.radix-ui.com/) primitives; icons are inline SVG.
 - **Editor + Preview + Static reader**: edit, live client-side preview, and a pure `renderReportHtml()` for server rendering (Next.js Server Components / ISR). Reading pages that only hydrate footnotes should import `tiptap-markdown-react/reader` so they do not load `TableKit`.
 - **Table of contents**: stable, shareable slug anchors that match between the editor preview and the published reading page.
@@ -149,6 +150,37 @@ export function ArticleBody({ html }: { html: string }) {
 ```
 
 Do not also import `tiptap-markdown-react` (the editor entry) from that same client module graph.
+
+### 3b. Charts (comment + table)
+
+Author / LLM form (matches agentic-ui / invret backend):
+
+```markdown
+<!-- {"chartType": "line", "x": "date", "y": "close", "title": "Price"} -->
+
+| date | close |
+|------|------|
+| 2024-01-01 | 100 |
+```
+
+Supported MVP `chartType` values: `line`, `bar`, `column`, `pie`, `donut`, `area`.
+Multiple configs in one comment (`[{...},{...}]`) render as tabs.
+Unsupported types fall back to a normal table.
+
+Reading page with hydrate:
+
+```tsx
+'use client';
+import { ReportContentWithCharts } from 'tiptap-markdown-react/reader';
+import 'tiptap-markdown-react/style.css';
+
+export function ArticleBody({ html }: { html: string }) {
+  return <ReportContentWithCharts html={html} />;
+}
+```
+
+`renderReportHtml` emits a `div[data-type=chart]` placeholder (no Chart.js on the server).
+Click a chart in the editor to edit JSON config + Markdown table source.
 
 ### 4. Comment anchoring (edit session only)
 
