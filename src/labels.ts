@@ -55,12 +55,27 @@ export interface ToolbarLabels {
   /** 导入下拉里的 Markdown 项。 */
   importMarkdown: string;
   tableInsert: string;
+  /** 网格选择器底部尺寸文案，如 "3 × 4"。参数顺序：列、行。 */
+  tableSizeSelected: (cols: number, rows: number) => string;
   tableAddColumnBefore: string;
   tableAddColumnAfter: string;
   tableDeleteColumn: string;
   tableAddRowBefore: string;
   tableAddRowAfter: string;
   tableDeleteRow: string;
+  /** 多格选区：在左侧插入 N 列。 */
+  tableAddColumnBeforeN: (n: number) => string;
+  /** 多格选区：在右侧插入 N 列。 */
+  tableAddColumnAfterN: (n: number) => string;
+  /** 多格选区：删除 N 列。 */
+  tableDeleteColumnN: (n: number) => string;
+  /** 多格选区：在上方插入 N 行。 */
+  tableAddRowBeforeN: (n: number) => string;
+  /** 多格选区：在下方插入 N 行。 */
+  tableAddRowAfterN: (n: number) => string;
+  /** 多格选区：删除 N 行。 */
+  tableDeleteRowN: (n: number) => string;
+  tableDeleteTable: string;
   inlineMath: string;
   blockMath: string;
   mathPlaceholder: string;
@@ -112,12 +127,20 @@ export const defaultToolbarLabels: ToolbarLabels = {
   hr: 'Divider',
   importMarkdown: 'Markdown',
   tableInsert: 'Insert table',
+  tableSizeSelected: (cols, rows) => `${cols} × ${rows}`,
   tableAddColumnBefore: 'Add column before',
   tableAddColumnAfter: 'Add column after',
   tableDeleteColumn: 'Delete column',
   tableAddRowBefore: 'Add row before',
   tableAddRowAfter: 'Add row after',
   tableDeleteRow: 'Delete row',
+  tableAddColumnBeforeN: (n) => `Add ${n} columns before`,
+  tableAddColumnAfterN: (n) => `Add ${n} columns after`,
+  tableDeleteColumnN: (n) => `Delete ${n} columns`,
+  tableAddRowBeforeN: (n) => `Add ${n} rows before`,
+  tableAddRowAfterN: (n) => `Add ${n} rows after`,
+  tableDeleteRowN: (n) => `Delete ${n} rows`,
+  tableDeleteTable: 'Delete table',
   inlineMath: 'Inline equation',
   blockMath: 'Block equation',
   mathPlaceholder: 'E = mc^2',

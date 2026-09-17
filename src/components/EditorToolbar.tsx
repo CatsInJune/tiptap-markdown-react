@@ -30,6 +30,7 @@ import {
   RowBeforeIcon,
   RowDeleteIcon,
   StrikethroughIcon,
+  TableDeleteIcon,
   UnderlineIcon,
   UndoIcon,
 } from '../icons';
@@ -42,6 +43,16 @@ import {
 import type { SourceRef } from '../citationUtils';
 import { insertMarkdown } from '../insertMarkdown';
 import { subscribeMathClick, type MathKind } from '../math';
+import {
+  addColumnsAfter,
+  addColumnsBefore,
+  addRowsAfter,
+  addRowsBefore,
+  deleteSelectedColumns,
+  deleteSelectedRows,
+  getTableSelectionInfo,
+  preserveTableSelectionOnContextMenu,
+} from '../tableSelection';
 import styles from '../styles/toolbar.module.css';
 import { ColorPalette } from './ColorPalette';
 import { MathEditorPopover } from './MathEditorPopover';
@@ -156,6 +167,37 @@ function Divider() {
   return <span className={styles.divider} aria-hidden />;
 }
 
+function TableMenuItem({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className={styles.tableMenuItem}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+    >
+      <span className={styles.tableMenuItemIcon} aria-hidden>
+        {children}
+      </span>
+      <span className={styles.tableMenuItemLabel}>{label}</span>
+    </button>
+  );
+}
+
+function TableMenuDivider() {
+  return <div className={styles.tableMenuDivider} aria-hidden />;
+}
+
 // 关闭当前菜单的回调（由 MenuPopover 注入，MenuItem 选中后调用以收起）。
 const MenuCloseCtx = createContext<() => void>(() => {});
 
@@ -218,6 +260,99 @@ function MenuItem({
     >
       {children}
     </button>
+  );
+}
+
+const TABLE_PICKER_COLS = 10;
+const TABLE_PICKER_ROWS = 8;
+
+/**
+ * More 菜单里的「插入表格」：二级面板用网格悬停选行列，点击插入。
+ * 保持 Popover（不夺编辑器焦点），与 MenuItem 一致。
+ */
+function TableInsertItem({
+  disabled,
+  labels,
+  onInsert,
+}: {
+  disabled?: boolean;
+  labels: Pick<ToolbarLabels, 'tableInsert' | 'tableSizeSelected'>;
+  onInsert: (rows: number, cols: number) => void;
+}) {
+  const closeMenu = useContext(MenuCloseCtx);
+  const [open, setOpen] = useState(false);
+  const [hover, setHover] = useState({ cols: 0, rows: 0 });
+
+  const resetHover = useCallback(() => setHover({ cols: 0, rows: 0 }), []);
+
+  return (
+    <Popover.Root
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) resetHover();
+      }}
+    >
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={`${styles.menuItem} ${open ? styles.menuItemSelected : ''}`}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <span className={styles.styleItem}>
+            <span className={styles.styleIcon}>⊞</span>
+            {labels.tableInsert}
+          </span>
+          <ChevronDownIcon size={12} className={styles.tableInsertCaret} />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          className={styles.tableSizePicker}
+          side="right"
+          align="start"
+          sideOffset={6}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
+          <div
+            className={styles.tableSizeGrid}
+            style={{
+              gridTemplateColumns: `repeat(${TABLE_PICKER_COLS}, 1fr)`,
+            }}
+            onMouseLeave={resetHover}
+          >
+            {Array.from({ length: TABLE_PICKER_ROWS * TABLE_PICKER_COLS }, (_, i) => {
+              const col = (i % TABLE_PICKER_COLS) + 1;
+              const row = Math.floor(i / TABLE_PICKER_COLS) + 1;
+              const active = hover.cols > 0 && col <= hover.cols && row <= hover.rows;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={labels.tableSizeSelected(col, row)}
+                  className={`${styles.tableSizeCell} ${active ? styles.tableSizeCellActive : ''}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setHover({ cols: col, rows: row })}
+                  onClick={() => {
+                    onInsert(row, col);
+                    setOpen(false);
+                    resetHover();
+                    closeMenu();
+                  }}
+                />
+              );
+            })}
+          </div>
+          <div className={styles.tableSizeLabel}>
+            {hover.cols > 0
+              ? labels.tableSizeSelected(hover.cols, hover.rows)
+              : labels.tableInsert}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
@@ -321,7 +456,6 @@ export function EditorToolbar({
       superscript: e.isActive('superscript'),
       subscript: e.isActive('subscript'),
       inTable: e.isActive('table'),
-      inTableHeader: e.isActive('tableHeader'),
       canUndo: e.can().undo(),
       canRedo: e.can().redo(),
     }),
@@ -368,7 +502,8 @@ export function EditorToolbar({
       }
       if (!inTable) return;
       e.preventDefault();
-      editor.chain().focus().setTextSelection(coords.pos).run();
+      // 多格选区内右键：保留 CellSelection；选区外才落到点击位
+      preserveTableSelectionOnContextMenu(editor, coords.pos);
       setTableMenu({ x: e.clientX, y: e.clientY });
     };
     dom.addEventListener('contextmenu', onContextMenu);
@@ -395,6 +530,15 @@ export function EditorToolbar({
     },
     [closeTableMenu],
   );
+
+  const tableSel = tableMenu ? getTableSelectionInfo(editor.state) : null;
+  const tableRowN = tableSel?.rowCount ?? 1;
+  const tableColN = tableSel?.colCount ?? 1;
+  const tableMulti = tableSel?.isMultiCell ?? false;
+  const disableAddRowBefore = !!tableSel?.includesHeaderRow;
+  const disableDeleteRow = !!tableSel?.includesHeaderRow;
+  const disableDeleteColumn =
+    !!tableSel?.coversAllCols && !tableSel?.coversAllRows;
 
   // ── 图片：选图 → onImageUpload → 插入返回的 URL ──
   const handlePickImage = () => fileInputRef.current?.click();
@@ -959,19 +1103,15 @@ export function EditorToolbar({
                 {t.hr}
               </span>
             </MenuItem>
-            <MenuItem
+            <TableInsertItem
               disabled={state.inTable}
-              onSelect={() =>
+              labels={t}
+              onInsert={(rows, cols) =>
                 chain()
-                  .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                  .insertTable({ rows, cols, withHeaderRow: true })
                   .run()
               }
-            >
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>⊞</span>
-                {t.tableInsert}
-              </span>
-            </MenuItem>
+            />
             {extraToolbarItems?.map((item) => (
               <MenuItem
                 key={item.key}
@@ -1016,54 +1156,101 @@ export function EditorToolbar({
         />
       ) : null}
 
-      {/* 表格工具条（右键召唤） */}
+      {/* 表格右键菜单：纵向，图标 + 文案，分组分隔 */}
       {tableMenu &&
         createPortal(
           <div
             className={styles.tableBubble}
             style={{ position: 'fixed', left: tableMenu.x, top: tableMenu.y }}
+            role="menu"
             onMouseDown={(e) => e.stopPropagation()}
             onContextMenu={(e) => e.preventDefault()}
           >
-            <ToolbarButton
-              title={t.tableAddColumnBefore}
-              onClick={() => runTable(() => chain().addColumnBefore().run())}
+            <TableMenuItem
+              label={
+                tableMulti
+                  ? t.tableAddColumnBeforeN(tableColN)
+                  : t.tableAddColumnBefore
+              }
+              onClick={() =>
+                runTable(() => addColumnsBefore(editor, tableColN))
+              }
             >
               <ColumnBeforeIcon />
-            </ToolbarButton>
-            <ToolbarButton
-              title={t.tableAddColumnAfter}
-              onClick={() => runTable(() => chain().addColumnAfter().run())}
+            </TableMenuItem>
+            <TableMenuItem
+              label={
+                tableMulti
+                  ? t.tableAddColumnAfterN(tableColN)
+                  : t.tableAddColumnAfter
+              }
+              onClick={() =>
+                runTable(() => addColumnsAfter(editor, tableColN))
+              }
             >
               <ColumnAfterIcon />
-            </ToolbarButton>
-            <ToolbarButton
-              title={t.tableDeleteColumn}
-              onClick={() => runTable(() => chain().deleteColumn().run())}
+            </TableMenuItem>
+            <TableMenuItem
+              label={
+                tableMulti
+                  ? t.tableDeleteColumnN(tableColN)
+                  : t.tableDeleteColumn
+              }
+              disabled={disableDeleteColumn}
+              onClick={() =>
+                runTable(() => {
+                  deleteSelectedColumns(editor);
+                })
+              }
             >
               <ColumnDeleteIcon />
-            </ToolbarButton>
-            <Divider />
-            <ToolbarButton
-              title={t.tableAddRowBefore}
-              disabled={state.inTableHeader}
-              onClick={() => runTable(() => chain().addRowBefore().run())}
+            </TableMenuItem>
+            <TableMenuDivider />
+            <TableMenuItem
+              label={
+                tableMulti
+                  ? t.tableAddRowBeforeN(tableRowN)
+                  : t.tableAddRowBefore
+              }
+              disabled={disableAddRowBefore}
+              onClick={() =>
+                runTable(() => addRowsBefore(editor, tableRowN))
+              }
             >
               <RowBeforeIcon />
-            </ToolbarButton>
-            <ToolbarButton
-              title={t.tableAddRowAfter}
-              onClick={() => runTable(() => chain().addRowAfter().run())}
+            </TableMenuItem>
+            <TableMenuItem
+              label={
+                tableMulti ? t.tableAddRowAfterN(tableRowN) : t.tableAddRowAfter
+              }
+              onClick={() => runTable(() => addRowsAfter(editor, tableRowN))}
             >
               <RowAfterIcon />
-            </ToolbarButton>
-            <ToolbarButton
-              title={t.tableDeleteRow}
-              disabled={state.inTableHeader}
-              onClick={() => runTable(() => chain().deleteRow().run())}
+            </TableMenuItem>
+            <TableMenuItem
+              label={
+                tableMulti ? t.tableDeleteRowN(tableRowN) : t.tableDeleteRow
+              }
+              disabled={disableDeleteRow}
+              onClick={() =>
+                runTable(() => {
+                  deleteSelectedRows(editor);
+                })
+              }
             >
               <RowDeleteIcon />
-            </ToolbarButton>
+            </TableMenuItem>
+            <TableMenuDivider />
+            <TableMenuItem
+              label={t.tableDeleteTable}
+              onClick={() =>
+                runTable(() => {
+                  editor.commands.deleteTable();
+                })
+              }
+            >
+              <TableDeleteIcon />
+            </TableMenuItem>
           </div>,
           document.body,
         )}
