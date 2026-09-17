@@ -6,7 +6,7 @@ import type { SVGProps } from 'react';
  *
  * 通用图标（粗体/斜体/下划线/列表/撤销等，本文件前 17 个）的 path 取自 Lucide，
  * 其许可证为 ISC，其中部分图形源自 Feather 的 MIT——完整版权声明见
- * 仓库根目录 THIRD_PARTY_LICENSES.md。表格行列操作图标（Column / Row 系列）为自绘。
+ * 仓库根目录 THIRD_PARTY_LICENSES.md。表格行列操作图标（Column / Row / TableDelete 系列）为自绘。
  */
 export interface IconProps extends SVGProps<SVGSVGElement> {
   size?: number | string;
@@ -229,5 +229,15 @@ export const RowDeleteIcon = (p: IconProps) => (
     <path d="M4 12h16" />
     <path d="m9 8 6 8" />
     <path d="m15 8-6 8" />
+  </Svg>
+);
+
+export const TableDeleteIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="1" />
+    <path d="M3 9h18" />
+    <path d="M9 5v14" />
+    <path d="M15 5v14" />
+    <path d="m7 2 10 20" />
   </Svg>
 );
