@@ -1,5 +1,6 @@
 import '@tiptap/markdown';
 import type { Editor } from '@tiptap/react';
+import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
 import {
   enrichMarkdownCitations,
   type SourceRef,
@@ -17,7 +18,9 @@ export function insertMarkdown(
   markdown: string,
   sources: SourceRef[] = [],
 ): void {
-  const prepared = enrichMarkdownCitations(markdown, sources);
+  const prepared = prepareChartMarkdown(
+    enrichMarkdownCitations(markdown, sources),
+  );
   if (!prepared) return;
   if (tryInsertMarkdown(editor, prepared)) return;
   for (const block of splitTopLevelBlocks(prepared)) {

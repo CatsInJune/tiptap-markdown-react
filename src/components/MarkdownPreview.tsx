@@ -3,6 +3,8 @@
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { useEffect, useMemo } from 'react';
+import { createChart } from '../chart/createChart';
+import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import {
   enrichMarkdownCitations,
   type SourceRef,
@@ -10,6 +12,7 @@ import {
 import type { RenderCitation } from '../citationTypes';
 import { createCitationRef } from '../createCitationRef';
 import { baseExtensions, pureCodeBlock, pureImage } from '../extensions';
+import '../styles/chart.css';
 import styles from '../styles/content.module.css';
 
 export interface MarkdownPreviewProps {
@@ -31,10 +34,11 @@ export interface MarkdownPreviewProps {
 /**
  * 轻量只读 markdown 预览（Tiptap + 官方 @tiptap/markdown，editable:false）。
  * 与 MarkdownWysiwygEditor 共用同一套 base 扩展与正文样式类，渲染同源——
- * 预览所见即编辑/插入后所得。用纯版 CodeBlock/Image（无 React 视图 / 删除快捷键）。
+ * 预览所见即编辑/插入后所得。用纯版 CodeBlock/Image（无 React 视图 / 删除快捷键）；
+ * 图表用只读 NodeView（可渲染，不可编辑弹层）。
  *
  * 这是「客户端只读预览」；若需 SEO / 无 JS 静态渲染，请改用 server 入口的
- * renderReportHtml + ReportContent。
+ * renderReportHtml + ReportContent / ReportContentWithCharts。
  */
 export function MarkdownPreview({
   markdown,
@@ -43,7 +47,10 @@ export function MarkdownPreview({
   className,
 }: MarkdownPreviewProps) {
   const prepared = useMemo(
-    () => enrichMarkdownCitations(markdown, sources ?? []),
+    () =>
+      prepareChartMarkdown(
+        enrichMarkdownCitations(markdown, sources ?? []),
+      ),
     [markdown, sources],
   );
 
@@ -52,6 +59,7 @@ export function MarkdownPreview({
       ...baseExtensions,
       pureCodeBlock,
       pureImage,
+      createChart({ editable: false }),
       createCitationRef({ renderCitation }),
       Markdown,
     ],

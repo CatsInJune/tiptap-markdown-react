@@ -9,6 +9,7 @@ import {
   MarkdownWysiwygEditor,
   ReportContent,
   ReportContentInteractive,
+  ReportContentWithCharts,
   TocPanel,
   type CitationEnterContext,
   type CommentRef,
@@ -21,6 +22,7 @@ import {
   CODEBLOCK_MD,
   CITATION_MD,
   CITATION_SOURCES,
+  CHART_MD,
   DEMO_MD,
   INGEST_MD,
   MATH_MD,
@@ -281,6 +283,61 @@ export function MathSsrDemo() {
   return (
     <div className="previewDemo">
       <ReportContent html={html} />
+    </div>
+  );
+}
+
+/** 图表：注释 + 表；点击编辑 JSON/表；多 config Tab */
+export function ChartDemo() {
+  const [editor, setEditor] = useState<Editor | null>(null);
+  return (
+    <div className="editorDemo">
+      {editor && <EditorToolbar editor={editor} />}
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor
+          initialMarkdown={CHART_MD}
+          placeholder="Charts from <!-- config --> + table…"
+          onEditorReady={setEditor}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** SSR 占位 + 客户端 hydrate */
+export function ChartSsrDemo() {
+  const html = useMemo(() => renderReportHtml(CHART_MD).html, []);
+  return (
+    <div className="previewDemo">
+      <ReportContentWithCharts html={html} />
+    </div>
+  );
+}
+
+/** 流式追加表格行时图表原地更新 */
+export function ChartStreamingDemo() {
+  const base = `<!-- {"chartType": "line", "x": "date", "y": "close", "title": "Streaming prices"} -->
+| date | close |
+|------|------|
+| day-1 | 100 |
+`;
+  const extra = [
+    '| day-2 | 108 |',
+    '| day-3 | 112 |',
+    '| day-4 | 109 |',
+    '| day-5 | 120 |',
+  ];
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setN((v) => (v >= extra.length ? 0 : v + 1));
+    }, 1200);
+    return () => window.clearInterval(id);
+  }, []);
+  const md = base + (n > 0 ? `${extra.slice(0, n).join('\n')}\n` : '');
+  return (
+    <div className="previewDemo">
+      <MarkdownPreview markdown={md} />
     </div>
   );
 }

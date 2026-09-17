@@ -7,8 +7,19 @@ export {
   lowlight,
   pureCodeBlock,
   pureImage,
+  pureChart,
+  reportChart,
 } from './extensions';
 export { CitationRef } from './CitationRef';
+export { prepareChartMarkdown } from './chart/prepareChartMarkdown';
+export { serializeChartPayload } from './chart/serialize';
+export type {
+  ChartConfig,
+  ChartColumn,
+  ChartPayload,
+  ChartTheme,
+  MvpChartType,
+} from './chart/types';
 export { CommentMark, type CommentMarkOptions, type CommentInterval } from './commentAnchor/CommentMark';
 export {
   mapCommentAnchors,

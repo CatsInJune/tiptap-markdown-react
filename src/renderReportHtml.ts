@@ -10,7 +10,8 @@ import {
   type SourceRef,
 } from './citationUtils';
 import { CitationRef } from './CitationRef';
-import { baseExtensions, pureCodeBlock, pureImage } from './extensions';
+import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
+import { baseExtensions, pureChart, pureCodeBlock, pureImage } from './extensions';
 import { renderMathElementHtml } from './math';
 import { stabilizeMarkdown } from './stabilizeMarkdown';
 import { extractToc, type TocItem } from './toc/extractToc';
@@ -68,6 +69,7 @@ const sharedManager = new MarkdownManager({
     ...baseExtensions,
     pureCodeBlock,
     pureImage,
+    pureChart,
     CitationRef,
     TableOfContents,
   ],
@@ -78,6 +80,7 @@ function htmlFromJson(json: JSONContent): string {
     ...baseExtensions,
     pureCodeBlock,
     pureImage,
+    pureChart,
     CitationRef,
     TableOfContents.configure({ getId: makeTocGetId() }),
   ];
@@ -107,7 +110,8 @@ export function renderReportHtml(
   const lockedTitles = options.lockedTitles ?? [];
   const sources = options.sources ?? [];
   const includeToc = options.includeToc !== false;
-  const input = options.stabilize ? stabilizeMarkdown(markdown) : markdown;
+  const stabilized = options.stabilize ? stabilizeMarkdown(markdown) : markdown;
+  const input = prepareChartMarkdown(stabilized);
 
   let json: JSONContent;
   try {
@@ -142,6 +146,7 @@ export function renderReportHtml(
     ...baseExtensions,
     pureCodeBlock,
     pureImage,
+    pureChart,
     CitationRef,
     TableOfContents.configure({ getId: makeTocGetId() }),
   ];

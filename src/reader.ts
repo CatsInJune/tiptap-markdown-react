@@ -1,13 +1,15 @@
 'use client';
 
 /**
- * 阅读页入口：只贴 SSR HTML + 脚注 click 委托。
+ * 阅读页入口：只贴 SSR HTML + 脚注 click 委托 + 图表 hydrate。
  *
  * 不 import `./extensions`（TableKit / CellSelection）。主入口 `.` 与 `./server`
  * 都会在模块加载时 `jsonID("cell")`；同一 JS realm 里两套一起加载会抛
  * `Duplicate use of selection JSON ID cell`。阅读页用本入口即可与 `/server`
  * 共存（表格已是静态 HTML，不必再注册选区）。
  */
+import './styles/chart.css';
+
 export { ReportContent, type ReportContentProps } from './ReportContent';
 export {
   CitationInteractive,
@@ -17,6 +19,12 @@ export {
   ReportContentInteractive,
   type ReportContentInteractiveProps,
 } from './components/ReportContentInteractive';
+export {
+  ReportContentWithCharts,
+  type ReportContentWithChartsProps,
+} from './components/ReportContentWithCharts';
+export { ChartMount, mountChartsInContainer } from './components/ChartMount';
+export type { ChartTheme } from './chart/types';
 export type {
   CitationEnterContext,
   OnCitationEnter,

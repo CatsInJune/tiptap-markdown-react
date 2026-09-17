@@ -11,6 +11,9 @@ import {
   MarkdownOutputDemo,
   MathDemo,
   MathSsrDemo,
+  ChartDemo,
+  ChartSsrDemo,
+  ChartStreamingDemo,
   PreviewDemo,
   ReportContentDemo,
   ThemeDemo,
@@ -279,6 +282,74 @@ editor.commands.insertBlockMath({ latex: '\\\\sum x' })
       />
 
       <ComponentSection
+        id="charts"
+        title="Charts"
+        description="Data charts aligned with the agentic-ui contract: HTML comment JSON + GFM table. Chart.js renders in the editor, preview, and reading page (SSR placeholder → client hydrate). Click a chart to edit config JSON and table source."
+        importName="MarkdownWysiwygEditor, ReportContentWithCharts, renderReportHtml"
+        features={[
+          'Author form: <!-- {"chartType":"line","x":"...","y":"..."} --> + table',
+          'MVP types: line / bar / column / pie / donut / area; multi-config → tabs',
+          'SSR emits data-type=chart placeholder; hydrate via ReportContentWithCharts',
+          'Loose x/y column matching (e.g. 客单价 vs 客单价(元))',
+        ]}
+        demo={
+          <>
+            <DemoBlock
+              title="Editor"
+              description="Click a chart to edit JSON + Markdown table."
+            >
+              <ChartDemo />
+            </DemoBlock>
+            <DemoBlock
+              title="SSR + hydrate"
+              description="renderReportHtml placeholder, then Chart.js on the client."
+            >
+              <ChartSsrDemo />
+            </DemoBlock>
+            <DemoBlock
+              title="Streaming rows"
+              description="Table rows append; chart updates in place."
+            >
+              <ChartStreamingDemo />
+            </DemoBlock>
+          </>
+        }
+        api={[
+          {
+            name: 'chartType',
+            desc: 'line | bar | column | pie | donut | area',
+            type: 'string',
+          },
+          {
+            name: 'x / y',
+            desc: 'Column names (loose match against headers)',
+            type: 'string',
+          },
+          {
+            name: 'title / dataTime / height',
+            desc: 'Chrome around the canvas',
+            type: 'string | number',
+            defaultVal: '—',
+          },
+        ]}
+        extra={
+          <Snippet
+            code={`<!-- {"chartType": "line", "x": "date", "y": "close", "title": "Price"} -->
+| date | close |
+|------|------|
+| 2024-01-01 | 100 |
+
+// Reading page
+import { renderReportHtml } from 'tiptap-markdown-react/server';
+import { ReportContentWithCharts } from 'tiptap-markdown-react/reader';
+
+const { html } = renderReportHtml(markdown);
+<ReportContentWithCharts html={html} />`}
+          />
+        }
+      />
+
+      <ComponentSection
         id="comment-anchors"
         title="Comment Anchors"
         description="Edit-session review annotations: map decoded comment segments onto text ranges as marks, render a block-left gutter, and report clicks. Read-only preview never renders comments; getMarkdown() strips all marks."
@@ -536,6 +607,20 @@ function DemosPage() {
         </p>
       </div>
 
+      <DemoBlock
+        anchor="demo-charts"
+        title="Charts"
+        description="Comment + GFM table → Chart.js. Click to edit JSON and table. Multi chartType uses tabs."
+      >
+        <ChartDemo />
+      </DemoBlock>
+      <DemoBlock
+        title="Streaming chart rows"
+        description="Rows append every second; the chart updates without remount thrash."
+      >
+        <ChartStreamingDemo />
+      </DemoBlock>
+
       <h2 className="demoGroupTitle">Reading</h2>
 
       <DemoBlock
@@ -567,6 +652,14 @@ function DemosPage() {
           <code>tiptap-markdown-react/style.css</code> get KaTeX fonts/styles.
         </p>
       </div>
+
+      <DemoBlock
+        anchor="demo-charts-ssr"
+        title="SSR charts"
+        description="renderReportHtml emits chart placeholders; ReportContentWithCharts hydrates Chart.js on the client."
+      >
+        <ChartSsrDemo />
+      </DemoBlock>
 
       <DemoBlock
         anchor="demo-citations"

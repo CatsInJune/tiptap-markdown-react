@@ -93,10 +93,12 @@ export const pureCodeBlock = CodeBlockLowlight.configure({ lowlight });
  */
 export const pureImage = Image.configure({ inline: false });
 
+export { pureChart, reportChart } from './chart/ChartExtension';
+
 /**
- * 三处共用的纯 schema 扩展——**不含 CodeBlock / Image / CitationRef**（见上方边界说明）。
- * 编辑器：`[...baseExtensions, 增强CodeBlock, 增强Image, createCitationRef(), Markdown]`
- * server/预览：`[...baseExtensions, pureCodeBlock, pureImage, CitationRef, …]`
+ * 三处共用的纯 schema 扩展——**不含 CodeBlock / Image / CitationRef / Chart**（见上方边界说明）。
+ * 编辑器：`[...baseExtensions, 增强CodeBlock, 增强Image, createCitationRef(), createChart(), Markdown]`
+ * server/预览：`[...baseExtensions, pureCodeBlock, pureImage, CitationRef, pureChart, …]`
  */
 export const baseExtensions: AnyExtension[] = [
   // 禁用 StarterKit 内置 codeBlock / code，统一改用 lowlight 代码块 + 可共存的 InlineCode

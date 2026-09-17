@@ -1,0 +1,144 @@
+/* Global chart styles — shared by NodeView, SSR placeholder, ChartMount */
+
+.tmr-chart {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--tmr-border, #e5e7eb);
+  border-radius: var(--tmr-radius, 8px);
+  background: var(--tmr-bg, #fff);
+  color: var(--tmr-fg, #1f2937);
+}
+
+.tmr-chart-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.tmr-chart-title--empty,
+.tmr-chart-time--empty {
+  display: none;
+}
+
+.tmr-chart-time {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  margin-bottom: 0.5rem;
+}
+
+.tmr-chart-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.tmr-chart-tab {
+  appearance: none;
+  border: 1px solid var(--tmr-border, #e5e7eb);
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.tmr-chart-tab[data-active='true'] {
+  background: var(--tmr-accent, #3b82f6);
+  border-color: var(--tmr-accent, #3b82f6);
+  color: #fff;
+}
+
+.tmr-chart-canvas-host {
+  position: relative;
+  width: 100%;
+  min-height: 240px;
+}
+
+.tmr-chart-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--tmr-border, #e5e7eb) 0%,
+    transparent 50%,
+    var(--tmr-border, #e5e7eb) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 6px;
+  opacity: 0.35;
+}
+
+.tmr-chart-canvas-host canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tmr-chart--interactive {
+  cursor: pointer;
+}
+
+.tmr-chart-popover {
+  position: fixed;
+  z-index: 50;
+  min-width: 320px;
+  max-width: min(520px, calc(100vw - 24px));
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--tmr-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--tmr-bg, #fff);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  color: var(--tmr-fg, #1f2937);
+}
+
+.tmr-chart-popover label {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tmr-chart-popover textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  border: 1px solid var(--tmr-border, #e5e7eb);
+  border-radius: 6px;
+  padding: 0.4rem;
+  background: transparent;
+  color: inherit;
+}
+
+.tmr-chart-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.tmr-chart-popover-actions button {
+  appearance: none;
+  border: 1px solid var(--tmr-border, #e5e7eb);
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tmr-chart-popover-actions button[data-primary='true'] {
+  background: var(--tmr-accent, #3b82f6);
+  border-color: var(--tmr-accent, #3b82f6);
+  color: #fff;
+}
+
+.tmr-chart-popover-error {
+  font-size: 0.75rem;
+  color: #ef4444;
+}

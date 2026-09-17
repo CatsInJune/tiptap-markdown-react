@@ -4,6 +4,7 @@
 import '@tiptap/markdown';
 import 'katex/dist/katex.min.css';
 import './styles/math.css';
+import './styles/chart.css';
 
 // ── 编辑器 / 预览 ──
 export {
@@ -47,7 +48,24 @@ export {
   lowlight,
   pureCodeBlock,
   pureImage,
+  pureChart,
+  reportChart,
 } from './extensions';
+export { createChart } from './chart/createChart';
+export { prepareChartMarkdown } from './chart/prepareChartMarkdown';
+export { serializeChartPayload } from './chart/serialize';
+export type {
+  ChartConfig,
+  ChartColumn,
+  ChartPayload,
+  ChartTheme,
+  MvpChartType,
+} from './chart/types';
+export { ChartMount, mountChartsInContainer } from './components/ChartMount';
+export {
+  ReportContentWithCharts,
+  type ReportContentWithChartsProps,
+} from './components/ReportContentWithCharts';
 export { CitationRef } from './CitationRef';
 export { ImportPlaceholder } from './importPlaceholder';
 export { createCitationRef } from './createCitationRef';
@@ -78,11 +96,13 @@ export { scrollToTocHeading } from './toc/scrollToTocHeading';
 
 // ── 文案默认值 / 类型（i18n 注入） ──
 export {
+  defaultChartLabels,
   defaultCodeBlockLabels,
   defaultColorPaletteLabels,
   defaultCommentLabels,
   defaultTocLabels,
   defaultToolbarLabels,
+  type ChartLabels,
   type CodeBlockLabels,
   type ColorPaletteLabels,
   type CommentLabels,

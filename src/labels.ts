@@ -85,6 +85,23 @@ export interface ToolbarLabels {
   mathNewBlock: string;
 }
 
+export interface ChartLabels {
+  /** Tab label when config has no title. */
+  tabLabel: (chartType: string, index: number) => string;
+  done: string;
+  cancel: string;
+  configLabel: string;
+  tableLabel: string;
+}
+
+export const defaultChartLabels: ChartLabels = {
+  tabLabel: (chartType, index) => `${chartType} ${index + 1}`,
+  done: 'Done',
+  cancel: 'Cancel',
+  configLabel: 'Chart config (JSON)',
+  tableLabel: 'Data table (Markdown)',
+};
+
 export const defaultToolbarLabels: ToolbarLabels = {
   undo: 'Undo',
   redo: 'Redo',
