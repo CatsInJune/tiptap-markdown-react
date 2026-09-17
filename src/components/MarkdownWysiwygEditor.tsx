@@ -42,6 +42,7 @@ import { ImportPlaceholder } from '../importPlaceholder';
 import type { CodeBlockLabels } from '../labels';
 import { MarkdownFileDrop } from '../markdownFileDrop';
 import { MarkdownPaste } from '../markdownPaste';
+import { parseCodeTokenAsChartOrCodeBlock } from '../chart/codeBlockChartParse';
 import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import '../styles/chart.css';
@@ -63,6 +64,10 @@ const CodeBlock = CodeBlockLowlight.extend<CodeBlockOptions>({
       codeBlockLabels: undefined,
     } as CodeBlockOptions;
   },
+  // Built-in `code` tokens often win over chart's custom fence tokenizer;
+  // upgrade ```tmr-chart here so the mid-column card editor renders ChartView.
+  parseMarkdown: (token, helpers) =>
+    parseCodeTokenAsChartOrCodeBlock(token, helpers, 'codeBlock'),
   addNodeView() {
     return ReactNodeViewRenderer(CodeBlockView);
   },
@@ -240,7 +245,7 @@ export const MarkdownWysiwygEditor = forwardRef<
       CodeBlock.configure({ lowlight, codeBlockLabels }),
       ImageWithConfirmDelete.configure({ inline: false }),
       ImportPlaceholder,
-      createChart({ editable: true }),
+      createChart({ editable: false }),
       createCitationRef({ renderCitation }),
       CommentMark,
       commentAnchorExtension({

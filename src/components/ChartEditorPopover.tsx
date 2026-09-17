@@ -19,16 +19,21 @@ import '../styles/chart.css';
 
 export interface ChartEditorPopoverProps {
   payload: ChartPayload;
-  anchor: HTMLElement | null;
+  /** @deprecated Modal is centered; kept for API compatibility. */
+  anchor?: HTMLElement | null;
   doneLabel?: string;
   cancelLabel?: string;
   configLabel?: string;
   tableLabel?: string;
+  titleLabel?: string;
   onConfirm: (payload: ChartPayload) => void;
   onCancel: () => void;
 }
 
-function buildEditors(payload: ChartPayload): { configText: string; tableText: string } {
+function buildEditors(payload: ChartPayload): {
+  configText: string;
+  tableText: string;
+} {
   const flat =
     payload.config.length === 1 ? payload.config[0] : payload.config;
   const full = serializeChartPayload(payload);
@@ -41,13 +46,17 @@ function buildEditors(payload: ChartPayload): { configText: string; tableText: s
   };
 }
 
+/**
+ * Centered modal for editing chart config JSON + Markdown table.
+ * Escape / backdrop click cancels; ⌘/Ctrl+Enter confirms.
+ */
 export function ChartEditorPopover({
   payload,
-  anchor,
   doneLabel = 'Done',
   cancelLabel = 'Cancel',
   configLabel = 'Chart config (JSON)',
   tableLabel = 'Data table (Markdown)',
+  titleLabel = 'Edit chart',
   onConfirm,
   onCancel,
 }: ChartEditorPopoverProps) {
@@ -57,33 +66,27 @@ export function ChartEditorPopover({
   const [tableText, setTableText] = useState(initial.tableText);
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const configRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    configRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onCancel]);
-
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (panelRef.current?.contains(t)) return;
-      if (anchor?.contains(t as Node)) return;
-      onCancel();
-    };
-    window.addEventListener('mousedown', onDown);
-    return () => window.removeEventListener('mousedown', onDown);
-  }, [anchor, onCancel]);
-
-  const style = (() => {
-    if (!anchor) return { top: 80, left: 80 } as const;
-    const r = anchor.getBoundingClientRect();
-    const top = Math.min(r.bottom + 8, window.innerHeight - 40);
-    const left = Math.min(Math.max(8, r.left), window.innerWidth - 340);
-    return { top, left };
-  })();
 
   const submit = () => {
     try {
@@ -124,40 +127,50 @@ export function ChartEditorPopover({
 
   return createPortal(
     <div
-      ref={panelRef}
-      className="tmr-chart-popover"
-      style={{ top: style.top, left: style.left }}
-      role="dialog"
-      aria-labelledby={titleId}
-      onKeyDown={onKeyDown}
+      className="tmr-chart-modal-backdrop"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
     >
-      <div id={titleId} className="tmr-chart-title">
-        Edit chart
-      </div>
-      <label>
-        {configLabel}
-        <textarea
-          value={configText}
-          onChange={(e) => setConfigText(e.target.value)}
-          spellCheck={false}
-        />
-      </label>
-      <label>
-        {tableLabel}
-        <textarea
-          value={tableText}
-          onChange={(e) => setTableText(e.target.value)}
-          spellCheck={false}
-        />
-      </label>
-      {error ? <div className="tmr-chart-popover-error">{error}</div> : null}
-      <div className="tmr-chart-popover-actions">
-        <button type="button" onClick={onCancel}>
-          {cancelLabel}
-        </button>
-        <button type="button" data-primary="true" onClick={submit}>
-          {doneLabel}
-        </button>
+      <div
+        ref={panelRef}
+        className="tmr-chart-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onKeyDown={onKeyDown}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div id={titleId} className="tmr-chart-modal-title">
+          {titleLabel}
+        </div>
+        <label>
+          {configLabel}
+          <textarea
+            ref={configRef}
+            value={configText}
+            onChange={(e) => setConfigText(e.target.value)}
+            spellCheck={false}
+          />
+        </label>
+        <label>
+          {tableLabel}
+          <textarea
+            value={tableText}
+            onChange={(e) => setTableText(e.target.value)}
+            spellCheck={false}
+          />
+        </label>
+        {error ? <div className="tmr-chart-popover-error">{error}</div> : null}
+        <div className="tmr-chart-popover-actions">
+          <button type="button" onClick={onCancel}>
+            {cancelLabel}
+          </button>
+          <button type="button" data-primary="true" onClick={submit}>
+            {doneLabel}
+          </button>
+        </div>
       </div>
     </div>,
     document.body,

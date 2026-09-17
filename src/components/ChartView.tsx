@@ -16,7 +16,6 @@ import { destroyChart, renderOrUpdateChart } from '../chart/renderChart';
 import type { ChartPayload, ChartTheme } from '../chart/types';
 import { defaultChartLabels } from '../labels';
 import '../styles/chart.css';
-import { ChartEditorPopover } from './ChartEditorPopover';
 
 function tabLabel(
   chartType: string,
@@ -28,18 +27,20 @@ function tabLabel(
   return fallback(chartType, index);
 }
 
+/**
+ * Chart NodeView: render + NodeSelection (like Image).
+ * Config editing is intentionally disabled for now (no modal).
+ */
 export function ChartView({
   node,
-  updateAttributes,
   editor,
   extension,
   selected,
+  getPos,
 }: NodeViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<ChartJs | null>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
-  const [editing, setEditing] = useState(false);
 
   const payload: ChartPayload = useMemo(
     () => ({
@@ -51,14 +52,12 @@ export function ChartView({
     [node.attrs.config, node.attrs.columns, node.attrs.dataSource],
   );
 
-  const editable =
-    Boolean(editor?.isEditable) &&
-    extension.options.chartEditable !== false;
   const theme = (extension.options.chartTheme ?? null) as ChartTheme | null;
   const configs = payload.config;
   const safeIndex = Math.min(active, Math.max(0, configs.length - 1));
   const config = configs[safeIndex];
   const height = config?.height ?? 320;
+  const canSelect = Boolean(editor?.isEditable);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,9 +69,6 @@ export function ChartView({
       theme,
       chart: chartRef.current,
     });
-    return () => {
-      // keep instance across data updates; destroy only on unmount
-    };
   }, [config, payload, theme]);
 
   useEffect(() => {
@@ -99,24 +95,32 @@ export function ChartView({
 
   const labels = {
     ...defaultChartLabels,
-    ...(extension.options.chartLabels as Partial<typeof defaultChartLabels> | undefined),
+    ...(extension.options.chartLabels as
+      | Partial<typeof defaultChartLabels>
+      | undefined),
   };
 
-  const onOpenEdit = () => {
-    if (!editable) return;
-    setEditing(true);
+  const selectChart = () => {
+    if (!editor || !canSelect) return;
+    const pos = getPos();
+    if (typeof pos !== 'number') return;
+    editor.commands.setNodeSelection(pos);
   };
 
   return (
     <NodeViewWrapper
       as="div"
-      className={`tmr-chart${editable ? ' tmr-chart--interactive' : ''}`}
+      className={`tmr-chart${canSelect ? ' tmr-chart--interactive' : ''}${
+        selected ? ' ProseMirror-selectednode' : ''
+      }`}
       data-type="chart"
       data-selected={selected ? 'true' : undefined}
-      ref={rootRef}
-      onClick={(e: MouseEvent) => {
+      contentEditable={false}
+      onMouseDown={(e: MouseEvent) => {
         if ((e.target as HTMLElement).closest('button')) return;
-        onOpenEdit();
+        if (e.button !== 0) return;
+        // Select node but do not preventDefault — Chart.js needs hover/click.
+        selectChart();
       }}
     >
       {config?.title ? (
@@ -135,6 +139,7 @@ export function ChartView({
               className="tmr-chart-tab"
               data-active={i === safeIndex ? 'true' : 'false'}
               aria-selected={i === safeIndex}
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 setActive(i);
@@ -148,26 +153,6 @@ export function ChartView({
       <div className="tmr-chart-canvas-host" style={{ height }}>
         <canvas ref={canvasRef} />
       </div>
-      {editing ? (
-        <ChartEditorPopover
-          payload={payload}
-          anchor={rootRef.current}
-          doneLabel={labels.done}
-          cancelLabel={labels.cancel}
-          configLabel={labels.configLabel}
-          tableLabel={labels.tableLabel}
-          onCancel={() => setEditing(false)}
-          onConfirm={(next) => {
-            updateAttributes({
-              config: next.config,
-              columns: next.columns,
-              dataSource: next.dataSource,
-            });
-            setEditing(false);
-            setActive(0);
-          }}
-        />
-      ) : null}
     </NodeViewWrapper>
   );
 }

@@ -17,6 +17,7 @@ import type { AnyExtension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
 import type { JSONContent } from '@tiptap/core';
+import { parseCodeTokenAsChartOrCodeBlock } from './chart/codeBlockChartParse';
 import { reportBlockMath, reportInlineMath } from './math';
 
 /**
@@ -83,8 +84,14 @@ const MarkdownTextStyle = TextStyle.extend({
   },
 });
 
-/** 纯版代码块（无 React 视图）：server / 预览用，产出带高亮 class 的静态结构。 */
-export const pureCodeBlock = CodeBlockLowlight.configure({ lowlight });
+/**
+ * 纯版代码块（无 React 视图）：server / 预览用。
+ * 顺带把 ```tmr-chart 围栏升级为 chart 节点（内置 code tokenizer 抢先时）。
+ */
+export const pureCodeBlock = CodeBlockLowlight.extend({
+  parseMarkdown: (token, helpers) =>
+    parseCodeTokenAsChartOrCodeBlock(token, helpers, 'codeBlock'),
+}).configure({ lowlight });
 
 /**
  * 纯版块级图片（无删除快捷键）：server / 预览用。
