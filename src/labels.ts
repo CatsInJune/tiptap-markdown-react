@@ -92,6 +92,8 @@ export interface ChartLabels {
   cancel: string;
   configLabel: string;
   tableLabel: string;
+  /** Modal dialog title. */
+  editTitle: string;
 }
 
 export const defaultChartLabels: ChartLabels = {
@@ -100,6 +102,7 @@ export const defaultChartLabels: ChartLabels = {
   cancel: 'Cancel',
   configLabel: 'Chart config (JSON)',
   tableLabel: 'Data table (Markdown)',
+  editTitle: 'Edit chart',
 };
 
 export const defaultToolbarLabels: ToolbarLabels = {

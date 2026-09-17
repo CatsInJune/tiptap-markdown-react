@@ -5,7 +5,7 @@ import type { ChartTheme } from './types';
 import type { ChartLabels } from '../labels';
 
 export interface CreateChartOptions {
-  /** When false, NodeView is read-only (no edit popover). Default true. */
+  /** When true, reserved for future in-place chart editing. Currently unused (no edit UI). Default false. */
   editable?: boolean;
   chartTheme?: ChartTheme | null;
   chartLabels?: Partial<ChartLabels>;
@@ -22,7 +22,8 @@ export interface InteractiveChartOptions extends ReportChartOptions {
  * Server / pure HTML paths should use {@link reportChart} / {@link pureChart}.
  */
 export function createChart(options: CreateChartOptions = {}) {
-  const { editable = true, chartTheme = null, chartLabels } = options;
+  // Chart config editing (modal) is disabled for now; keep option for later.
+  const { editable = false, chartTheme = null, chartLabels } = options;
   return reportChart.extend<InteractiveChartOptions>({
     addOptions() {
       return {

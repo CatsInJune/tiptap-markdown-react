@@ -1,10 +1,14 @@
 import { mergeAttributes, Node } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { CHART_FENCE_LANGS } from './codeBlockChartParse';
 import {
   normalizeChartMarkdown,
   parseChartFenceBody,
   serializeChartPayload,
 } from './parse';
 import type { ChartColumn, ChartConfig, ChartPayload } from './types';
+
+const chartFenceUpgradeKey = new PluginKey('tmrChartFenceUpgrade');
 
 export const CHART_NODE_NAME = 'chart';
 
@@ -176,7 +180,66 @@ export const reportChart = Node.create<ReportChartOptions>({
       };
     },
   },
+
+  /**
+   * When the built-in `code` tokenizer wins, TipTap creates a codeBlock with
+   * language=tmr-chart. Upgrade those nodes to chart (covers mid-column
+   * CardMarkdownEditor + paste/setContent paths).
+   */
+  addProseMirrorPlugins() {
+    const chartName = this.name;
+    return [
+      new Plugin({
+        key: chartFenceUpgradeKey,
+        appendTransaction(transactions, _oldState, newState) {
+          if (!transactions.some((tr) => tr.docChanged)) return null;
+          return buildChartFenceUpgradeTr(newState, chartName);
+        },
+      }),
+    ];
+  },
 });
+
+function buildChartFenceUpgradeTr(
+  state: import('@tiptap/pm/state').EditorState,
+  chartName: string,
+) {
+  const chartType = state.schema.nodes[chartName];
+  if (!chartType || !state.schema.nodes.codeBlock) return null;
+
+  const replacements: { from: number; to: number; payload: ChartPayload }[] =
+    [];
+  state.doc.descendants((node, pos) => {
+    if (node.type.name !== 'codeBlock') return;
+    const lang = String(node.attrs.language ?? '')
+      .trim()
+      .toLowerCase();
+    if (!CHART_FENCE_LANGS.has(lang)) return;
+    const payload = parseChartFenceBody(node.textContent);
+    if (!payload) return;
+    replacements.push({
+      from: pos,
+      to: pos + node.nodeSize,
+      payload,
+    });
+  });
+  if (replacements.length === 0) return null;
+
+  let tr = state.tr;
+  for (let i = replacements.length - 1; i >= 0; i -= 1) {
+    const { from, to, payload } = replacements[i];
+    tr = tr.replaceWith(
+      from,
+      to,
+      chartType.create({
+        config: payload.config,
+        columns: payload.columns,
+        dataSource: payload.dataSource,
+      }),
+    );
+  }
+  return tr;
+}
 
 /** Re-export preprocess for parse pipelines. */
 export { normalizeChartMarkdown };

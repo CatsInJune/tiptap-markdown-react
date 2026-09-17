@@ -9,6 +9,14 @@
   color: var(--tmr-fg, #1f2937);
 }
 
+/* NodeSelection highlight — match Image / CodeBlock accent outline */
+.tmr-chart.ProseMirror-selectednode,
+.ProseMirror-selectednode > .tmr-chart,
+.tmr-chart[data-selected='true'] {
+  outline: 2px solid var(--tmr-accent, #ff6719);
+  border-color: var(--tmr-accent, #ff6719);
+}
+
 .tmr-chart-title {
   font-size: 0.95rem;
   font-weight: 600;
@@ -77,6 +85,91 @@
   cursor: pointer;
 }
 
+/* —— Edit chart modal —— */
+.tmr-chart-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.tmr-chart-modal {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(80vh, 640px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--tmr-border, #e5e7eb);
+  border-radius: 12px;
+  background: var(--tmr-bg, #fff);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+  color: var(--tmr-fg, #1f2937);
+  overflow: auto;
+}
+
+.tmr-chart-modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tmr-chart-modal label,
+.tmr-chart-popover label {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tmr-chart-modal textarea,
+.tmr-chart-popover textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  border: 1px solid var(--tmr-border, #e5e7eb);
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: transparent;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.tmr-chart-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.tmr-chart-popover-actions button {
+  appearance: none;
+  border: 1px solid var(--tmr-border, #e5e7eb);
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tmr-chart-popover-actions button[data-primary='true'] {
+  background: var(--tmr-accent, #3b82f6);
+  border-color: var(--tmr-accent, #3b82f6);
+  color: #fff;
+}
+
+.tmr-chart-popover-error {
+  font-size: 0.75rem;
+  color: #ef4444;
+}
+
+/* Legacy popover class kept for any external CSS hooks */
 .tmr-chart-popover {
   position: fixed;
   z-index: 50;
@@ -92,53 +185,4 @@
   background: var(--tmr-bg, #fff);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   color: var(--tmr-fg, #1f2937);
-}
-
-.tmr-chart-popover label {
-  font-size: 0.75rem;
-  opacity: 0.75;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.tmr-chart-popover textarea {
-  width: 100%;
-  min-height: 88px;
-  resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.75rem;
-  border: 1px solid var(--tmr-border, #e5e7eb);
-  border-radius: 6px;
-  padding: 0.4rem;
-  background: transparent;
-  color: inherit;
-}
-
-.tmr-chart-popover-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.tmr-chart-popover-actions button {
-  appearance: none;
-  border: 1px solid var(--tmr-border, #e5e7eb);
-  background: transparent;
-  color: inherit;
-  border-radius: 6px;
-  padding: 0.3rem 0.7rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.tmr-chart-popover-actions button[data-primary='true'] {
-  background: var(--tmr-accent, #3b82f6);
-  border-color: var(--tmr-accent, #3b82f6);
-  color: #fff;
-}
-
-.tmr-chart-popover-error {
-  font-size: 0.75rem;
-  color: #ef4444;
 }
