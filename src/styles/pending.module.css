@@ -1,0 +1,18 @@
+/* 「这段正在被 AI 改写」的高亮（decoration，只存在于编辑会话里、不进 markdown）。
+   走 :global + --tmr-* 变量，与库其它样式约定一致。 */
+
+/* 默认态：淡淡一层底 + 左缘一条竖线，表示「这段正在处理」。 */
+:global(.tmr-pending-anchor) {
+  background: var(--tmr-pending-bg, rgba(22, 119, 255, 0.08));
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background 0.2s ease;
+}
+
+/* 加一点左缘标记，让「整块被圈中」在块级节点（表格 / 图表）上也看得出来。 */
+:global(:not(.tmr-pending-anchor) > .tmr-pending-anchor),
+:global(li.tmr-pending-anchor),
+:global(table.tmr-pending-anchor) {
+  box-shadow: inset 3px 0 0 0 var(--tmr-pending-bar, rgba(22, 119, 255, 0.45));
+}

@@ -54,7 +54,7 @@ function insertPlainParagraph(editor: Editor, text: string): void {
 }
 
 /** 围栏代码整块留下，其余按空行切。 */
-function splitTopLevelBlocks(markdown: string): string[] {
+export function splitTopLevelBlocks(markdown: string): string[] {
   const out: string[] = [];
   for (const [i, part] of markdown.split(/(```[\s\S]*?```)/).entries()) {
     if (!part) continue;
@@ -69,7 +69,7 @@ function splitTopLevelBlocks(markdown: string): string[] {
   return out;
 }
 
-function stripToPlainText(markdown: string): string {
+export function stripToPlainText(markdown: string): string {
   return markdown
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
