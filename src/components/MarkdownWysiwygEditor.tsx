@@ -41,11 +41,18 @@ import { baseExtensions, lowlight } from '../extensions';
 import { ImportPlaceholder } from '../importPlaceholder';
 import type { CodeBlockLabels } from '../labels';
 import { MarkdownFileDrop } from '../markdownFileDrop';
+import {
+  pendingAnchorExtension,
+  setPendingAnchors,
+  type PendingAnchor,
+} from '../pendingAnchor';
+import { selectionKind, type SelectionKind } from '../selectionKind';
 import { MarkdownPaste } from '../markdownPaste';
 import { parseCodeTokenAsChartOrCodeBlock } from '../chart/codeBlockChartParse';
 import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import '../styles/chart.css';
+import '../styles/pending.module.css';
 import styles from '../styles/content.module.css';
 import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
@@ -182,6 +189,23 @@ export interface MarkdownWysiwygEditorProps {
   extraExtensions?: AnyExtension[];
   /** 代码块 NodeView 的本地化文案。 */
   codeBlockLabels?: Partial<CodeBlockLabels>;
+  /**
+   * 「这段正在被 AI 改写」的高亮：宿主在提交请求时给上、回填或冲突时传空数组清空。
+   * 走 decoration，**不进 markdown、不进 undo 历史**，能盖住表格与图表这类块级节点。
+   */
+  pendingAnchors?: PendingAnchor[];
+  /** 点击待改写高亮区域时回调，给出锚点 id（宿主可用来跳回/取消）。 */
+  onAnchorClick?: (id: string) => void;
+  /**
+   * 选区变化。宿主用它做「选中即出现引用」——塌缩成光标也会报（`empty: true`），
+   * 好让引用跟着消失；`kind` 区分普通文字 / 表格单元格 / 整节点（图表）。
+   */
+  onSelectionChange?: (selection: {
+    from: number;
+    to: number;
+    empty: boolean;
+    kind: SelectionKind;
+  }) => void;
   /** 附加到滚动容器的 class。 */
   className?: string;
   /**
@@ -232,6 +256,9 @@ export const MarkdownWysiwygEditor = forwardRef<
     onActiveCommentChange,
     showCommentGutter = true,
     commentInteractive = true,
+    pendingAnchors,
+    onAnchorClick,
+    onSelectionChange,
   },
   ref,
 ) {
@@ -253,6 +280,7 @@ export const MarkdownWysiwygEditor = forwardRef<
         interactive: commentInteractive,
       }),
       Markdown,
+      pendingAnchorExtension,
       TableOfContents.configure({
         getId: makeTocGetId(),
         onUpdate: (anchors) => {
@@ -314,6 +342,51 @@ export const MarkdownWysiwygEditor = forwardRef<
       ),
     );
   }, [editor, activeCommentId]);
+
+  // 待改写高亮：会话级装饰，不进 markdown / 不进 undo（宿主推入，回填或冲突时清空）。
+  useEffect(() => {
+    if (!editor) return;
+    setPendingAnchors(editor, pendingAnchors ?? []);
+  }, [editor, pendingAnchors]);
+
+  // 点击待改写高亮 → 上报锚点 id。走 DOM 监听而不是插件 meta：这里只要「点了哪一段」。
+  const onAnchorClickRef = useRef(onAnchorClick);
+  useEffect(() => {
+    onAnchorClickRef.current = onAnchorClick;
+  }, [onAnchorClick]);
+  useEffect(() => {
+    if (!editor) return;
+    const dom = editor.view.dom;
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const id = target?.closest?.('[data-pending-id]')?.getAttribute('data-pending-id');
+      if (id) onAnchorClickRef.current?.(id);
+    };
+    dom.addEventListener('click', onClick);
+    return () => dom.removeEventListener('click', onClick);
+  }, [editor]);
+
+  // 选区变化：宿主据此做「选中即出现引用 / 引用跟着选区走」。
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  useEffect(() => {
+    onSelectionChangeRef.current = onSelectionChange;
+  }, [onSelectionChange]);
+  useEffect(() => {
+    if (!editor) return;
+    const onSelectionUpdate = () => {
+      const { from, to, empty } = editor.state.selection;
+      onSelectionChangeRef.current?.({
+        from,
+        to,
+        empty,
+        kind: selectionKind(editor.state.selection),
+      });
+    };
+    editor.on('selectionUpdate', onSelectionUpdate);
+    return () => {
+      editor.off('selectionUpdate', onSelectionUpdate);
+    };
+  }, [editor]);
 
   // mark / gutter 点击 → 通过 transaction meta 上报宿主（回调走 ref 防 stale）。
   const onCommentClickRef = useRef(onCommentClick);

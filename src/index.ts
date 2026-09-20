@@ -154,6 +154,19 @@ export { useIsMobile } from './hooks/useIsMobile';
 export * from './icons';
 
 export { insertMarkdown } from './insertMarkdown';
+export { findRangeByAnchor, type AnchorRange } from './anchorRange';
+export {
+  getMarkdownForRange,
+  type GetMarkdownForRangeOptions,
+  type MarkdownRange,
+} from './markdownRange';
+export { normalizeMarkdown } from './normalizeMarkdown';
+export {
+  PENDING_ANCHOR_CLASS,
+  type PendingAnchor,
+} from './pendingAnchor';
+export { replaceRangeWithMarkdown, type ReplaceRangeOptions } from './replaceRange';
+export { selectionKind, type SelectionKind } from './selectionKind';
 
 // ── 常用 Tiptap 类型（宿主无需再安装 / import @tiptap/*） ──
 export type { Editor } from '@tiptap/react';
