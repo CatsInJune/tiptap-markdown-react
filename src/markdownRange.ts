@@ -27,6 +27,15 @@ export interface MarkdownRange {
   from: number;
   /** 结束偏移（不含）。恒有 `to - from === markdown.length`。 */
   to: number;
+  /**
+   * **同一段**在 doc 坐标里的范围（扩块之后）。
+   *
+   * 宿主需要它把「读」和「写」对齐：`from/to` 是 markdown 偏移，而编辑器里的替换要按
+   * doc 坐标做。少了它，宿主只能自己拿原始选区去定位，于是「用来定位的那段」和
+   * 「按 markdown 偏移算出来的那段」不是同一段——把 A 段写进 B 区间，内容就会重复。
+   */
+  docFrom: number;
+  docTo: number;
 }
 
 export interface GetMarkdownForRangeOptions {
@@ -107,7 +116,7 @@ export function getMarkdownForRange(
       first === 0
         ? 0
         : parts.slice(0, first).join(BLOCK_SEPARATOR).length + BLOCK_SEPARATOR.length;
-    return { markdown, from: at, to: at + markdown.length };
+    return { markdown, from: at, to: at + markdown.length, docFrom: start, docTo: end };
   }
 
   // 非块对齐，或整篇拼接与 getMarkdown() 不一致：只能按内容定位，且必须唯一
@@ -117,5 +126,5 @@ export function getMarkdownForRange(
   if (!markdown) return null;
   const at = full.indexOf(markdown);
   if (at < 0 || full.indexOf(markdown, at + 1) >= 0) return null;
-  return { markdown, from: at, to: at + markdown.length };
+  return { markdown, from: at, to: at + markdown.length, docFrom: start, docTo: end };
 }
