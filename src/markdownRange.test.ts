@@ -121,7 +121,7 @@ describe('getMarkdownForRange', () => {
     editor.destroy();
   });
 
-  it('列表项内的选区扩到整个列表', () => {
+  it('列表项内的选区扩到整个列表（doc 范围与 markdown 描述同一段）', () => {
     const editor = build(['前言。', '', '- 一', '- 二', '', '结语。'].join('\n'));
     const list = blockRangeWhere(editor, typeIs('bulletList'));
     const result = getMarkdownForRange(editor, list.from + 3, list.from + 5);
@@ -129,6 +129,13 @@ describe('getMarkdownForRange', () => {
     expect(result!.markdown).toContain('- 一');
     expect(result!.markdown).toContain('- 二');
     expect(editor.getMarkdown().slice(result!.from, result!.to)).toBe(result!.markdown);
+    // doc 范围 = 扩块后的整块；把它切出来序列化，必须逐字等于返回的 markdown
+    expect(result!.docFrom).toBe(list.from);
+    expect(result!.docTo).toBe(list.to);
+    const fromDoc = editor.markdown!.serialize(
+      editor.state.doc.cut(result!.docFrom, result!.docTo).toJSON(),
+    );
+    expect(fromDoc).toBe(result!.markdown);
     editor.destroy();
   });
 
