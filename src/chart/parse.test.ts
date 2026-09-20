@@ -162,3 +162,45 @@ describe('parseChartFenceBody', () => {
     expect(payload?.dataSource).toHaveLength(1);
   });
 });
+
+// 回归：注释与表格之间隔空行时，raw 曾按「折过空行」的字符串算长度，比它在原文里
+// 实际占的跨度短，调用方按 raw.length 切 src 就会多吃掉后一个字符。表格是最后一块
+// 且无尾随换行时，被吃掉的正是表格收尾的 `|`，正文里留下一个孤立管道行。
+describe('raw 消费跨度', () => {
+  const COMMENT = '<!-- {"chartType":"column","x":"项目","y":"金额"} -->';
+  const TABLE = [
+    '| 项目 | 金额 |',
+    '| --- | --- |',
+    '| 收入 | 100 |',
+    '| 成本 | 60 |',
+  ].join('\n');
+
+  it('raw 是 src 的精确前缀，不漏出孤立的表格管道字符', () => {
+    const cases = [
+      [COMMENT, TABLE].join('\n'),
+      [COMMENT, '', TABLE].join('\n'),
+      [COMMENT, '', TABLE, ''].join('\n'),
+      [COMMENT, '', TABLE, '', '结束语。'].join('\n'),
+      [COMMENT, '', '', TABLE, '', '结束语。'].join('\n'),
+    ];
+    for (const md of cases) {
+      const result = tryParseCommentTableChart(md);
+      expect(result).not.toBeNull();
+      expect(md.startsWith(result!.raw)).toBe(true);
+      expect(md[result!.raw.length] === '|').toBe(false);
+    }
+  });
+
+  it('表格是最后一块且无尾随换行时，围栏之后不留 |', () => {
+    const md = ['## 概览', '', COMMENT, '', TABLE].join('\n');
+    const out = normalizeChartMarkdown(md);
+    expect(out).toContain('```tmr-chart');
+    expect(out.trimEnd().endsWith('```')).toBe(true);
+  });
+
+  it('表格后接段落时，段落内容不被吃掉', () => {
+    const md = [COMMENT, '', TABLE, '', '结束语。'].join('\n');
+    const out = normalizeChartMarkdown(md);
+    expect(out.trimEnd().endsWith('结束语。')).toBe(true);
+  });
+});
