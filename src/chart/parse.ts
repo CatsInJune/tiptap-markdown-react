@@ -223,7 +223,8 @@ export function parseChartFenceBody(body: string): ChartPayload | null {
 
 /**
  * Try to parse leading `<!-- chart json -->` + GFM table from `src`.
- * Returns payload + consumed char length, or null.
+ * Returns payload + `raw`（`src` 里被消费掉的**精确前缀**，调用方按 `raw.length`
+ * 跳过这一段）, or null.
  */
 export function tryParseCommentTableChart(
   src: string,
@@ -251,7 +252,9 @@ export function tryParseCommentTableChart(
   // All table-only → not a chart
   if (configs.every((c) => c.chartType === 'table')) return null;
 
-  const afterComment = trimmedStart.slice(endComment + 3).replace(/^\s*\n/, '\n');
+  const afterCommentRaw = trimmedStart.slice(endComment + 3);
+  // 注释与表格之间隔空行时折成一个 \n 再解析（表格内容本身不受影响）。
+  const afterComment = afterCommentRaw.replace(/^\s*\n/, '\n');
   const tableStart = afterComment.search(/\|/);
   if (tableStart < 0) return null;
   const beforeTable = afterComment.slice(0, tableStart);
@@ -268,11 +271,14 @@ export function tryParseCommentTableChart(
   );
   if (!payload) return null;
 
-  const raw =
-    src.slice(0, offset) +
-    commentBlock +
-    afterComment.slice(0, tableStart) +
-    tableMd.slice(0, table.rawLength);
+  // 表格起点要在**原文**里定位：折过的 afterComment 比原文短，拿它当基准会让
+  // raw 短掉那几个空行字符，调用方按 raw.length 切 src 就会多吃掉后一个字符
+  // —— 表格是最后一块时，被吃掉的正是表格收尾的 `|`。
+  const tableStartInSrc = afterCommentRaw.search(/\|/);
+  const raw = src.slice(
+    0,
+    offset + commentBlock.length + tableStartInSrc + table.rawLength,
+  );
 
   return { payload, raw };
 }
