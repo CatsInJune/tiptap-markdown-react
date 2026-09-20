@@ -171,3 +171,8 @@ export { selectionKind, type SelectionKind } from './selectionKind';
 // ── 常用 Tiptap 类型（宿主无需再安装 / import @tiptap/*） ──
 export type { Editor } from '@tiptap/react';
 export type { JSONContent } from '@tiptap/core';
+// 必须**从类型上**再导出一次 @tiptap/markdown 的东西：文件顶部那个副作用 import 只保证
+// 库自身编译时带上 `Editor.getMarkdown` 的 module augmentation，vite-plugin-dts 不会把它
+// 写进 dist/index.d.ts，于是宿主那边 `editor.getMarkdown()` 报「属性不存在」。
+// 类型再导出会让 TS 加载该模块的声明，augmentation 才跟着生效。
+export type { MarkdownManager } from '@tiptap/markdown';
