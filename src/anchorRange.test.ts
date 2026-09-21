@@ -61,6 +61,41 @@ describe('findRangeByAnchor', () => {
     editor.destroy();
   });
 
+  it('多块区间（表格）用「无分隔符」的文本能命中，返回的 text 也是同一口径', () => {
+    const editor = build(['| a | b |', '| --- | --- |', '| 1 | 2 |'].join('\n'));
+    let tableFrom = -1;
+    let tableTo = -1;
+    editor.state.doc.forEach((node, offset) => {
+      if (node.type.name === 'table') {
+        tableFrom = offset;
+        tableTo = offset + node.nodeSize;
+      }
+    });
+    expect(tableFrom).toBeGreaterThan(-1);
+
+    const exact = editor.state.doc.textBetween(tableFrom, tableTo);
+    const result = findRangeByAnchor(editor, { exact });
+    expect(result).not.toBeNull();
+    expect(result!.text).toBe(exact);
+    editor.destroy();
+  });
+
+  it('用 \\n\\n 拼出来的多块文本命中不了（调用方必须与匹配器同一口径）', () => {
+    const editor = build(['| a | b |', '| --- | --- |', '| 1 | 2 |'].join('\n'));
+    let tableFrom = -1;
+    let tableTo = -1;
+    editor.state.doc.forEach((node, offset) => {
+      if (node.type.name === 'table') {
+        tableFrom = offset;
+        tableTo = offset + node.nodeSize;
+      }
+    });
+    const withSeparator = editor.state.doc.textBetween(tableFrom, tableTo, '\n\n');
+    // 匹配器把 text 节点直接拼、块间没有分隔符 —— 带分隔符就永远对不上
+    expect(findRangeByAnchor(editor, { exact: withSeparator })).toBeNull();
+    editor.destroy();
+  });
+
   it('正文里没有这段时不返回区间（宿主据此判冲突）', () => {
     const editor = build('第一段。');
     expect(findRangeByAnchor(editor, { exact: '根本不存在的句子。' })).toBeNull();
