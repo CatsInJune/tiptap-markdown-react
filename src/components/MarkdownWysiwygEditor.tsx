@@ -52,7 +52,7 @@ import { parseCodeTokenAsChartOrCodeBlock } from '../chart/codeBlockChartParse';
 import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import '../styles/chart.css';
-import '../styles/pending.module.css';
+import '../styles/pending.css';
 import styles from '../styles/content.module.css';
 import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';

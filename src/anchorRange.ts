@@ -22,7 +22,12 @@ export interface AnchorRange {
   /** doc 坐标 */
   from: number;
   to: number;
-  /** 区间当前对应的纯文本（块间用 `\n\n` 连接，与选区文本同一口径）。 */
+  /**
+   * 区间当前的纯文本。**按匹配器的口径**给出：`commentMapper` 把区间内的 text 节点
+   * 直接拼起来（块之间**没有分隔符**），所以这里也是 `textBetween(from, to)`（不传
+   * blockSeparator）。调用方拿它跟「建锚点时用的那段文本」比对——两边必须同一口径，
+   * 否则多块区间（表格 / 列表）会永远对不上。
+   */
   text: string;
   status: CommentAnchorStatus;
 }
@@ -45,7 +50,8 @@ export function findRangeByAnchor(
   return {
     from: range.from,
     to: range.to,
-    text: editor.state.doc.textBetween(range.from, range.to, '\n\n'),
+    // 无 blockSeparator：与 commentMapper 的 `collectText`（text 节点直接拼接）同一口径
+    text: editor.state.doc.textBetween(range.from, range.to),
     status: result.status,
   };
 }

@@ -9,6 +9,7 @@ import { baseExtensions } from './extensions';
 import { createChart } from './chart/createChart';
 import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
 import { insertMarkdown } from './insertMarkdown';
+import { findRangeByAnchor } from './anchorRange';
 import { replaceRangeWithMarkdown } from './replaceRange';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -146,6 +147,94 @@ describe('replaceRangeWithMarkdown', () => {
   it('塌缩区间返回 false', () => {
     const editor = build('有内容。');
     expect(replaceRangeWithMarkdown(editor, { from: 1, to: 1 }, 'x')).toBe(false);
+    editor.destroy();
+  });
+});
+
+/**
+ * 圈选改写的回填：宿主拿 `findRangeByAnchor` 定位出来的是**文字**区间，而表格/列表这类块，
+ * 它的文字区间起止都落在**单元格 / 列表项内部**。这一组测试把「为什么必须扩块后写」钉住：
+ * 直接拿文字区间塞块级内容（表格 + 图），表格会被嵌进一个 1×1 表格的单元格里（线上实测症状：
+ * 图被框进表格、位置往里缩了一层）。
+ */
+describe('写块级内容必须落在块边界（圈选改写回填）', () => {
+  const TABLE = [
+    '| 财务指标 | 虎牙      | 斗鱼      |',
+    '| ---- | ------- | ------- |',
+    '| 年营收  | 62.6亿美元 | 40.4亿美元 |',
+    '| 市销率  | 0.102   | 0.056   |',
+  ].join('\n');
+  const CHART_PAIR = [
+    '<!-- {"chartType":"column","x":"财务指标","y":"金额","title":"对比"} -->',
+    '',
+    '| 财务指标 | 公司 | 金额 |',
+    '|------|------|------|',
+    '| 年营收 | 虎牙 | 62.6 |',
+    '| 年营收 | 斗鱼 | 40.4 |',
+  ].join('\n');
+  /** 宿主 `expandToTopLevelBlock` 的规则：扩到包含这段文字的顶层块边界 */
+  const blockAligned = (editor: Editor, from: number, to: number) => {
+    const doc = editor.state.doc;
+    const $from = doc.resolve(from);
+    const $to = doc.resolve(to);
+    return {
+      from: $from.depth >= 1 ? $from.before(1) : from,
+      to: $to.depth >= 1 ? $to.after(1) : to,
+    };
+  };
+  const hasNestedTable = (editor: Editor): boolean => {
+    const doc = editor.state.doc;
+    let nested = false;
+    doc.descendants((node, pos) => {
+      if (node.type.name !== 'table') return;
+      const $pos = doc.resolve(pos);
+      for (let d = $pos.depth; d > 0; d -= 1) {
+        if ($pos.node(d).type.name === 'table') nested = true;
+      }
+    });
+    return nested;
+  };
+
+  it('传**文字**区间：表格被嵌进单元格（所以宿主不能这么写）', () => {
+    const editor = build(TABLE);
+    const anchor = findRangeByAnchor(editor, { exact: '市销率' });
+    expect(anchor).not.toBeNull();
+
+    // 锚点是单元格里的文字区间 —— 起点在单元格内部
+    expect(editor.state.doc.resolve(anchor!.from).depth).toBeGreaterThan(1);
+    expect(
+      replaceRangeWithMarkdown(
+        editor,
+        { from: anchor!.from, to: anchor!.to },
+        `${TABLE}\n\n${CHART_PAIR}`,
+      ),
+    ).toBe(true);
+
+    expect(hasNestedTable(editor)).toBe(true);
+    editor.destroy();
+  });
+
+  it('传**顶层块**区间：表格、图、数据表各占一个顶层块，没有嵌套', () => {
+    const editor = build(TABLE);
+    const anchor = findRangeByAnchor(editor, { exact: '市销率' });
+    expect(anchor).not.toBeNull();
+
+    const target = blockAligned(editor, anchor!.from, anchor!.to);
+    expect(
+      replaceRangeWithMarkdown(editor, target, `${TABLE}\n\n${CHART_PAIR}`),
+    ).toBe(true);
+
+    expect(hasNestedTable(editor)).toBe(false);
+    // 图会把它的数据表**吃进图表节点**（库的图表约定），所以数据表不单独占一个顶层块；
+    // 末尾的空段落是 TrailingNode 补的。关键结论：原表格**原样还在**（表头 + 2 行数据，
+    // 分隔行不算行；每行 3 格）。
+    const names: string[] = [];
+    editor.state.doc.forEach((node) => names.push(node.type.name));
+    expect(names.slice(0, 2)).toEqual(['table', 'chart']);
+    const first = editor.state.doc.child(0);
+    expect(first.type.name).toBe('table');
+    expect(first.childCount).toBe(3);
+    expect(first.child(0).childCount).toBe(3);
     editor.destroy();
   });
 });
