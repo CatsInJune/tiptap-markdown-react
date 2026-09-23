@@ -224,7 +224,9 @@
   cursor: col-resize;
 }
 
-/* 任务清单 */
+/* 任务清单：复选框与首行文字在同一行高内垂直居中。
+   li 是 flex 容器，项内段落的外边距不会塌到 li 外（不像普通 ul/ol），只会把正文往下推，
+   所以项内段落清零外边距，项间距改由 li 按 ul/ol 的 0.7em 承担。 */
 .editorContent :global(ul[data-type='taskList']) {
   list-style: none;
   padding-left: 0.2em;
@@ -234,11 +236,25 @@
   display: flex;
   align-items: flex-start;
   gap: 0.5em;
-  margin: 0.3em 0;
+  margin: 0.7em 0;
 }
 
-.editorContent :global(ul[data-type='taskList'] li > label) {
+.editorContent :global(ul[data-type='taskList'] li > div > p) {
+  margin: 0;
+}
+
+/* 项内第二段起保留半档间距，避免多段任务项的段落粘成一片（首段仍不带外边距） */
+.editorContent :global(ul[data-type='taskList'] li > div > p + p) {
   margin-top: 0.35em;
+}
+
+/* label 撑满一行行高并居中，框心落在首行文字中线上；
+   1lh 即该元素当前行高，随 --tmr-line-height（数字或长度写法）一起变，不靠手调偏移。 */
+.editorContent :global(ul[data-type='taskList'] li > label) {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 1lh;
   user-select: none;
 }
 
@@ -247,6 +263,7 @@
 }
 
 .editorContent :global(ul[data-type='taskList'] input[type='checkbox']) {
+  margin: 0;
   accent-color: var(--tmr-accent, #ff6719);
   cursor: pointer;
 }
