@@ -63,6 +63,7 @@ SOFTWARE.
 | `@tiptap/core` | MIT |
 | `@tiptap/extension-code-block-lowlight` | MIT |
 | `@tiptap/extension-file-handler` | MIT |
+| `@tiptap/extension-find-and-replace` | MIT |
 | `@tiptap/extension-highlight` | MIT |
 | `@tiptap/extension-image` | MIT |
 | `@tiptap/extension-subscript` | MIT |
@@ -78,4 +79,5 @@ SOFTWARE.
 | `@tiptap/starter-kit` | MIT |
 | `@tiptap/static-renderer` | MIT |
 | `lowlight` | MIT |
+| `re2js`（经 `@tiptap/extension-find-and-replace` 传递引入） | MIT |
 | `highlight.js`（经 `lowlight` 传递引入） | BSD-3-Clause |

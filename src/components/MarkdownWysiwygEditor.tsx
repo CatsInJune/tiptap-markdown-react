@@ -3,6 +3,7 @@
 import CodeBlockLowlight, {
   type CodeBlockLowlightOptions,
 } from '@tiptap/extension-code-block-lowlight';
+import FindAndReplace from '@tiptap/extension-find-and-replace';
 import Image from '@tiptap/extension-image';
 import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { Markdown } from '@tiptap/markdown';
@@ -13,7 +14,14 @@ import {
   type AnyExtension,
   type Editor,
 } from '@tiptap/react';
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import {
   enrichMarkdownCitations,
   type SourceRef,
@@ -38,8 +46,9 @@ import type {
   CommentRef,
 } from '../commentAnchor/commentTypes';
 import { baseExtensions, lowlight } from '../extensions';
+import { FindReplaceBar } from './FindReplaceBar';
 import { ImportPlaceholder } from '../importPlaceholder';
-import type { CodeBlockLabels } from '../labels';
+import type { CodeBlockLabels, FindLabels } from '../labels';
 import { MarkdownFileDrop } from '../markdownFileDrop';
 import {
   pendingAnchorExtension,
@@ -53,6 +62,7 @@ import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import '../styles/chart.css';
 import '../styles/pending.css';
+import '../styles/find.css';
 import styles from '../styles/content.module.css';
 import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
@@ -149,6 +159,10 @@ export interface MarkdownWysiwygEditorHandle {
   nextComment: (dir?: 'next' | 'prev') => string | null;
   /** 当前 doc 内已锚定的去重 commentId 列表（文档顺序）。 */
   getCommentIds: () => string[];
+  /** 打开查找替换浮动条（宿主自己绑快捷键/按钮时用）。 */
+  openFind: () => void;
+  /** 收起查找替换浮动条，清空高亮并把焦点还给编辑器。 */
+  closeFind: () => void;
 }
 
 export interface MarkdownWysiwygEditorProps {
@@ -227,6 +241,20 @@ export interface MarkdownWysiwygEditorProps {
    * 只靠侧栏单项驱动滚动定位时传 false。
    */
   commentInteractive?: boolean;
+  /**
+   * 启用查找替换（默认 true）：注册官方 `@tiptap/extension-find-and-replace`
+   * （自带命令 `setSearchTerm / replace / replaceAll / goToNextResult …` 与
+   * `editor.storage.findAndReplace`），并按 {@link findShortcut} 打开浮动条。
+   */
+  findReplace?: boolean;
+  /**
+   * 焦点在编辑器内时接管 Cmd/Ctrl+F 打开查找条（默认 true）。传 false 则只保留
+   * `handle.openFind()`——例如宿主想保留浏览器原生查找，或自己摆入口。
+   * 焦点不在编辑器内时不接管，同页多编辑器不会互相抢。
+   */
+  findShortcut?: boolean;
+  /** 查找替换浮动条的本地化文案。 */
+  findLabels?: Partial<FindLabels>;
 }
 
 /**
@@ -259,12 +287,18 @@ export const MarkdownWysiwygEditor = forwardRef<
     pendingAnchors,
     onAnchorClick,
     onSelectionChange,
+    findReplace = true,
+    findShortcut = true,
+    findLabels,
   },
   ref,
 ) {
   const preparedInitial = prepareChartMarkdown(
     enrichMarkdownCitations(initialMarkdown, sources ?? []),
   );
+
+  const [findOpen, setFindOpen] = useState(false);
+  const findInputRef = useRef<HTMLInputElement | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -281,6 +315,14 @@ export const MarkdownWysiwygEditor = forwardRef<
       }),
       Markdown,
       pendingAnchorExtension,
+      // 官方查找替换：只出命令 / storage / 装饰，UI 自绘（见 FindReplaceBar）。
+      // - injectCSS 关掉：它默认会往页面插一个 <style>，绕开宿主的 --tmr-* 主题与 style.css，
+      //   命中样式改由 src/styles/find.css 承担。
+      // - searchDebounceMs 关掉：官方防抖走 setTimeout，抛错会落在异步回调里兜不住；
+      //   防抖改由浮动条自己做（见 findReplace.ts）。
+      ...(findReplace
+        ? [FindAndReplace.configure({ injectCSS: false, searchDebounceMs: 0 })]
+        : []),
       TableOfContents.configure({
         getId: makeTocGetId(),
         onUpdate: (anchors) => {
@@ -317,6 +359,41 @@ export const MarkdownWysiwygEditor = forwardRef<
   useEffect(() => {
     editor?.setEditable(editable);
   }, [editor, editable]);
+
+  const closeFind = useCallback(() => {
+    setFindOpen(false);
+    // 焦点归还：Tiptap 的 focus 命令内部就是 requestAnimationFrame 延后执行的
+    // （`delayedFocus`），正好落在 React 卸载浮动条之后——否则被卸载的输入框会把焦点丢给 body。
+    editor?.commands.focus();
+  }, [editor]);
+
+  // Cmd/Ctrl+F → 打开查找条。接管条件必须收得比「焦点在编辑器内」松、比「谁都能接管」紧：
+  //   - 焦点在本编辑器内：接管 ✓
+  //   - 焦点不在任何输入控件里（body）且页面上只有本编辑器：接管 ✓（单编辑器页面点完工具栏按钮能直接按）
+  //   - 其余情况一律不接管：同页多编辑器时不会一起弹条（文档站就是这样），宿主的其它输入框
+  //     也不会被夺走原生查找。多编辑器页面上宿主可自己调 handle.openFind()。
+  useEffect(() => {
+    if (!editor || !findReplace || !findShortcut) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (event.key !== 'f' && event.key !== 'F') return;
+      const active = document.activeElement;
+      const inEditor = !!active && editor.view.dom.contains(active);
+      const nothingFocused = active === null || active === document.body;
+      const soleEditor = document.querySelectorAll('.ProseMirror').length <= 1;
+      if (!inEditor && !editor.isFocused && !(nothingFocused && soleEditor)) {
+        return;
+      }
+      event.preventDefault();
+      setFindOpen(true);
+      // 已打开时再按一次：聚焦并全选当前查询（首次打开由浮动条的 autoFocus 负责）
+      requestAnimationFrame(() => findInputRef.current?.select());
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [editor, findReplace, findShortcut]);
 
   // 评论列表 → 铺 mark。用 commentId 签名做防抖：宿主每次渲染传新数组引用时
   // 不会反复清/铺（清空再重铺会丢掉 mark 随编辑移动后的位置）。
@@ -437,16 +514,32 @@ export const MarkdownWysiwygEditor = forwardRef<
       nextComment: (dir?: 'next' | 'prev') =>
         editor ? nextComment(editor, dir ?? 'next') : null,
       getCommentIds: () => (editor ? collectCommentIds(editor) : []),
+      openFind: () => setFindOpen(true),
+      closeFind,
     }),
-    [editor],
+    [editor, closeFind],
   );
 
   return (
-    <EditorContent
-      editor={editor}
-      className={
-        className ? `${styles.editorScroll} ${className}` : styles.editorScroll
-      }
-    />
+    <div className={styles.editorHost}>
+      {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
+      {editor && findReplace && findOpen ? (
+        <div className={styles.findBarAnchor}>
+          <FindReplaceBar
+            editor={editor}
+            labels={findLabels}
+            onClose={closeFind}
+            inputRef={findInputRef}
+            className={styles.findBar}
+          />
+        </div>
+      ) : null}
+      <EditorContent
+        editor={editor}
+        className={
+          className ? `${styles.editorScroll} ${className}` : styles.editorScroll
+        }
+      />
+    </div>
   );
 });

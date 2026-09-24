@@ -6,6 +6,8 @@ import {
   CitationSsrDemo,
   EditorDemo,
   EditorTocDemo,
+  FindReplaceDemo,
+  I18nDemo,
   HeroDemo,
   MarkdownIngestDemo,
   MarkdownOutputDemo,
@@ -27,6 +29,8 @@ import {
   DEMO_NAV,
   EDITOR_API,
   EDITOR_REF_API,
+  FIND_API,
+  I18N_API,
   INSERT_MARKDOWN_API,
   MATH_API,
   MATH_LABELS_API,
@@ -82,7 +86,7 @@ function HomePage() {
       <section className="hero">
         <div className="badges">
           <span className="badge">
-            npm <b>v0.8.4</b>
+            npm <b>v0.11.0</b>
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
@@ -220,6 +224,47 @@ function ComponentsPage() {
         }
         api={EDITOR_API}
         refApi={EDITOR_REF_API}
+      />
+
+      <ComponentSection
+        id="find"
+        title="Find & replace"
+        description="Cmd/Ctrl+F while the editor has focus opens a floating bar: match counter, wrap-around navigation, match-case / whole-word / regex toggles, replace and replace-all. Matching, highlighting and replacement come from the official @tiptap/extension-find-and-replace — the bar is the library's own UI. Search scope is textblocks: paragraphs, headings, list items, table cells and code blocks; text inside node attributes (equations, chart data, image alt, citation titles) is not searched. Matches may span marks inside one block but never cross blocks. Esc closes the bar, clears highlights and returns focus."
+        importName="MarkdownWysiwygEditor (findReplace), FindReplaceBar, FindLabels"
+        features={[
+          'Cmd/Ctrl+F opens; Esc closes and restores focus',
+          'Counter with wrap-around next / previous',
+          'Match case, whole word, RE2 regex (no lookarounds / backreferences)',
+          'Replace and replace-all — replace-all is a single undo step',
+          'Find-only on read-only editors; labels via findLabels',
+          'Headless: drive it with editor.commands.setSearchTerm / replaceAll',
+        ]}
+        demo={
+          <DemoBlock title="Floating find bar" description="Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.">
+            <FindReplaceDemo />
+          </DemoBlock>
+        }
+        api={FIND_API}
+      />
+
+      <ComponentSection
+        id="i18n"
+        title="Internationalization"
+        description="Each component takes a Partial<XLabels> merged over built-in English defaults — no global locale, no provider. A host ships one object per language and passes it down; switching is picking a different object. Toolbar / TOC / palette / find bar re-render live because they merge at render time; code-block labels are written into the extension options when the editor is constructed, so they only change after a remount — feed the current markdown back via getMarkdown() (initialMarkdown is init-only) so nothing is lost."
+        importName="defaultToolbarLabels, ToolbarLabels, FindLabels, CodeBlockLabels, TocLabels, ColorPaletteLabels"
+        features={[
+          'Per-component Partial<XLabels> merged with English defaults',
+          'Unknown keys fall back to defaults — override only what you need',
+          'Toolbar / TOC / palette / find bar switch live on re-render',
+          'codeBlockLabels follow the editor instance: remount to switch language',
+          'No locale bundle shipped: the host owns the text',
+        ]}
+        demo={
+          <DemoBlock title="Chinese ⇄ English" description="Switching remounts the editor; the markdown is read back first so unsaved edits survive.">
+            <I18nDemo />
+          </DemoBlock>
+        }
+        api={I18N_API}
       />
 
       <ComponentSection

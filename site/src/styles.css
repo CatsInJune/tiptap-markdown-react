@@ -1078,6 +1078,32 @@ a {
   overflow: hidden;
 }
 
+.editorDemoBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  background: #fafafa;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.editorDemoBar button {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.editorDemoBar button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .editorDemoBody {
   padding: 16px 18px;
   max-height: 360px;

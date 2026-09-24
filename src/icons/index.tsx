@@ -4,8 +4,8 @@ import type { SVGProps } from 'react';
  * 内联 SVG 图标集（0 运行时依赖）。stroke 走 currentColor，尺寸默认 1em 跟随字号，
  * 故颜色/大小随文本与主题自动变化。
  *
- * 通用图标（粗体/斜体/下划线/列表/撤销等，本文件前 17 个）的 path 取自 Lucide，
- * 其许可证为 ISC，其中部分图形源自 Feather 的 MIT——完整版权声明见
+ * 通用图标（粗体/斜体/下划线/列表/撤销/查找等，本文件表格图标之前的部分）的 path 取自
+ * Lucide，其许可证为 ISC，其中部分图形源自 Feather 的 MIT——完整版权声明见
  * 仓库根目录 THIRD_PARTY_LICENSES.md。表格行列操作图标（Column / Row / TableDelete 系列）为自绘。
  */
 export interface IconProps extends SVGProps<SVGSVGElement> {
@@ -173,6 +173,26 @@ export const MenuIcon = (p: IconProps) => (
     <line x1="4" x2="20" y1="12" y2="12" />
     <line x1="4" x2="20" y1="6" y2="6" />
     <line x1="4" x2="20" y1="18" y2="18" />
+  </Svg>
+);
+
+export const SearchIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+  </Svg>
+);
+
+export const XIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M18 6 6 18" />
+    <path d="m6 6 12 12" />
+  </Svg>
+);
+
+export const ChevronUpIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m18 15-6-6-6 6" />
   </Svg>
 );
 
