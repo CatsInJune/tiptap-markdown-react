@@ -7,6 +7,7 @@ import {
   EditorDemo,
   EditorTocDemo,
   FindReplaceDemo,
+  FindBarContainerDemo,
   HostPlacedFindDemo,
   I18nDemo,
   HeroDemo,
@@ -244,6 +245,9 @@ function ComponentsPage() {
           <>
             <DemoBlock title="Floating find bar" description="Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.">
               <FindReplaceDemo />
+            </DemoBlock>
+            <DemoBlock title="Bar in a host container" description="findBarContainer: the library keeps the shortcut and open state, the bar mounts into a container you own (the getPopupContainer idea) — positioning is your CSS.">
+              <FindBarContainerDemo />
             </DemoBlock>
             <DemoBlock title="Host-placed bar" description="findBar={false}: the editor keeps the extension but renders no bar — placement, stacking and looks belong to the host.">
               <HostPlacedFindDemo />

@@ -109,6 +109,7 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'codeBlockLabels', desc: 'Code block NodeView labels', type: 'Partial<CodeBlockLabels>', defaultVal: '—' },
   { name: 'findReplace', desc: 'Find & replace: registers @tiptap/extension-find-and-replace and renders the floating bar', type: 'boolean', defaultVal: 'true' },
   { name: 'findBar', desc: 'Render the bar inside the editor; false hands placement to the host (render <FindReplaceBar> yourself)', type: 'boolean', defaultVal: '= findReplace' },
+  { name: 'findBarContainer', desc: 'Mount the bar into a container you own (getPopupContainer style); null falls back to the in-editor bar', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: '—' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())', type: 'boolean', defaultVal: 'true' },
   { name: 'findLabels', desc: 'Find & replace bar labels', type: 'Partial<FindLabels>', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
@@ -416,6 +417,7 @@ export const SAMPLE_TOC = [
 export const FIND_API: ApiRow[] = [
   { name: 'findReplace', desc: 'Register the official find extension and render the floating bar', type: 'boolean', defaultVal: 'true' },
   { name: 'findBar', desc: 'Let the editor render the bar; false = host places <FindReplaceBar> itself', type: 'boolean', defaultVal: '= findReplace' },
+  { name: 'findBarContainer', desc: 'Where the library-rendered bar mounts (open state + shortcut stay in the library)', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'in-editor bar' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus (only when the editor owns a bar)', type: 'boolean', defaultVal: 'true' },
   { name: 'findLabels', desc: 'Bar labels (FindLabels)', type: 'Partial<FindLabels>', defaultVal: '—' },
   { name: 'FindReplaceBar', desc: 'The bar itself, if you place it yourself', type: 'Component', defaultVal: '—' },

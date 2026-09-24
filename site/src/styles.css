@@ -1104,6 +1104,17 @@ a {
   color: var(--accent);
 }
 
+.hostContainerSlot {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 56px;
+  margin: 0 14px 12px;
+  padding: 8px;
+  border: 1px dashed var(--line-soft);
+  border-radius: 8px;
+  background: #fcfcfc;
+}
+
 .hostPlacedBar {
   display: flex;
   justify-content: flex-end;

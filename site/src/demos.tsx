@@ -806,3 +806,35 @@ export function HostPlacedFindDemo() {
     </div>
   );
 }
+
+/** getPopupContainer 式：库仍管开合与 Cmd/Ctrl+F，只把条子挂进宿主指定的容器 */
+const CONTAINER_FIND_MD = `# 条子挂到宿主容器
+
+这个编辑器传了 **findBarContainer**：条子不再浮在正文右上角，而是挂进上面那个虚线框里。
+快捷键照旧归库——把光标放进正文按 Cmd/Ctrl+F，条子出现在那个框里。`;
+
+export function FindBarContainerDemo() {
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBar">
+        <span>
+          宿主容器（虚线框）——按 Cmd/Ctrl+F 或点
+          <button type="button" onClick={() => editor?.commands.focus()}>
+            这里聚焦正文
+          </button>
+          再按快捷键，条子挂进框里，定位由宿主 CSS 决定。
+        </span>
+      </div>
+      <div className="hostContainerSlot" ref={setHost} />
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor
+          initialMarkdown={CONTAINER_FIND_MD}
+          findBarContainer={() => host}
+          onEditorReady={setEditor}
+        />
+      </div>
+    </div>
+  );
+}

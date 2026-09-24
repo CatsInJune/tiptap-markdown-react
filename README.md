@@ -283,6 +283,7 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `codeBlockLabels` | `Partial<CodeBlockLabels>` | Localize the code block UI. |
 | `findReplace` | `boolean` | Enable find & replace (default `true`): registers the official `@tiptap/extension-find-and-replace` and renders the floating bar. |
 | `findBar` | `boolean` | Render the floating bar inside the editor (default: same as `findReplace`). `false` hands **placement to the host** — the extension stays registered, the editor renders no bar, and you render `<FindReplaceBar editor={editor} />` wherever you want; `findShortcut` and `handle.openFind/closeFind` go quiet with it. |
+| `findBarContainer` | `HTMLElement \| (() => HTMLElement \| null)` | Mount the editor's bar into a container you own (the `getPopupContainer` idea): the library keeps open state and the shortcut, only the mount point changes. Use it when an `overflow: hidden` ancestor would clip the bar, or to park it in your own header / sidebar. Positioning is then yours (no absolute positioning is added), and if the container sits outside your themed subtree, bring `--tmr-*` along. Falls back to the in-editor bar when it resolves to `null`. |
 | `findShortcut` | `boolean` | Take over <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> while the editor has focus (default `true`; bound only when the editor owns a bar). `false` keeps the browser's native find — wire your own entry with `handle.openFind()`. |
 | `findLabels` | `Partial<FindLabels>` | Localize the find & replace bar. |
 | `className` | `string` | Class on the scroll container. |
@@ -324,6 +325,15 @@ Same split as the toolbar: the bar is a component, its placement is yours. Set `
   </div>
 )}
 ```
+
+Middle ground — keep the library's bar and shortcut, choose only the mount point:
+
+```tsx
+<div ref={setHost} className="my-find-slot" />
+<MarkdownWysiwygEditor findBarContainer={() => host} onEditorReady={setEditor} />
+```
+
+<kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> still opens it, `handle.openFind()` still works, and the bar now lives inside `my-find-slot` — your CSS decides where it sits. A function is the safer form: it re-resolves on every render, so a container that mounts later is picked up. Resolving to `null` falls back to the in-editor bar.
 
 With `findBar={false}` the editor does not bind <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (it would swallow the browser's find without opening anything), so bind your own shortcut to `setOpen`. Two invariants to keep: leave `findReplace` on — the bar needs the extension's commands — and render it inside the same editor instance it drives.
 

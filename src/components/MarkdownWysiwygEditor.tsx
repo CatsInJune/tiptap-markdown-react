@@ -14,6 +14,7 @@ import {
   type AnyExtension,
   type Editor,
 } from '@tiptap/react';
+import { createPortal } from 'react-dom';
 import {
   forwardRef,
   useCallback,
@@ -256,6 +257,14 @@ export interface MarkdownWysiwygEditorProps {
    */
   findBar?: boolean;
   /**
+   * 把自带的浮动条挂到宿主的容器里（antd `getPopupContainer` 那一套）：给元素或返回元素的函数
+   * 即可，开合状态与 Cmd/Ctrl+F 仍归库——只换挂载点。适合条子被 `overflow: hidden` 祖先裁掉、
+   * 或想让它落在自己的头部 / 侧栏里。挂进去后**定位由宿主负责**（库不再加绝对定位），
+   * 且容器若在主题子树之外，记得把 `--tmr-*` 变量也带到那里。
+   * 返回 null / 不传时回落到编辑器内自带的浮动条。
+   */
+  findBarContainer?: HTMLElement | null | (() => HTMLElement | null);
+  /**
    * 焦点在编辑器内时接管 Cmd/Ctrl+F 打开**编辑器自带的**浮动条（默认 true；`findBar={false}`
    * 时不接管，免得抢了键却不弹东西）。传 false 则只保留 `handle.openFind()`——例如宿主想
    * 保留浏览器原生查找，或自己摆入口。焦点不在编辑器内时不接管，同页多编辑器不会互相抢。
@@ -297,6 +306,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     onSelectionChange,
     findReplace = true,
     findBar = findReplace,
+    findBarContainer,
     findShortcut = true,
     findLabels,
   },
@@ -530,20 +540,31 @@ export const MarkdownWysiwygEditor = forwardRef<
     [editor, closeFind],
   );
 
+  // 宿主指定了容器就把条子 portal 进去（定位归宿主，故不加 .findBar）；解析不到则回落到编辑器内。
+  const findBarTarget =
+    typeof findBarContainer === 'function'
+      ? findBarContainer()
+      : (findBarContainer ?? null);
+  const findBarNode =
+    editor && findBar && findOpen ? (
+      <FindReplaceBar
+        editor={editor}
+        labels={findLabels}
+        onClose={closeFind}
+        inputRef={findInputRef}
+        className={findBarTarget ? undefined : styles.findBar}
+      />
+    ) : null;
+
   return (
     <div className={styles.editorHost}>
       {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
-      {editor && findBar && findOpen ? (
-        <div className={styles.findBarAnchor}>
-          <FindReplaceBar
-            editor={editor}
-            labels={findLabels}
-            onClose={closeFind}
-            inputRef={findInputRef}
-            className={styles.findBar}
-          />
-        </div>
+      {findBarNode && !findBarTarget ? (
+        <div className={styles.findBarAnchor}>{findBarNode}</div>
       ) : null}
+      {findBarNode && findBarTarget
+        ? createPortal(findBarNode, findBarTarget)
+        : null}
       <EditorContent
         editor={editor}
         className={
