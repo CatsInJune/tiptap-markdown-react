@@ -30,10 +30,20 @@
   flex-wrap: wrap;
 }
 
+/* 第二行起（替换 / 只读提示）与查找行之间用细线分开 */
+.row + .row {
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--fb-border);
+}
+
 .field {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex: none;
+  /* 两个输入框（带不带放大镜图标）总宽一致，左右边缘都对得齐 */
+  width: 228px;
   height: 30px;
   padding: 0 8px;
   box-sizing: border-box;
@@ -52,7 +62,7 @@
 }
 
 .input {
-  width: 190px;
+  width: 100%;
   min-width: 0;
   border: none;
   outline: none;
@@ -102,20 +112,29 @@
   cursor: not-allowed;
 }
 
-/* 三个开关用短标记（Aa / ab / .*），省宽度且不依赖文案 */
+/* 三个查找开关用短标记（Aa / ab / .*），省宽度且不依赖文案；带边框才读得出是控件 */
 .toggle {
+  min-width: 32px;
+  padding: 0 7px;
+  border: 1px solid var(--fb-border);
   font-family: var(--tmr-mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 13px;
 }
 
-.toggleOn {
+.toggle:hover:not(:disabled) {
+  border-color: var(--fb-muted);
+}
+
+.toggleOn,
+.toggleOn:hover:not(:disabled) {
   color: var(--fb-accent);
+  border-color: var(--fb-accent);
   background: #fff3ec;
 }
 
-.toggleOn:hover:not(:disabled) {
-  color: var(--fb-accent);
-  background: #ffe8da;
+/* 关闭与上/下一条拉开一点：它不是「第三个导航」 */
+.closeBtn {
+  margin-left: 4px;
 }
 
 .textBtn {

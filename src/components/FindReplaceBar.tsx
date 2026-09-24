@@ -215,59 +215,6 @@ export function FindReplaceBar({
             spellCheck={false}
           />
         </span>
-        <span
-          className={`${styles.counter}${invalidPattern ? ` ${styles.counterInvalid}` : ''}`}
-          aria-live="polite"
-          title={invalidPattern ? t.invalidRegex : undefined}
-        >
-          {invalidPattern ? t.invalidRegex : counter}
-        </span>
-        <button
-          type="button"
-          className={styles.btn}
-          title={t.previous}
-          aria-label={t.previous}
-          disabled={state.total === 0}
-          onMouseDown={keepFocus}
-          onClick={() => runAction(() => editor.commands.goToPreviousResult())}
-        >
-          <ChevronUpIcon size={16} />
-        </button>
-        <button
-          type="button"
-          className={styles.btn}
-          title={t.next}
-          aria-label={t.next}
-          disabled={state.total === 0}
-          onMouseDown={keepFocus}
-          onClick={() => runAction(() => editor.commands.goToNextResult())}
-        >
-          <ChevronDownIcon size={16} />
-        </button>
-        <button
-          type="button"
-          className={styles.btn}
-          title={t.close}
-          aria-label={t.close}
-          onClick={onClose}
-        >
-          <XIcon size={16} />
-        </button>
-      </div>
-
-      {editor.isEditable ? (
-        <div className={styles.row}>
-          <span className={styles.field}>
-            <input
-              className={styles.input}
-              value={replaceTerm}
-              onChange={(e) => setReplaceTerm(e.target.value)}
-              onKeyDown={onReplaceKeyDown}
-              placeholder={t.replace}
-              aria-label={t.replace}
-              spellCheck={false}
-            />
-          </span>
           <button
             type="button"
             className={toggleClass(state.caseSensitive)}
@@ -301,6 +248,61 @@ export function FindReplaceBar({
           >
             .*
           </button>
+
+        <span className={styles.spacer} />
+        <span
+          className={`${styles.counter}${invalidPattern ? ` ${styles.counterInvalid}` : ''}`}
+          aria-live="polite"
+          title={invalidPattern ? t.invalidRegex : undefined}
+        >
+          {invalidPattern ? t.invalidRegex : counter}
+        </span>
+        <button
+          type="button"
+          className={styles.btn}
+          title={t.previous}
+          aria-label={t.previous}
+          disabled={state.total === 0}
+          onMouseDown={keepFocus}
+          onClick={() => runAction(() => editor.commands.goToPreviousResult())}
+        >
+          <ChevronUpIcon size={16} />
+        </button>
+        <button
+          type="button"
+          className={styles.btn}
+          title={t.next}
+          aria-label={t.next}
+          disabled={state.total === 0}
+          onMouseDown={keepFocus}
+          onClick={() => runAction(() => editor.commands.goToNextResult())}
+        >
+          <ChevronDownIcon size={16} />
+        </button>
+        <button
+          type="button"
+          className={`${styles.btn} ${styles.closeBtn}`}
+          title={t.close}
+          aria-label={t.close}
+          onClick={onClose}
+        >
+          <XIcon size={16} />
+        </button>
+      </div>
+
+      {editor.isEditable ? (
+        <div className={styles.row}>
+          <span className={styles.field}>
+            <input
+              className={styles.input}
+              value={replaceTerm}
+              onChange={(e) => setReplaceTerm(e.target.value)}
+              onKeyDown={onReplaceKeyDown}
+              placeholder={t.replace}
+              aria-label={t.replace}
+              spellCheck={false}
+            />
+          </span>
           <span className={styles.spacer} />
           <button
             type="button"
