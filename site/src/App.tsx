@@ -88,7 +88,7 @@ function HomePage() {
       <section className="hero">
         <div className="badges">
           <span className="badge">
-            npm <b>v0.12.0</b>
+            npm <b>v0.12.1</b>
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
