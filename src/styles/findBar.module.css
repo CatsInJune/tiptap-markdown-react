@@ -71,14 +71,16 @@
   font: inherit;
 }
 
-/* 计数：等宽数字，避免 1 / 9 → 1 / 10 时宽度跳动 */
+/* 计数：在输入框内右侧，等宽数字避免 1 / 9 → 1 / 10 时跳动；
+   圈到 12px 是为了不跟输入文字抢宽度（长文案时靠 input 的 min-width:0 让位） */
 .counter {
   flex: none;
-  min-width: 46px;
-  padding: 0 2px;
+  margin-left: auto;
+  padding-left: 6px;
   color: var(--fb-muted);
+  font-size: 12px;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 
 .counterInvalid {

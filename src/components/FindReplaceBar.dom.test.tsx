@@ -168,18 +168,21 @@ describe('FindReplaceBar', () => {
     warn.mockRestore();
   });
 
-  it('非法正则：给出提示而不是一直 0 / 0', async () => {
+  it('正则模式：非法模式给出提示而不是一直 0 / 0', async () => {
     vi.useFakeTimers();
     editor = buildEditor('a1 b2');
     await mount({ editor });
 
+    // 条子上不再带正则开关（要正则由宿主自己开命令），所以这里直接走命令
+    await act(async () => {
+      editor.commands.setUseRegex(true);
+    });
     await act(async () => {
       typeInto(inputByLabel('Find'), '(?=x)');
     });
     await act(async () => {
       vi.advanceTimersByTime(200);
     });
-    await click(buttonByLabel('Use regular expression'));
 
     expect(counterText()).toBe('Invalid pattern');
   });

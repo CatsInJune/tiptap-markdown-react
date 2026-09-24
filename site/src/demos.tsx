@@ -685,8 +685,8 @@ export function FindReplaceDemo() {
           Open find (or press Cmd/Ctrl+F)
         </button>
         <span>
-          搜「营收」→ 计数与高亮；替换 / 全部替换；再试 <code>\\d</code> 正则可切换
-          <code>.*</code> 开关。
+          搜「营收」→ 输入框内的计数与正文高亮；替换 / 全部替换；<code>Aa</code> / <code>ab</code>
+          两个开关。
         </span>
       </div>
       <div className="editorDemoBody">

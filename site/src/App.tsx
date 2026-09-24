@@ -236,7 +236,8 @@ function ComponentsPage() {
         features={[
           'Cmd/Ctrl+F opens; Esc closes and restores focus',
           'Counter with wrap-around next / previous',
-          'Match case, whole word, RE2 regex (no lookarounds / backreferences)',
+          'Match case and whole word toggles; counter sits inside the search field',
+          'Regex (RE2, no lookarounds) stays available via setUseRegex, no button',
           'Replace and replace-all — replace-all is a single undo step',
           'Find-only on read-only editors; labels via findLabels',
           'Headless: drive it with editor.commands.setSearchTerm / replaceAll',

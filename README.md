@@ -294,7 +294,7 @@ Ref handle (`MarkdownWysiwygEditorHandle`): `getMarkdown()`, `getHTML()`, `getJS
 
 #### Find & replace
 
-<kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (while focus is inside the editor) opens a floating bar: match counter, wrap-around next/previous, match-case / whole-word / regex toggles, replace and replace-all. `Esc` closes it, clears the highlights and returns focus to the editor. Read-only editors (`editable={false}`) can search but not replace.
+<kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (while focus is inside the editor) opens a floating bar: match counter inside the search field, wrap-around next/previous, match-case and whole-word toggles, replace and replace-all. `Esc` closes it, clears the highlights and returns focus to the editor. Read-only editors (`editable={false}`) can search but not replace.
 
 Matching is done by the official extension, so the semantics are its semantics — worth knowing before you rely on them:
 
@@ -302,7 +302,7 @@ Matching is done by the official extension, so the semantics are its semantics �
 - **Matches may span marks inside one block** (`**bold** tail` is found by `bold tail`) but never cross blocks. What you search is rendered text, not markdown source: `**bold**` does not match.
 - **Replacement takes the marks at the match start**: replacing `bold tail` in `**bold** tail` yields `**X**` — the trailing plain run's formatting is gone.
 - **Replace-all is a single transaction**, so one undo restores everything.
-- **Regex is RE2-compatible** (via `re2js`): no lookarounds or backreferences, replacement text is literal (`$1` is not expanded), and an invalid pattern yields zero matches instead of throwing — the bar shows "Invalid pattern" for that case.
+- **Regex is RE2-compatible** (via `re2js`): no lookarounds or backreferences, replacement text is literal (`$1` is not expanded), and an invalid pattern yields zero matches instead of throwing — the bar shows "Invalid pattern" for that case. The bar ships no regex toggle (find/replace as a plain-text tool); turn it on from your own UI or headlessly with `editor.commands.setUseRegex(true)`.
 
 Everything is also callable headlessly — the extension's commands and storage are the API, so AI/agent flows can drive it without the bar:
 

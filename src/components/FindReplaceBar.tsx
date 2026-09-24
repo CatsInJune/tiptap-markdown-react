@@ -171,14 +171,10 @@ export function FindReplaceBar({
     }
   };
 
-  const toggle = (
-    key: 'caseSensitive' | 'wholeWord' | 'useRegex',
-    value: boolean,
-  ) => {
+  const toggle = (key: 'caseSensitive' | 'wholeWord', value: boolean) => {
     runCommand(() => {
       if (key === 'caseSensitive') editor.commands.setCaseSensitive(value);
-      else if (key === 'wholeWord') editor.commands.setWholeWord(value);
-      else editor.commands.setUseRegex(value);
+      else editor.commands.setWholeWord(value);
     });
   };
 
@@ -214,6 +210,13 @@ export function FindReplaceBar({
             autoFocus
             spellCheck={false}
           />
+          <span
+            className={`${styles.counter}${invalidPattern ? ` ${styles.counterInvalid}` : ''}`}
+            aria-live="polite"
+            title={invalidPattern ? t.invalidRegex : undefined}
+          >
+            {invalidPattern ? t.invalidRegex : counter}
+          </span>
         </span>
           <button
             type="button"
@@ -237,26 +240,8 @@ export function FindReplaceBar({
           >
             ab
           </button>
-          <button
-            type="button"
-            className={toggleClass(state.useRegex)}
-            title={t.useRegex}
-            aria-label={t.useRegex}
-            aria-pressed={state.useRegex}
-            onMouseDown={keepFocus}
-            onClick={() => toggle('useRegex', !state.useRegex)}
-          >
-            .*
-          </button>
 
         <span className={styles.spacer} />
-        <span
-          className={`${styles.counter}${invalidPattern ? ` ${styles.counterInvalid}` : ''}`}
-          aria-live="polite"
-          title={invalidPattern ? t.invalidRegex : undefined}
-        >
-          {invalidPattern ? t.invalidRegex : counter}
-        </span>
         <button
           type="button"
           className={styles.btn}
