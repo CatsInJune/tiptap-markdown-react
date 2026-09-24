@@ -25,8 +25,10 @@
 .row {
   display: flex;
   align-items: center;
-  /* 控件之间收窄到 2px：一行里控件多，4px 显得松 */
-  gap: 2px;
+  /* 行内不留统一 gap：按钮的内边距各不相同（chip 有边框、图标按钮 4px、文字按钮更宽），
+     同一个盒子间距看起来并不一致。间距一律由下面 .toggle / .iconGroup / .textBtn 的
+     margin 补足，目标都是「视觉上看过去 8px」。 */
+  gap: 0;
   /* 窄屏（手机）允许折行，浮动条不会横向溢出 */
   flex-wrap: wrap;
 }
@@ -115,9 +117,11 @@
   cursor: not-allowed;
 }
 
-/* 查找开关用短标记（Aa / ab），省宽度且不依赖文案；带边框才读得出是控件 */
+/* 查找开关用短标记（Aa / ab），省宽度且不依赖文案；带边框才读得出是控件。
+   有边框 → 边框就是视觉边缘，与前面控件（输入框边框 / 另一个 chip）留 8px 即视觉 8px。 */
 .toggle {
   min-width: 28px;
+  margin-left: 8px;
   padding: 0 6px;
   border: 1px solid var(--fb-border);
   font-family: var(--tmr-mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
@@ -135,19 +139,18 @@
   background: #fff3ec;
 }
 
-/* 上一条 / 下一条 / 关闭 是一组图标按钮：彼此零间距，字形间只隔各自 4px 内边距 */
+/* 上一条 / 下一条 / 关闭 是一组图标按钮：组内零间距，字形之间只隔各自 4px 内边距（=8px）；
+   组与左侧 chip 之间补 4px margin，加上图标自身的 4px，视觉同为 8px。 */
 .iconGroup {
   display: inline-flex;
   gap: 0;
+  margin-left: 4px;
 }
 
-/* 两个文字按钮（替换 / 全部替换）之间留 4px，别贴成一块 */
-.textBtn + .textBtn {
-  margin-left: 2px;
-}
-
+/* 两个文字按钮（替换 / 全部替换）内边距收到与图标按钮一致，靠内边距凑出同样的 8px */
 .textBtn {
-  padding: 0 10px;
+  margin-left: 0;
+  padding: 0 4px;
   color: var(--fb-text);
 }
 
