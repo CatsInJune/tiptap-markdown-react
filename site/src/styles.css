@@ -1104,6 +1104,14 @@ a {
   color: var(--accent);
 }
 
+.hostPlacedBar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  background: #fff;
+}
+
 .editorDemoBody {
   padding: 16px 18px;
   max-height: 360px;

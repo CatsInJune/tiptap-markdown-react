@@ -7,6 +7,7 @@ import {
   EditorDemo,
   EditorTocDemo,
   FindReplaceDemo,
+  HostPlacedFindDemo,
   I18nDemo,
   HeroDemo,
   MarkdownIngestDemo,
@@ -240,9 +241,14 @@ function ComponentsPage() {
           'Headless: drive it with editor.commands.setSearchTerm / replaceAll',
         ]}
         demo={
-          <DemoBlock title="Floating find bar" description="Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.">
-            <FindReplaceDemo />
-          </DemoBlock>
+          <>
+            <DemoBlock title="Floating find bar" description="Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.">
+              <FindReplaceDemo />
+            </DemoBlock>
+            <DemoBlock title="Host-placed bar" description="findBar={false}: the editor keeps the extension but renders no bar — placement, stacking and looks belong to the host.">
+              <HostPlacedFindDemo />
+            </DemoBlock>
+          </>
         }
         api={FIND_API}
       />

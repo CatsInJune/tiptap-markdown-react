@@ -282,7 +282,8 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `extraExtensions` | `AnyExtension[]` | Extra Tiptap extensions to register. |
 | `codeBlockLabels` | `Partial<CodeBlockLabels>` | Localize the code block UI. |
 | `findReplace` | `boolean` | Enable find & replace (default `true`): registers the official `@tiptap/extension-find-and-replace` and renders the floating bar. |
-| `findShortcut` | `boolean` | Take over <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> while the editor has focus (default `true`). `false` keeps the browser's native find — wire your own entry with `handle.openFind()`. |
+| `findBar` | `boolean` | Render the floating bar inside the editor (default: same as `findReplace`). `false` hands **placement to the host** — the extension stays registered, the editor renders no bar, and you render `<FindReplaceBar editor={editor} />` wherever you want; `findShortcut` and `handle.openFind/closeFind` go quiet with it. |
+| `findShortcut` | `boolean` | Take over <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> while the editor has focus (default `true`; bound only when the editor owns a bar). `false` keeps the browser's native find — wire your own entry with `handle.openFind()`. |
 | `findLabels` | `Partial<FindLabels>` | Localize the find & replace bar. |
 | `className` | `string` | Class on the scroll container. |
 
@@ -309,6 +310,22 @@ editor.commands.setReplaceTerm('收入');
 editor.commands.replaceAll();          // one transaction, one undo
 editor.storage.findAndReplace.results; // [{ from, to }, …]
 ```
+
+##### Placing the bar yourself
+
+Same split as the toolbar: the bar is a component, its placement is yours. Set `findBar={false}` and render `<FindReplaceBar>` anywhere — a header row, a side panel, a modal. The extension stays registered, so its commands and `editor.storage.findAndReplace` keep working, and the bar is self-contained (it pushes the query, clears highlights on unmount, and reads the counter from the plugin state):
+
+```tsx
+<MarkdownWysiwygEditor findBar={false} onEditorReady={setEditor} />
+
+{editor && open && (
+  <div className="my-find-panel">
+    <FindReplaceBar editor={editor} onClose={() => setOpen(false)} labels={zhFind} />
+  </div>
+)}
+```
+
+With `findBar={false}` the editor does not bind <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (it would swallow the browser's find without opening anything), so bind your own shortcut to `setOpen`. Two invariants to keep: leave `findReplace` on — the bar needs the extension's commands — and render it inside the same editor instance it drives.
 
 `FindReplaceBar` is exported if you'd rather place the bar yourself, `FindLabels` / `defaultFindLabels` for i18n, and `FindAndReplace` for hand-built pipelines. Two details to reuse when driving it yourself: keep `searchDebounceMs: 0` on the extension and debounce in your own UI, and route calls through `runFindCommand()` — it absorbs a Tiptap 3.31.3 transaction mismatch that fires on the first search when the document ends with a code block / table / chart (see the comment on `runFindCommand` for the mechanism).
 

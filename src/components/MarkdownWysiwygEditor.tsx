@@ -159,9 +159,9 @@ export interface MarkdownWysiwygEditorHandle {
   nextComment: (dir?: 'next' | 'prev') => string | null;
   /** 当前 doc 内已锚定的去重 commentId 列表（文档顺序）。 */
   getCommentIds: () => string[];
-  /** 打开查找替换浮动条（宿主自己绑快捷键/按钮时用）。 */
+  /** 打开编辑器自带的查找浮动条（宿主自己绑快捷键/按钮时用）。findBar={false} 时不生效。 */
   openFind: () => void;
-  /** 收起查找替换浮动条，清空高亮并把焦点还给编辑器。 */
+  /** 收起自带浮动条，清空高亮并把焦点还给编辑器。findBar={false} 时不生效。 */
   closeFind: () => void;
 }
 
@@ -244,13 +244,21 @@ export interface MarkdownWysiwygEditorProps {
   /**
    * 启用查找替换（默认 true）：注册官方 `@tiptap/extension-find-and-replace`
    * （自带命令 `setSearchTerm / replace / replaceAll / goToNextResult …` 与
-   * `editor.storage.findAndReplace`），并按 {@link findShortcut} 打开浮动条。
+   * `editor.storage.findAndReplace`）。传 false 则连扩展一起不注册——此时命令与 storage 都不存在，
+   * 宿主的自绘面板也无从驱动。
    */
   findReplace?: boolean;
   /**
-   * 焦点在编辑器内时接管 Cmd/Ctrl+F 打开查找条（默认 true）。传 false 则只保留
-   * `handle.openFind()`——例如宿主想保留浏览器原生查找，或自己摆入口。
-   * 焦点不在编辑器内时不接管，同页多编辑器不会互相抢。
+   * 是否由编辑器渲染浮动条（默认跟随 {@link findReplace}）。传 false = **定位交给宿主**：
+   * 扩展照旧注册，但编辑器不出条子，宿主自己在任意位置渲染 `<FindReplaceBar editor={…} />`
+   * （与工具栏同一套分工——组件归库，摆位归宿主）。此时 {@link findShortcut} 与
+   * `handle.openFind/closeFind` 一并失效，因为内部没有条子可开。
+   */
+  findBar?: boolean;
+  /**
+   * 焦点在编辑器内时接管 Cmd/Ctrl+F 打开**编辑器自带的**浮动条（默认 true；`findBar={false}`
+   * 时不接管，免得抢了键却不弹东西）。传 false 则只保留 `handle.openFind()`——例如宿主想
+   * 保留浏览器原生查找，或自己摆入口。焦点不在编辑器内时不接管，同页多编辑器不会互相抢。
    */
   findShortcut?: boolean;
   /** 查找替换浮动条的本地化文案。 */
@@ -288,6 +296,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     onAnchorClick,
     onSelectionChange,
     findReplace = true,
+    findBar = findReplace,
     findShortcut = true,
     findLabels,
   },
@@ -372,8 +381,9 @@ export const MarkdownWysiwygEditor = forwardRef<
   //   - 焦点不在任何输入控件里（body）且页面上只有本编辑器：接管 ✓（单编辑器页面点完工具栏按钮能直接按）
   //   - 其余情况一律不接管：同页多编辑器时不会一起弹条（文档站就是这样），宿主的其它输入框
   //     也不会被夺走原生查找。多编辑器页面上宿主可自己调 handle.openFind()。
+  // 只有容器里真有那条浮动条（findBar）时才绑：否则会白抢浏览器原生查找，却什么都不弹。
   useEffect(() => {
-    if (!editor || !findReplace || !findShortcut) return;
+    if (!editor || !findReplace || !findBar || !findShortcut) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
         return;
@@ -393,7 +403,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [editor, findReplace, findShortcut]);
+  }, [editor, findReplace, findBar, findShortcut]);
 
   // 评论列表 → 铺 mark。用 commentId 签名做防抖：宿主每次渲染传新数组引用时
   // 不会反复清/铺（清空再重铺会丢掉 mark 随编辑移动后的位置）。
@@ -523,7 +533,7 @@ export const MarkdownWysiwygEditor = forwardRef<
   return (
     <div className={styles.editorHost}>
       {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
-      {editor && findReplace && findOpen ? (
+      {editor && findBar && findOpen ? (
         <div className={styles.findBarAnchor}>
           <FindReplaceBar
             editor={editor}

@@ -152,6 +152,22 @@ describe('FindReplaceBar', () => {
     expect(buttonByLabel('关闭')).not.toBeNull();
   });
 
+  it('扩展没注册时：不渲染、不抛错（宿主自己摆条子却忘了开 findReplace）', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 故意不注册官方扩展的编辑器
+    editor = new Editor({
+      extensions: [...baseExtensions, Markdown],
+      content: 'one two one',
+      contentType: 'markdown',
+    });
+
+    await mount({ editor });
+
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('FindReplaceBar 需要官方 find 扩展'));
+    warn.mockRestore();
+  });
+
   it('非法正则：给出提示而不是一直 0 / 0', async () => {
     vi.useFakeTimers();
     editor = buildEditor('a1 b2');

@@ -53,6 +53,19 @@ export function FindReplaceBar({
   const [term, setTerm] = useState('');
   const [replaceTerm, setReplaceTerm] = useState('');
 
+  // 宿主自己摆条子时可能把 findReplace 关了——那时扩展没注册，命令与插件 state 都不存在。
+  // 不拦住的话下面每个 effect 都会 TypeError 把宿主的树带崩；这里退化为不渲染并留一句提示。
+  const hasExtension = typeof editor.commands.setSearchTerm === 'function';
+  useEffect(() => {
+    if (!hasExtension) {
+      console.warn(
+        '[tiptap-markdown-react] FindReplaceBar 需要官方 find 扩展：' +
+          '请让 <MarkdownWysiwygEditor findReplace> 保持开启（默认 true），' +
+          '否则 setSearchTerm / replaceAll 等命令不存在。',
+      );
+    }
+  }, [hasExtension]);
+
   const state = useEditorState({
     editor,
     selector: ({ editor: instance }) => {
@@ -67,15 +80,24 @@ export function FindReplaceBar({
     },
   });
 
+  /** 所有命令都从这里走：扩展缺席时直接跳过（见上面 hasExtension）。 */
+  const runCommand = useCallback(
+    (run: () => void) => {
+      if (!hasExtension) return;
+      runFindCommand(run);
+    },
+    [hasExtension],
+  );
+
   // 查询词防抖由这里做（扩展注册时 searchDebounceMs: 0，原因见 findReplace.ts）：
   // 输入时延迟推给编辑器，回车 / 替换等动作前先 flush，否则会拿着旧查询执行。
   const appliedTermRef = useRef<string | null>(null);
   const pushTerm = useCallback(
     (value: string) => {
       appliedTermRef.current = value;
-      runFindCommand(() => editor.commands.setSearchTerm(value));
+      runCommand(() => editor.commands.setSearchTerm(value));
     },
-    [editor],
+    [editor, runCommand],
   );
   const flushTerm = useCallback(() => {
     if (appliedTermRef.current !== term) pushTerm(term);
@@ -88,23 +110,23 @@ export function FindReplaceBar({
   }, [term, pushTerm]);
 
   useEffect(() => {
-    runFindCommand(() => editor.commands.setReplaceTerm(replaceTerm));
-  }, [editor, replaceTerm]);
+    runCommand(() => editor.commands.setReplaceTerm(replaceTerm));
+  }, [editor, replaceTerm, runCommand]);
 
   // 关闭 / 卸载时清空查询与高亮。
   useEffect(() => {
     return () => {
-      if (!editor.isDestroyed) editor.commands.clearSearch();
+      if (!editor.isDestroyed) runCommand(() => editor.commands.clearSearch());
     };
-  }, [editor]);
+  }, [editor, runCommand]);
 
   /** 动作类命令（导航 / 替换）：先落定查询词，再执行。 */
   const runAction = useCallback(
     (action: () => void) => {
       flushTerm();
-      runFindCommand(action);
+      runCommand(action);
     },
-    [flushTerm],
+    [flushTerm, runCommand],
   );
 
   // RE2 模式非法（lookaround / backreference 等）：官方返回零结果不报错，这里给个提示，
@@ -149,12 +171,14 @@ export function FindReplaceBar({
     key: 'caseSensitive' | 'wholeWord' | 'useRegex',
     value: boolean,
   ) => {
-    runFindCommand(() => {
+    runCommand(() => {
       if (key === 'caseSensitive') editor.commands.setCaseSensitive(value);
       else if (key === 'wholeWord') editor.commands.setWholeWord(value);
       else editor.commands.setUseRegex(value);
     });
   };
+
+  if (!hasExtension) return null;
 
   const toggleClass = (on: boolean) =>
     `${styles.btn} ${styles.toggle}${on ? ` ${styles.toggleOn}` : ''}`;

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import {
   CommentPopover,
   EditorToolbar,
+  FindReplaceBar,
   MarkdownPreview,
   MarkdownWysiwygEditor,
   ReportContent,
@@ -764,6 +765,43 @@ export function I18nDemo() {
             <TocPanel items={toc} activeId={toc[0].id} labels={labels.toc} />
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** 宿主摆位：编辑器不出条子（findBar={false}），条子由宿主渲染在自己的布局里 */
+const HOST_FIND_MD = `# 宿主摆位的查找条
+
+这个编辑器 **findBar={false}**：扩展照旧注册（命令、storage、高亮都在），但编辑器不渲染
+浮动条，定位完全归宿主。上面那个按钮切换的就是宿主自己渲染的 <FindReplaceBar />。
+
+因为编辑器没有条子可开，Cmd/Ctrl+F 也不再被接管——宿主自己绑到自己的状态上。`;
+
+export function HostPlacedFindDemo() {
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBar">
+        <button type="button" onClick={() => setOpen((v) => !v)}>
+          {open ? '收起查找面板' : '展开查找面板'}
+        </button>
+        <span>
+          面板位置 / 层级 / 外观全归宿主：这里渲染在编辑器上方，也可以放进侧栏或弹窗。
+        </span>
+      </div>
+      {open && editor ? (
+        <div className="hostPlacedBar">
+          <FindReplaceBar editor={editor} onClose={() => setOpen(false)} />
+        </div>
+      ) : null}
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor
+          initialMarkdown={HOST_FIND_MD}
+          findBar={false}
+          onEditorReady={setEditor}
+        />
       </div>
     </div>
   );
