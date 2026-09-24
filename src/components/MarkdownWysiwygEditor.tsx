@@ -367,8 +367,11 @@ export const MarkdownWysiwygEditor = forwardRef<
     editor?.commands.focus();
   }, [editor]);
 
-  // Cmd/Ctrl+F → 打开查找条。只在「焦点在编辑器内」或「页面没有别的输入焦点」时接管：
-  // 同页多编辑器不会互相抢，宿主的其它输入框也不会被夺走原生查找。
+  // Cmd/Ctrl+F → 打开查找条。接管条件必须收得比「焦点在编辑器内」松、比「谁都能接管」紧：
+  //   - 焦点在本编辑器内：接管 ✓
+  //   - 焦点不在任何输入控件里（body）且页面上只有本编辑器：接管 ✓（单编辑器页面点完工具栏按钮能直接按）
+  //   - 其余情况一律不接管：同页多编辑器时不会一起弹条（文档站就是这样），宿主的其它输入框
+  //     也不会被夺走原生查找。多编辑器页面上宿主可自己调 handle.openFind()。
   useEffect(() => {
     if (!editor || !findReplace || !findShortcut) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -378,7 +381,9 @@ export const MarkdownWysiwygEditor = forwardRef<
       if (event.key !== 'f' && event.key !== 'F') return;
       const active = document.activeElement;
       const inEditor = !!active && editor.view.dom.contains(active);
-      if (!inEditor && !editor.isFocused && active && active !== document.body) {
+      const nothingFocused = active === null || active === document.body;
+      const soleEditor = document.querySelectorAll('.ProseMirror').length <= 1;
+      if (!inEditor && !editor.isFocused && !(nothingFocused && soleEditor)) {
         return;
       }
       event.preventDefault();
