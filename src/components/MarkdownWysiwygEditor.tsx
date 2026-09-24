@@ -517,21 +517,24 @@ export const MarkdownWysiwygEditor = forwardRef<
 
   return (
     <div className={styles.editorHost}>
+      {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
+      {editor && findReplace && findOpen ? (
+        <div className={styles.findBarAnchor}>
+          <FindReplaceBar
+            editor={editor}
+            labels={findLabels}
+            onClose={closeFind}
+            inputRef={findInputRef}
+            className={styles.findBar}
+          />
+        </div>
+      ) : null}
       <EditorContent
         editor={editor}
         className={
           className ? `${styles.editorScroll} ${className}` : styles.editorScroll
         }
       />
-      {editor && findReplace && findOpen ? (
-        <FindReplaceBar
-          editor={editor}
-          labels={findLabels}
-          onClose={closeFind}
-          inputRef={findInputRef}
-          className={styles.findBar}
-        />
-      ) : null}
     </div>
   );
 });
