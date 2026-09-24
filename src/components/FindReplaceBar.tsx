@@ -17,7 +17,14 @@ import {
   type RefObject,
 } from 'react';
 import { FIND_DEBOUNCE_MS, runFindCommand } from '../findReplace';
-import { ChevronDownIcon, ChevronUpIcon, SearchIcon, XIcon } from '../icons';
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ReplaceAllIcon,
+  ReplaceIcon,
+  SearchIcon,
+  XIcon,
+} from '../icons';
 import { defaultFindLabels, type FindLabels } from '../labels';
 import styles from '../styles/findBar.module.css';
 
@@ -293,21 +300,25 @@ export function FindReplaceBar({
           <span className={styles.spacer} />
           <button
             type="button"
-            className={`${styles.btn} ${styles.textBtn}`}
+            className={styles.btn}
+            title={t.replaceOne}
+            aria-label={t.replaceOne}
             disabled={state.total === 0}
             onMouseDown={keepFocus}
             onClick={() => runAction(() => editor.commands.replace())}
           >
-            {t.replaceOne}
+            <ReplaceIcon size={16} />
           </button>
           <button
             type="button"
-            className={`${styles.btn} ${styles.textBtn}`}
+            className={styles.btn}
+            title={t.replaceAll}
+            aria-label={t.replaceAll}
             disabled={state.total === 0}
             onMouseDown={keepFocus}
             onClick={() => runAction(() => editor.commands.replaceAll())}
           >
-            {t.replaceAll}
+            <ReplaceAllIcon size={16} />
           </button>
         </div>
       ) : (

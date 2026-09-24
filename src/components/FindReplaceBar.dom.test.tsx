@@ -110,11 +110,7 @@ describe('FindReplaceBar', () => {
     await act(async () => {
       typeInto(inputByLabel('Replace with'), 'X');
     });
-    await act(async () => {
-      host
-        .querySelectorAll('button')
-        .forEach((b) => b.textContent === 'Replace' && b.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    });
+    await click(buttonByLabel('Replace'));
 
     expect(editor.getMarkdown()).toBe('X two one');
   });

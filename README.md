@@ -351,7 +351,7 @@ There is no global locale and no provider: every visible string comes from a `Pa
 | Component | Prop | Type |
 | --- | --- | --- |
 | `<EditorToolbar>` | `labels` | `Partial<ToolbarLabels>` (also covers the Import menu and the equation popover) |
-| `<MarkdownWysiwygEditor>` | `findLabels` | `Partial<FindLabels>` |
+| `<MarkdownWysiwygEditor>` | `findLabels` | `Partial<FindLabels>` (replace / replace-all appear as icon buttons, so their labels are the tooltip + accessible name) |
 | `<MarkdownWysiwygEditor>` | `codeBlockLabels` | `Partial<CodeBlockLabels>` |
 | `<TocPanel>` | `labels` | `Partial<TocLabels>` |
 | `<ColorPalette>` | `labels` | `Partial<ColorPaletteLabels>` |

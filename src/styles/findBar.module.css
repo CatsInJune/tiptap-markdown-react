@@ -147,13 +147,6 @@
   margin-left: 4px;
 }
 
-/* 两个文字按钮（替换 / 全部替换）内边距收到与图标按钮一致，靠内边距凑出同样的 8px */
-.textBtn {
-  margin-left: 0;
-  padding: 0 4px;
-  color: var(--fb-text);
-}
-
 .spacer {
   flex: 1 1 auto;
   min-width: 0;

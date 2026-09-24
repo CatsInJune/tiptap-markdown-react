@@ -196,6 +196,32 @@ export const ChevronUpIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const ReplaceIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 4a1 1 0 0 1 1-1" />
+    <path d="M15 10a1 1 0 0 1-1-1" />
+    <path d="M21 4a1 1 0 0 0-1-1" />
+    <path d="M21 9a1 1 0 0 1-1 1" />
+    <path d="m3 7 3 3 3-3" />
+    <path d="M6 10V5a2 2 0 0 1 2-2h2" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+  </Svg>
+);
+
+export const ReplaceAllIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1" />
+    <path d="M14 4a1 1 0 0 1 1-1" />
+    <path d="M15 10a1 1 0 0 1-1-1" />
+    <path d="M19 14a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1" />
+    <path d="M21 4a1 1 0 0 0-1-1" />
+    <path d="M21 9a1 1 0 0 1-1 1" />
+    <path d="m3 7 3 3 3-3" />
+    <path d="M6 10V5a2 2 0 0 1 2-2h2" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+  </Svg>
+);
+
 /* ── 表格行列操作图标（自绘：表格轮廓 + 目标边高亮 + 加号/叉号）── */
 
 export const ColumnBeforeIcon = (p: IconProps) => (
