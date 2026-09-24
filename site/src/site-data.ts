@@ -25,6 +25,7 @@ export const COMPONENT_NAV: NavGroup[] = [
       { id: 'editor', label: 'MarkdownWysiwygEditor', href: '#editor' },
       { id: 'toolbar', label: 'EditorToolbar', href: '#toolbar' },
       { id: 'find', label: 'Find & replace', href: '#find' },
+      { id: 'i18n', label: 'Internationalization', href: '#i18n' },
       { id: 'equations', label: 'Equations', href: '#equations' },
       { id: 'charts', label: 'Charts', href: '#charts' },
       { id: 'comment-anchors', label: 'Comment Anchors', href: '#comment-anchors' },
@@ -418,4 +419,13 @@ export const FIND_API: ApiRow[] = [
   { name: 'FindReplaceBar', desc: 'The bar itself, if you place it yourself', type: 'Component', defaultVal: '—' },
   { name: 'FindAndReplace', desc: 'Re-exported official extension for hand-built pipelines', type: 'Extension', defaultVal: '—' },
   { name: 'runFindCommand', desc: 'Guard for the Tiptap 3.31.3 trailing-node transaction mismatch', type: '(run: () => void) => void', defaultVal: '—' },
+];
+
+export const I18N_API: ApiRow[] = [
+  { name: 'labels', desc: 'EditorToolbar text (Partial<ToolbarLabels>)', type: 'Partial<ToolbarLabels>', defaultVal: 'English defaults' },
+  { name: 'findLabels', desc: 'Find & replace bar text', type: 'Partial<FindLabels>', defaultVal: 'English defaults' },
+  { name: 'codeBlockLabels', desc: 'Code-block NodeView text (read when the editor is constructed)', type: 'Partial<CodeBlockLabels>', defaultVal: 'English defaults' },
+  { name: 'labels', desc: 'TocPanel text', type: 'Partial<TocLabels>', defaultVal: 'English defaults' },
+  { name: 'labels', desc: 'ColorPalette swatch names', type: 'Partial<ColorPaletteLabels>', defaultVal: 'English defaults' },
+  { name: 'defaultToolbarLabels …', desc: 'Every default bundle is exported — useful as a base or to diff against', type: 'Record<keyof XLabels, string>', defaultVal: '—' },
 ];

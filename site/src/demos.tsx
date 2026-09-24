@@ -18,6 +18,7 @@ import {
   type TocItem,
 } from 'tiptap-markdown-react';
 import { renderReportHtml } from 'tiptap-markdown-react/server';
+import { LOCALES, type LocaleCode } from './i18n';
 import {
   CODEBLOCK_MD,
   CITATION_MD,
@@ -689,6 +690,80 @@ export function FindReplaceDemo() {
       </div>
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor ref={ref} initialMarkdown={FIND_MD} />
+      </div>
+    </div>
+  );
+}
+
+/** 国际化：按语言挑一份 labels 传给各组件（库内方案，无全局 locale） */
+const I18N_MD = `# 国际化演示
+
+语言切换靠**按组件注入 labels**：工具栏 / 目录随 props 实时变，
+代码块文案在编辑器构造时写进扩展 options，所以要重建编辑器——内容先用
+getMarkdown() 取回来回灌，不丢。
+
+\`\`\`js
+// 切语言时重建编辑器，但内容不丢
+const md = editorRef.current?.getMarkdown();
+setMarkdown(md);
+setLocale(next);
+\`\`\``;
+
+export function I18nDemo() {
+  const [locale, setLocale] = useState<LocaleCode>('zh');
+  const [markdown, setMarkdown] = useState(I18N_MD);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [toc, setToc] = useState<TocItem[]>([]);
+  const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
+  const labels = LOCALES[locale];
+
+  const switchLocale = (next: LocaleCode) => {
+    if (next === locale) return;
+    // initialMarkdown 是 init-only，重建前必须把当前内容取回来，否则未保存的编辑会丢
+    setMarkdown(editorRef.current?.getMarkdown() ?? markdown);
+    setLocale(next);
+  };
+
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBar">
+        <button
+          type="button"
+          onClick={() => switchLocale('zh')}
+          disabled={locale === 'zh'}
+        >
+          中文
+        </button>
+        <button
+          type="button"
+          onClick={() => switchLocale('en')}
+          disabled={locale === 'en'}
+        >
+          English
+        </button>
+        <span>
+          当前：{locale}。工具栏 / 目录实时切换；代码块文案要重建编辑器（用
+          getMarkdown 回灌内容）。Cmd/Ctrl+F 的查找条也随 findLabels 切换。
+        </span>
+      </div>
+      <div className="editorDemoBody">
+        {editor && <EditorToolbar editor={editor} labels={labels.toolbar} />}
+        <div className="editorTocDemo">
+          <div className="editorTocDemoEditor">
+            <MarkdownWysiwygEditor
+              key={locale}
+              ref={editorRef}
+              initialMarkdown={markdown}
+              codeBlockLabels={labels.codeBlock}
+              findLabels={labels.find}
+              onTocChange={setToc}
+              onEditorReady={setEditor}
+            />
+          </div>
+          {toc.length > 0 && (
+            <TocPanel items={toc} activeId={toc[0].id} labels={labels.toc} />
+          )}
+        </div>
       </div>
     </div>
   );
