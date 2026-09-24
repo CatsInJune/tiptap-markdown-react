@@ -242,7 +242,7 @@ export function FindReplaceBar({
           </button>
 
         <span className={styles.spacer} />
-        <span className={styles.navGroup}>
+        <span className={styles.iconGroup}>
           <button
             type="button"
             className={styles.btn}
@@ -265,16 +265,16 @@ export function FindReplaceBar({
           >
             <ChevronDownIcon size={16} />
           </button>
+          <button
+            type="button"
+            className={styles.btn}
+            title={t.close}
+            aria-label={t.close}
+            onClick={onClose}
+          >
+            <XIcon size={16} />
+          </button>
         </span>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.closeBtn}`}
-          title={t.close}
-          aria-label={t.close}
-          onClick={onClose}
-        >
-          <XIcon size={16} />
-        </button>
       </div>
 
       {editor.isEditable ? (

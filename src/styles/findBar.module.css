@@ -94,8 +94,8 @@
   justify-content: center;
   flex: none;
   height: 30px;
-  min-width: 28px;
-  padding: 0 6px;
+  min-width: 24px;
+  padding: 0 4px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -135,15 +135,10 @@
   background: #fff3ec;
 }
 
-/* 上/下一条是一组：彼此零间距，整体与邻居仍留行间距 */
-.navGroup {
+/* 上一条 / 下一条 / 关闭 是一组图标按钮：彼此零间距，字形间只隔各自 4px 内边距 */
+.iconGroup {
   display: inline-flex;
   gap: 0;
-}
-
-/* 关闭与导航之间 4px（行距 2 + 2）：不是第三个导航，也别贴着 */
-.closeBtn {
-  margin-left: 2px;
 }
 
 /* 两个文字按钮（替换 / 全部替换）之间留 4px，别贴成一块 */
