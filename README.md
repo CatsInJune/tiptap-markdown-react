@@ -262,6 +262,9 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `--tmr-comment-ring` | `rgba(219, 171, 10, 0.55)` | Active mark / block outline ring |
 | `--tmr-comment-gutter-bg` | `#f4b400` | Gutter bubble background |
 | `--tmr-popover-bg` | `#fff` | CommentPopover background |
+| `--tmr-find-bg` | `rgba(255, 196, 0, 0.32)` | Find: match highlight |
+| `--tmr-find-active-bg` | `rgba(255, 145, 0, 0.5)` | Find: current match highlight |
+| `--tmr-find-active-ring` | `rgba(230, 122, 0, 0.7)` | Find: current match ring |
 
 ## API
 
@@ -278,10 +281,36 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `markdownFileDrop` | `boolean` | Drop or paste `.md` / `.markdown` files into the editor to insert their parsed content. Default `true`. Init-only. |
 | `extraExtensions` | `AnyExtension[]` | Extra Tiptap extensions to register. |
 | `codeBlockLabels` | `Partial<CodeBlockLabels>` | Localize the code block UI. |
+| `findReplace` | `boolean` | Enable find & replace (default `true`): registers the official `@tiptap/extension-find-and-replace` and renders the floating bar. |
+| `findShortcut` | `boolean` | Take over <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> while the editor has focus (default `true`). `false` keeps the browser's native find — wire your own entry with `handle.openFind()`. |
+| `findLabels` | `Partial<FindLabels>` | Localize the find & replace bar. |
 | `className` | `string` | Class on the scroll container. |
 
 Ref handle (`MarkdownWysiwygEditorHandle`): `getMarkdown()`, `getHTML()`, `getJSON()`, `getEditor()`,
-`focusComment(id)`, `nextComment(dir?)`, `getCommentIds()`.
+`focusComment(id)`, `nextComment(dir?)`, `getCommentIds()`, `openFind()`, `closeFind()`.
+
+#### Find & replace
+
+<kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (while focus is inside the editor) opens a floating bar: match counter, wrap-around next/previous, match-case / whole-word / regex toggles, replace and replace-all. `Esc` closes it, clears the highlights and returns focus to the editor. Read-only editors (`editable={false}`) can search but not replace.
+
+Matching is done by the official extension, so the semantics are its semantics — worth knowing before you rely on them:
+
+- **Scope is textblocks**: paragraphs, headings, list items, table cells and code blocks. Text stored in node attributes is **not** searched — equations (LaTeX), chart data, image alt text and citation titles are invisible to find.
+- **Matches may span marks inside one block** (`**bold** tail` is found by `bold tail`) but never cross blocks. What you search is rendered text, not markdown source: `**bold**` does not match.
+- **Replacement takes the marks at the match start**: replacing `bold tail` in `**bold** tail` yields `**X**` — the trailing plain run's formatting is gone.
+- **Replace-all is a single transaction**, so one undo restores everything.
+- **Regex is RE2-compatible** (via `re2js`): no lookarounds or backreferences, replacement text is literal (`$1` is not expanded), and an invalid pattern yields zero matches instead of throwing — the bar shows "Invalid pattern" for that case.
+
+Everything is also callable headlessly — the extension's commands and storage are the API, so AI/agent flows can drive it without the bar:
+
+```ts
+editor.commands.setSearchTerm('营收');
+editor.commands.setReplaceTerm('收入');
+editor.commands.replaceAll();          // one transaction, one undo
+editor.storage.findAndReplace.results; // [{ from, to }, …]
+```
+
+`FindReplaceBar` is exported if you'd rather place the bar yourself, `FindLabels` / `defaultFindLabels` for i18n, and `FindAndReplace` for hand-built pipelines. Two details to reuse when driving it yourself: keep `searchDebounceMs: 0` on the extension and debounce in your own UI, and route calls through `runFindCommand()` — it absorbs a Tiptap 3.31.3 transaction mismatch that fires on the first search when the document ends with a code block / table / chart (see the comment on `runFindCommand` for the mechanism).
 
 #### Markdown in: paste, drop, import
 

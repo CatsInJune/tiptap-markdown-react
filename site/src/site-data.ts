@@ -24,6 +24,7 @@ export const COMPONENT_NAV: NavGroup[] = [
     items: [
       { id: 'editor', label: 'MarkdownWysiwygEditor', href: '#editor' },
       { id: 'toolbar', label: 'EditorToolbar', href: '#toolbar' },
+      { id: 'find', label: 'Find & replace', href: '#find' },
       { id: 'equations', label: 'Equations', href: '#equations' },
       { id: 'charts', label: 'Charts', href: '#charts' },
       { id: 'comment-anchors', label: 'Comment Anchors', href: '#comment-anchors' },
@@ -105,6 +106,9 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'markdownFileDrop', desc: 'Drop / paste .md files to insert parsed content. Init-only', type: 'boolean', defaultVal: 'true' },
   { name: 'extraExtensions', desc: 'Additional Tiptap extensions', type: 'AnyExtension[]', defaultVal: '—' },
   { name: 'codeBlockLabels', desc: 'Code block NodeView labels', type: 'Partial<CodeBlockLabels>', defaultVal: '—' },
+  { name: 'findReplace', desc: 'Find & replace: registers @tiptap/extension-find-and-replace and renders the floating bar', type: 'boolean', defaultVal: 'true' },
+  { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())', type: 'boolean', defaultVal: 'true' },
+  { name: 'findLabels', desc: 'Find & replace bar labels', type: 'Partial<FindLabels>', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
 ];
 
@@ -113,6 +117,8 @@ export const EDITOR_REF_API: ApiRow[] = [
   { name: 'getHTML()', desc: 'Export current content as HTML', type: '() => string' },
   { name: 'getJSON()', desc: 'Export Tiptap JSON document', type: '() => Record<string, unknown>' },
   { name: 'getEditor()', desc: 'Underlying Tiptap Editor instance', type: '() => Editor | null' },
+  { name: 'openFind()', desc: 'Open the find & replace bar', type: '() => void' },
+  { name: 'closeFind()', desc: 'Close the bar, clear highlights and refocus the editor', type: '() => void' },
 ];
 
 export const TOOLBAR_API: ApiRow[] = [
@@ -403,4 +409,13 @@ export const SAMPLE_TOC = [
   { id: 'api-reference', level: 2, text: 'API Reference', locked: false },
   { id: 'advanced', level: 2, text: 'Advanced Usage', locked: true },
   { id: 'changelog', level: 2, text: 'Changelog', locked: false },
+];
+
+export const FIND_API: ApiRow[] = [
+  { name: 'findReplace', desc: 'Register the official find extension and render the floating bar', type: 'boolean', defaultVal: 'true' },
+  { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus', type: 'boolean', defaultVal: 'true' },
+  { name: 'findLabels', desc: 'Bar labels (FindLabels)', type: 'Partial<FindLabels>', defaultVal: '—' },
+  { name: 'FindReplaceBar', desc: 'The bar itself, if you place it yourself', type: 'Component', defaultVal: '—' },
+  { name: 'FindAndReplace', desc: 'Re-exported official extension for hand-built pipelines', type: 'Extension', defaultVal: '—' },
+  { name: 'runFindCommand', desc: 'Guard for the Tiptap 3.31.3 trailing-node transaction mismatch', type: '(run: () => void) => void', defaultVal: '—' },
 ];

@@ -6,6 +6,7 @@ import {
   CitationSsrDemo,
   EditorDemo,
   EditorTocDemo,
+  FindReplaceDemo,
   HeroDemo,
   MarkdownIngestDemo,
   MarkdownOutputDemo,
@@ -27,6 +28,7 @@ import {
   DEMO_NAV,
   EDITOR_API,
   EDITOR_REF_API,
+  FIND_API,
   INSERT_MARKDOWN_API,
   MATH_API,
   MATH_LABELS_API,
@@ -82,7 +84,7 @@ function HomePage() {
       <section className="hero">
         <div className="badges">
           <span className="badge">
-            npm <b>v0.8.4</b>
+            npm <b>v0.11.0</b>
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
@@ -220,6 +222,27 @@ function ComponentsPage() {
         }
         api={EDITOR_API}
         refApi={EDITOR_REF_API}
+      />
+
+      <ComponentSection
+        id="find"
+        title="Find & replace"
+        description="Cmd/Ctrl+F while the editor has focus opens a floating bar: match counter, wrap-around navigation, match-case / whole-word / regex toggles, replace and replace-all. Matching, highlighting and replacement come from the official @tiptap/extension-find-and-replace — the bar is the library's own UI. Search scope is textblocks: paragraphs, headings, list items, table cells and code blocks; text inside node attributes (equations, chart data, image alt, citation titles) is not searched. Matches may span marks inside one block but never cross blocks. Esc closes the bar, clears highlights and returns focus."
+        importName="MarkdownWysiwygEditor (findReplace), FindReplaceBar, FindLabels"
+        features={[
+          'Cmd/Ctrl+F opens; Esc closes and restores focus',
+          'Counter with wrap-around next / previous',
+          'Match case, whole word, RE2 regex (no lookarounds / backreferences)',
+          'Replace and replace-all — replace-all is a single undo step',
+          'Find-only on read-only editors; labels via findLabels',
+          'Headless: drive it with editor.commands.setSearchTerm / replaceAll',
+        ]}
+        demo={
+          <DemoBlock title="Floating find bar" description="Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.">
+            <FindReplaceDemo />
+          </DemoBlock>
+        }
+        api={FIND_API}
       />
 
       <ComponentSection

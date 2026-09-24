@@ -1,6 +1,20 @@
 /* 规范正文样式（编辑器 / 只读预览 / SSR 阅读三处共用同一个类，保证所见即所得、
    发布后一致）。配色/字体全部走可被消费方覆盖的 CSS 变量（--tmr-*，带默认值）。 */
 
+/* 编辑器最外层：仅为查找替换浮动条提供定位上下文。正文的滚动容器仍是 .editorScroll
+   （宿主传的 className 依然落在它身上，契约不变）。 */
+.editorHost {
+  position: relative;
+}
+
+/* 查找替换浮动条：绝对定位浮在正文右上角，不占布局、不推挤正文 */
+.findBar {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 7;
+}
+
 .editorScroll {
   margin-top: 24px;
   position: relative;

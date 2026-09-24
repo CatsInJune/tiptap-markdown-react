@@ -664,3 +664,32 @@ export function HeroDemo() {
     </div>
   );
 }
+
+/** 查找替换：文末故意留一个代码块（TrailingNode 的边界），并给按钮触发 openFind() */
+const FIND_MD = `# 查找替换演示
+
+营收 由 **营收** 与 营收 三处构成，其中一处跨粗体。
+
+\`\`\`text
+营收 也在代码块里（textblock，能搜到）
+\`\`\``;
+
+export function FindReplaceDemo() {
+  const ref = useRef<MarkdownWysiwygEditorHandle>(null);
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBar">
+        <button type="button" onClick={() => ref.current?.openFind()}>
+          Open find (or press Cmd/Ctrl+F)
+        </button>
+        <span>
+          搜「营收」→ 计数与高亮；替换 / 全部替换；再试 <code>\\d</code> 正则可切换
+          <code>.*</code> 开关。
+        </span>
+      </div>
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor ref={ref} initialMarkdown={FIND_MD} />
+      </div>
+    </div>
+  );
+}

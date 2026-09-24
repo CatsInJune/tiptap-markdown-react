@@ -30,6 +30,10 @@ export {
 export { ColorPalette, type ColorPaletteProps } from './components/ColorPalette';
 export { TocPanel, type TocPanelProps } from './components/TocPanel';
 export { CodeBlockView } from './components/CodeBlockView';
+export {
+  FindReplaceBar,
+  type FindReplaceBarProps,
+} from './components/FindReplaceBar';
 
 // ── 只读静态正文（阅读页请改从 ./reader 引入，避免与 ./server 重复注册 TableKit） ──
 export { ReportContent, type ReportContentProps } from './ReportContent';
@@ -100,12 +104,14 @@ export {
   defaultCodeBlockLabels,
   defaultColorPaletteLabels,
   defaultCommentLabels,
+  defaultFindLabels,
   defaultTocLabels,
   defaultToolbarLabels,
   type ChartLabels,
   type CodeBlockLabels,
   type ColorPaletteLabels,
   type CommentLabels,
+  type FindLabels,
   type TocLabels,
   type ToolbarLabels,
 } from './labels';
@@ -166,6 +172,7 @@ export {
   type PendingAnchor,
 } from './pendingAnchor';
 export { replaceRangeWithMarkdown, type ReplaceRangeOptions } from './replaceRange';
+export { FIND_DEBOUNCE_MS, runFindCommand } from './findReplace';
 export { selectionKind, type SelectionKind } from './selectionKind';
 
 // ── 常用 Tiptap 类型（宿主无需再安装 / import @tiptap/*） ──
@@ -176,3 +183,11 @@ export type { JSONContent } from '@tiptap/core';
 // 写进 dist/index.d.ts，于是宿主那边 `editor.getMarkdown()` 报「属性不存在」。
 // 类型再导出会让 TS 加载该模块的声明，augmentation 才跟着生效。
 export type { MarkdownManager } from '@tiptap/markdown';
+// 查找替换扩展同样再导出：宿主自建管线（extraExtensions / 自组 extensions）时不必再装一次
+// @tiptap/extension-find-and-replace，拿到的也是与本组件注册的同一份（单例 schema）。
+export { default as FindAndReplace } from '@tiptap/extension-find-and-replace';
+export type {
+  FindAndReplaceOptions,
+  FindAndReplaceStorage,
+  SearchResult as FindSearchResult,
+} from '@tiptap/extension-find-and-replace';
