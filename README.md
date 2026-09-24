@@ -312,6 +312,28 @@ editor.storage.findAndReplace.results; // [{ from, to }, …]
 
 `FindReplaceBar` is exported if you'd rather place the bar yourself, `FindLabels` / `defaultFindLabels` for i18n, and `FindAndReplace` for hand-built pipelines. Two details to reuse when driving it yourself: keep `searchDebounceMs: 0` on the extension and debounce in your own UI, and route calls through `runFindCommand()` — it absorbs a Tiptap 3.31.3 transaction mismatch that fires on the first search when the document ends with a code block / table / chart (see the comment on `runFindCommand` for the mechanism).
 
+#### i18n (labels)
+
+There is no global locale and no provider: every visible string comes from a `Partial<XLabels>` prop that is merged over built-in English defaults (`{ ...defaultToolbarLabels, ...labels }`). A host ships one object per language and passes it down; switching languages is picking a different object. Override only the keys you care about — everything else falls back to English.
+
+| Component | Prop | Type |
+| --- | --- | --- |
+| `<EditorToolbar>` | `labels` | `Partial<ToolbarLabels>` (also covers the Import menu and the equation popover) |
+| `<MarkdownWysiwygEditor>` | `findLabels` | `Partial<FindLabels>` |
+| `<MarkdownWysiwygEditor>` | `codeBlockLabels` | `Partial<CodeBlockLabels>` |
+| `<TocPanel>` | `labels` | `Partial<TocLabels>` |
+| `<ColorPalette>` | `labels` | `Partial<ColorPaletteLabels>` |
+
+```ts
+// zh.ts — only the keys you want to change
+export const zhToolbar: Partial<ToolbarLabels> = {
+  undo: '撤销', bold: '加粗', headingLabel: (level) => `标题 ${level}`, importDocument: '导入',
+};
+export const zhFind: Partial<FindLabels> = { find: '查找', next: '下一处', replaceAll: '全部替换' };
+```
+
+Toolbar, TOC, palette and the find bar merge at render time, so they switch live. `codeBlockLabels` is different: it is written into the code-block extension's options when the editor is constructed (the NodeView reads `extension.options`), so existing code blocks keep the old text until the editor is rebuilt — remount with `key={locale}` and feed the current markdown back via `getMarkdown()` first, because `initialMarkdown` is init-only. Not yet injectable: **chart labels** (only reachable through `createChart({ chartLabels })` on a hand-built pipeline) and comment popover text (the popover renders your `children`). One `aria-label` is hardcoded English (`Code language` in the code-block header, screen readers only).
+
 #### Markdown in: paste, drop, import
 
 Three ways to get markdown into the editor, all built in:
