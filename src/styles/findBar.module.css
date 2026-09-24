@@ -93,8 +93,8 @@
   justify-content: center;
   flex: none;
   height: 30px;
-  min-width: 30px;
-  padding: 0 8px;
+  min-width: 28px;
+  padding: 0 6px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -114,10 +114,10 @@
   cursor: not-allowed;
 }
 
-/* 三个查找开关用短标记（Aa / ab / .*），省宽度且不依赖文案；带边框才读得出是控件 */
+/* 查找开关用短标记（Aa / ab），省宽度且不依赖文案；带边框才读得出是控件 */
 .toggle {
-  min-width: 32px;
-  padding: 0 7px;
+  min-width: 28px;
+  padding: 0 6px;
   border: 1px solid var(--fb-border);
   font-family: var(--tmr-mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 13px;
@@ -134,9 +134,15 @@
   background: #fff3ec;
 }
 
-/* 关闭与上/下一条拉开一点：它不是「第三个导航」 */
+/* 上/下一条是一组：彼此零间距，整体与邻居仍留行间距 */
+.navGroup {
+  display: inline-flex;
+  gap: 0;
+}
+
+/* 关闭只与导航拉开一点：它不是「第三个导航」，但也别贴着 */
 .closeBtn {
-  margin-left: 4px;
+  margin-left: 2px;
 }
 
 .textBtn {

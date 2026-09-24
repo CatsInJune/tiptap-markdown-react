@@ -242,28 +242,30 @@ export function FindReplaceBar({
           </button>
 
         <span className={styles.spacer} />
-        <button
-          type="button"
-          className={styles.btn}
-          title={t.previous}
-          aria-label={t.previous}
-          disabled={state.total === 0}
-          onMouseDown={keepFocus}
-          onClick={() => runAction(() => editor.commands.goToPreviousResult())}
-        >
-          <ChevronUpIcon size={16} />
-        </button>
-        <button
-          type="button"
-          className={styles.btn}
-          title={t.next}
-          aria-label={t.next}
-          disabled={state.total === 0}
-          onMouseDown={keepFocus}
-          onClick={() => runAction(() => editor.commands.goToNextResult())}
-        >
-          <ChevronDownIcon size={16} />
-        </button>
+        <span className={styles.navGroup}>
+          <button
+            type="button"
+            className={styles.btn}
+            title={t.previous}
+            aria-label={t.previous}
+            disabled={state.total === 0}
+            onMouseDown={keepFocus}
+            onClick={() => runAction(() => editor.commands.goToPreviousResult())}
+          >
+            <ChevronUpIcon size={16} />
+          </button>
+          <button
+            type="button"
+            className={styles.btn}
+            title={t.next}
+            aria-label={t.next}
+            disabled={state.total === 0}
+            onMouseDown={keepFocus}
+            onClick={() => runAction(() => editor.commands.goToNextResult())}
+          >
+            <ChevronDownIcon size={16} />
+          </button>
+        </span>
         <button
           type="button"
           className={`${styles.btn} ${styles.closeBtn}`}

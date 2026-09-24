@@ -231,7 +231,7 @@ function ComponentsPage() {
       <ComponentSection
         id="find"
         title="Find & replace"
-        description="Cmd/Ctrl+F while the editor has focus opens a floating bar: match counter, wrap-around navigation, match-case / whole-word / regex toggles, replace and replace-all. Matching, highlighting and replacement come from the official @tiptap/extension-find-and-replace — the bar is the library's own UI. Search scope is textblocks: paragraphs, headings, list items, table cells and code blocks; text inside node attributes (equations, chart data, image alt, citation titles) is not searched. Matches may span marks inside one block but never cross blocks. Esc closes the bar, clears highlights and returns focus."
+        description="Cmd/Ctrl+F while the editor has focus opens a floating bar: the match counter sits inside the search field, navigation wraps around, match-case / whole-word toggles, replace and replace-all. Regex (RE2) stays available through the extension's command, without a button. Matching, highlighting and replacement come from the official @tiptap/extension-find-and-replace — the bar is the library's own UI. Search scope is textblocks: paragraphs, headings, list items, table cells and code blocks; text inside node attributes (equations, chart data, image alt, citation titles) is not searched. Matches may span marks inside one block but never cross blocks. Esc closes the bar, clears highlights and returns focus."
         importName="MarkdownWysiwygEditor (findReplace), FindReplaceBar, FindLabels"
         features={[
           'Cmd/Ctrl+F opens; Esc closes and restores focus',
