@@ -5,7 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { baseExtensions } from './extensions';
 import { createChart } from './chart/createChart';
 import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
-import { PENDING_ANCHOR_CLASS, pendingAnchorExtension, setPendingAnchors } from './pendingAnchor';
+import {
+  PENDING_ANCHOR_CLASS,
+  pendingAnchorExtension,
+  pendingAnchorPluginKey,
+  setPendingAnchors,
+} from './pendingAnchor';
 
 function build(content = ''): Editor {
   return new Editor({
@@ -96,7 +101,11 @@ describe('pendingAnchor（待改写高亮）', () => {
 
     setPendingAnchors(editor, [{ id: 'req-3', ranges: [chart] }]);
 
-    expect(editor.view.dom.querySelector('[data-type="chart"].tmr-pending-anchor')).not.toBeNull();
+    // 图表是 React NodeView：要等 `<EditorContent>` 挂载、`editor.contentComponent` 就位后
+    // 才由 `editor.createNodeViews()` 渲染出带 `data-type="chart"` 的真身；裸 `new Editor()`
+    // 拿到的是 @tiptap/react 的惰性空 span。所以断言「装饰落在这个原子节点上」即可。
+    const el = editor.view.dom.querySelector(`.${PENDING_ANCHOR_CLASS}[data-pending-id="req-3"]`);
+    expect(el).not.toBeNull();
     // 文末是图表时，TrailingNode 会在「第一个 transaction」补空段落；setPendingAnchors
     // 必须跳过它，否则一次纯 UI 操作就会往正文里塞一个结尾空段落。
     expect(editor.getMarkdown()).toBe(before);
