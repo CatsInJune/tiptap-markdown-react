@@ -25,7 +25,8 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  /* 控件之间收窄到 2px：一行里控件多，4px 显得松 */
+  gap: 2px;
   /* 窄屏（手机）允许折行，浮动条不会横向溢出 */
   flex-wrap: wrap;
 }
@@ -140,8 +141,13 @@
   gap: 0;
 }
 
-/* 关闭只与导航拉开一点：它不是「第三个导航」，但也别贴着 */
+/* 关闭与导航之间 4px（行距 2 + 2）：不是第三个导航，也别贴着 */
 .closeBtn {
+  margin-left: 2px;
+}
+
+/* 两个文字按钮（替换 / 全部替换）之间留 4px，别贴成一块 */
+.textBtn + .textBtn {
   margin-left: 2px;
 }
 
