@@ -1107,7 +1107,7 @@ a {
 .hostContainerSlot {
   display: flex;
   justify-content: flex-end;
-  min-height: 56px;
+  min-height: 104px;
   margin: 0 14px 12px;
   padding: 8px;
   border: 1px dashed var(--line-soft);

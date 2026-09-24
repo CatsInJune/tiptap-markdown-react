@@ -110,6 +110,7 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'findReplace', desc: 'Find & replace: registers @tiptap/extension-find-and-replace and renders the floating bar', type: 'boolean', defaultVal: 'true' },
   { name: 'findBar', desc: 'Render the bar inside the editor; false hands placement to the host (render <FindReplaceBar> yourself)', type: 'boolean', defaultVal: '= findReplace' },
   { name: 'findBarContainer', desc: 'Mount the bar into a container you own (getPopupContainer style); null falls back to the in-editor bar', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: '—' },
+  { name: 'findBarOffset', desc: 'Where the library-rendered bar sits in its context (editor, or your container)', type: '{ top?; right?; bottom?; left? }', defaultVal: '{ top: 4, right: 4 }' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())', type: 'boolean', defaultVal: 'true' },
   { name: 'findLabels', desc: 'Find & replace bar labels', type: 'Partial<FindLabels>', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },

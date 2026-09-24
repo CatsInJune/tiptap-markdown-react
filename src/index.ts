@@ -9,6 +9,7 @@ import './styles/chart.css';
 // ── 编辑器 / 预览 ──
 export {
   MarkdownWysiwygEditor,
+  type FindBarOffset,
   type MarkdownWysiwygEditorHandle,
   type MarkdownWysiwygEditorProps,
 } from './components/MarkdownWysiwygEditor';

@@ -12,16 +12,14 @@
    注意：锚点必须在 DOM 里排在正文之前——排在后面的话它的自然位置在正文底部，粘性范围就错了。 */
 .findBarAnchor {
   position: sticky;
-  top: 4px;
+  top: 0;
   height: 0;
   z-index: 7;
 }
 
-/* 浮动条本体：相对锚点绝对定位，浮在正文右上角 */
+/* 浮动条本体：绝对定位浮在正文之上，具体落点由 findBarOffset 决定（默认右上 4px） */
 .findBar {
   position: absolute;
-  top: 0;
-  right: 4px;
 }
 
 .editorScroll {

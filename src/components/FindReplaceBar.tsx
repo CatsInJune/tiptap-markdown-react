@@ -11,6 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type RefObject,
@@ -33,6 +34,8 @@ export interface FindReplaceBarProps {
   inputRef?: RefObject<HTMLInputElement | null>;
   /** 定位 / 层级 class，由宿主给（浮动条自身只负责内部布局）。 */
   className?: string;
+  /** 根节点内联样式（编辑器用它落 findBarOffset；宿主自绘时也可用）。 */
+  style?: CSSProperties;
 }
 
 /**
@@ -48,6 +51,7 @@ export function FindReplaceBar({
   labels,
   inputRef,
   className,
+  style,
 }: FindReplaceBarProps) {
   const t: FindLabels = { ...defaultFindLabels, ...labels };
   const [term, setTerm] = useState('');
@@ -186,6 +190,7 @@ export function FindReplaceBar({
   return (
     <div
       className={className ? `${styles.bar} ${className}` : styles.bar}
+      style={style}
       role="dialog"
       aria-label={t.find}
       onKeyDown={(e) => {

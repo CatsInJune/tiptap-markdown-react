@@ -22,6 +22,7 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react';
 import {
   enrichMarkdownCitations,
@@ -145,6 +146,28 @@ const ImageWithConfirmDelete = Image.extend({
   },
 });
 
+/** 浮动条相对其定位上下文的偏移（数字按 px）。内部路径的上下文是编辑器，portal 路径是宿主容器。 */
+export interface FindBarOffset {
+  top?: number | string;
+  right?: number | string;
+  bottom?: number | string;
+  left?: number | string;
+}
+
+const DEFAULT_FIND_BAR_OFFSET: FindBarOffset = { top: 4, right: 4 };
+
+function findBarOffsetStyle(offset: FindBarOffset): CSSProperties {
+  const px = (v: number | string | undefined) =>
+    typeof v === 'number' ? `${v}px` : v;
+  return {
+    position: 'absolute',
+    top: px(offset.top),
+    right: px(offset.right),
+    bottom: px(offset.bottom),
+    left: px(offset.left),
+  };
+}
+
 export interface MarkdownWysiwygEditorHandle {
   /** 取当前正文的 markdown 字符串。 */
   getMarkdown: () => string;
@@ -265,6 +288,12 @@ export interface MarkdownWysiwygEditorProps {
    */
   findBarContainer?: HTMLElement | null | (() => HTMLElement | null);
   /**
+   * 浮动条相对其定位上下文的偏移，默认 `{ top: 4, right: 4 }`（右上角）。数字按 px，也收 CSS 字符串。
+   * 内部路径的上下文是编辑器（粘在滚动容器顶部的那层锚点），`findBarContainer` 路径的上下文是那个容器
+   * ——那条路径下库会保证容器是定位上下文（computed position 为 static 时补 `position: relative`）。
+   */
+  findBarOffset?: FindBarOffset;
+  /**
    * 焦点在编辑器内时接管 Cmd/Ctrl+F 打开**编辑器自带的**浮动条（默认 true；`findBar={false}`
    * 时不接管，免得抢了键却不弹东西）。传 false 则只保留 `handle.openFind()`——例如宿主想
    * 保留浏览器原生查找，或自己摆入口。焦点不在编辑器内时不接管，同页多编辑器不会互相抢。
@@ -307,6 +336,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     findReplace = true,
     findBar = findReplace,
     findBarContainer,
+    findBarOffset = DEFAULT_FIND_BAR_OFFSET,
     findShortcut = true,
     findLabels,
   },
@@ -540,11 +570,21 @@ export const MarkdownWysiwygEditor = forwardRef<
     [editor, closeFind],
   );
 
-  // 宿主指定了容器就把条子 portal 进去（定位归宿主，故不加 .findBar）；解析不到则回落到编辑器内。
+  // 宿主指定了容器就把条子 portal 进去；解析不到则回落到编辑器内的粘性锚点。
   const findBarTarget =
     typeof findBarContainer === 'function'
       ? findBarContainer()
       : (findBarContainer ?? null);
+
+  // 条子是绝对定位的：容器得先是定位上下文。宿主容器是 static 时补一个 relative——
+  // 不补的话条子会以「最近的定位祖先」为基准（可能是页面），位置会莫名其妙。
+  useEffect(() => {
+    if (!findBarTarget) return;
+    if (getComputedStyle(findBarTarget).position === 'static') {
+      findBarTarget.style.position = 'relative';
+    }
+  }, [findBarTarget]);
+
   const findBarNode =
     editor && findBar && findOpen ? (
       <FindReplaceBar
@@ -552,7 +592,8 @@ export const MarkdownWysiwygEditor = forwardRef<
         labels={findLabels}
         onClose={closeFind}
         inputRef={findInputRef}
-        className={findBarTarget ? undefined : styles.findBar}
+        className={styles.findBar}
+        style={findBarOffsetStyle(findBarOffset)}
       />
     ) : null;
 

@@ -824,7 +824,7 @@ export function FindBarContainerDemo() {
           <button type="button" onClick={() => editor?.commands.focus()}>
             这里聚焦正文
           </button>
-          再按快捷键，条子挂进框里，定位由宿主 CSS 决定。
+          再按快捷键：条子挂进框里，并按 findBarOffset（这里是左下 6px）落位。
         </span>
       </div>
       <div className="hostContainerSlot" ref={setHost} />
@@ -832,6 +832,7 @@ export function FindBarContainerDemo() {
         <MarkdownWysiwygEditor
           initialMarkdown={CONTAINER_FIND_MD}
           findBarContainer={() => host}
+          findBarOffset={{ bottom: 6, left: 6 }}
           onEditorReady={setEditor}
         />
       </div>
