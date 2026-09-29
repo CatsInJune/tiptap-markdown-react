@@ -93,6 +93,31 @@ export function MarkdownPreview({
     [extensions],
   );
 
+  // @tiptap/markdown 的空行保真会把源码空行重建成显式空段落，内容以块级节点
+  // 结尾时会被补一个尾随空段（只读预览里是多余的空白）。这里在每次内容更新后
+  // 剥离末尾空段；只在末段确为空段落时 dispatch，事务不会形成循环。
+  useEffect(() => {
+    if (!editor) return;
+    const strip = () => {
+      const { doc, tr } = editor.state;
+      const last = doc.lastChild;
+      if (
+        doc.childCount > 1 &&
+        last?.type.name === 'paragraph' &&
+        last.content.size === 0
+      ) {
+        editor.view.dispatch(
+          tr.delete(doc.content.size - last.nodeSize, doc.content.size),
+        );
+      }
+    };
+    strip();
+    editor.on('update', strip);
+    return () => {
+      editor.off('update', strip);
+    };
+  }, [editor]);
+
   useEffect(() => {
     if (!editor) return;
     editor.commands.setContent(prepared, { contentType: 'markdown' });

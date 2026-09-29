@@ -105,6 +105,14 @@ describe('只读代码块 NodeView（MarkdownPreview 形态）', () => {
     expect(gutterLines[3].textContent).toBe('4');
   });
 
+  it('内容以围栏结尾时不产生尾随空段落', async () => {
+    const host = await mount('```json\n{"a": 1}\n```');
+    const emptyPs = [...host.querySelectorAll('p')].filter(
+      (p) => (p.textContent || '').trim() === '',
+    );
+    expect(emptyPs.length).toBe(0);
+  });
+
   it('复制按钮可用且不抛错（happy-dom 无 clipboard API，走 execCommand 兜底）', async () => {
     const host = await mount('```json\n{"a": 1}\n```');
     const btn = host.querySelector<HTMLButtonElement>(
