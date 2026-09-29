@@ -262,6 +262,9 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `--tmr-comment-ring` | `rgba(219, 171, 10, 0.55)` | Active mark / block outline ring |
 | `--tmr-comment-gutter-bg` | `#f4b400` | Gutter bubble background |
 | `--tmr-popover-bg` | `#fff` | CommentPopover background |
+| `--tmr-find-bg` | `rgba(255, 196, 0, 0.32)` | Find: match highlight |
+| `--tmr-find-active-bg` | `rgba(255, 145, 0, 0.5)` | Find: current match highlight |
+| `--tmr-find-active-ring` | `rgba(230, 122, 0, 0.7)` | Find: current match ring |
 
 ## API
 
@@ -278,10 +281,90 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `markdownFileDrop` | `boolean` | Drop or paste `.md` / `.markdown` files into the editor to insert their parsed content. Default `true`. Init-only. |
 | `extraExtensions` | `AnyExtension[]` | Extra Tiptap extensions to register. |
 | `codeBlockLabels` | `Partial<CodeBlockLabels>` | Localize the code block UI. |
+| `findReplace` | `boolean` | Enable find & replace (default `true`): registers the official `@tiptap/extension-find-and-replace` and renders the floating bar. |
+| `findBar` | `boolean` | Render the floating bar inside the editor (default: same as `findReplace`). `false` hands **placement to the host** — the extension stays registered, the editor renders no bar, and you render `<FindReplaceBar editor={editor} />` wherever you want; `findShortcut` and `handle.openFind/closeFind` go quiet with it. |
+| `findBarContainer` | `HTMLElement \| (() => HTMLElement \| null)` | Mount the editor's bar into a container you own (the `getPopupContainer` idea): the library keeps open state and the shortcut, only the mount point changes. Use it when an `overflow: hidden` ancestor would clip the bar, or to park it in your own header / sidebar. Positioning is then yours (no absolute positioning is added), and if the container sits outside your themed subtree, bring `--tmr-*` along. Falls back to the in-editor bar when it resolves to `null`. |
+| `findBarOffset` | `{ top?, right?, bottom?, left? } \| number = px` | Where the library-rendered bar sits inside its positioning context. Default `{ top: 4, right: 4 }` (top-right); pass e.g. `{ bottom: 8, left: 8 }` to dock it elsewhere. The context is the editor, or your `findBarContainer` element when you supply one — the library adds `position: relative` to that container if it is `static` (otherwise the bar would anchor to some unexpected ancestor). |
+| `findShortcut` | `boolean` | Take over <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> while the editor has focus (default `true`; bound only when the editor owns a bar). `false` keeps the browser's native find — wire your own entry with `handle.openFind()`. |
+| `findLabels` | `Partial<FindLabels>` | Localize the find & replace bar. |
 | `className` | `string` | Class on the scroll container. |
 
 Ref handle (`MarkdownWysiwygEditorHandle`): `getMarkdown()`, `getHTML()`, `getJSON()`, `getEditor()`,
-`focusComment(id)`, `nextComment(dir?)`, `getCommentIds()`.
+`focusComment(id)`, `nextComment(dir?)`, `getCommentIds()`, `openFind()`, `closeFind()`.
+
+#### Find & replace
+
+<kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (while focus is inside the editor) opens a floating bar: match counter inside the search field, wrap-around next/previous, match-case and whole-word toggles, replace and replace-all. `Esc` closes it, clears the highlights and returns focus to the editor. Read-only editors (`editable={false}`) can search but not replace.
+
+Matching is done by the official extension, so the semantics are its semantics — worth knowing before you rely on them:
+
+- **Scope is textblocks**: paragraphs, headings, list items, table cells and code blocks. Text stored in node attributes is **not** searched — equations (LaTeX), chart data, image alt text and citation titles are invisible to find.
+- **Matches may span marks inside one block** (`**bold** tail` is found by `bold tail`) but never cross blocks. What you search is rendered text, not markdown source: `**bold**` does not match.
+- **Replacement takes the marks at the match start**: replacing `bold tail` in `**bold** tail` yields `**X**` — the trailing plain run's formatting is gone.
+- **Replace-all is a single transaction**, so one undo restores everything.
+- **Regex is RE2-compatible** (via `re2js`): no lookarounds or backreferences, replacement text is literal (`$1` is not expanded), and an invalid pattern yields zero matches instead of throwing — the bar shows "Invalid pattern" for that case. The bar ships no regex toggle (find/replace as a plain-text tool); turn it on from your own UI or headlessly with `editor.commands.setUseRegex(true)`.
+
+Everything is also callable headlessly — the extension's commands and storage are the API, so AI/agent flows can drive it without the bar:
+
+```ts
+editor.commands.setSearchTerm('营收');
+editor.commands.setReplaceTerm('收入');
+editor.commands.replaceAll();          // one transaction, one undo
+editor.storage.findAndReplace.results; // [{ from, to }, …]
+```
+
+##### Placing the bar yourself
+
+Same split as the toolbar: the bar is a component, its placement is yours. Set `findBar={false}` and render `<FindReplaceBar>` anywhere — a header row, a side panel, a modal. The extension stays registered, so its commands and `editor.storage.findAndReplace` keep working, and the bar is self-contained (it pushes the query, clears highlights on unmount, and reads the counter from the plugin state):
+
+```tsx
+<MarkdownWysiwygEditor findBar={false} onEditorReady={setEditor} />
+
+{editor && open && (
+  <div className="my-find-panel">
+    <FindReplaceBar editor={editor} onClose={() => setOpen(false)} labels={zhFind} />
+  </div>
+)}
+```
+
+Middle ground — keep the library's bar and shortcut, choose only the mount point:
+
+```tsx
+<div ref={setHost} className="my-find-slot" />
+<MarkdownWysiwygEditor
+  findBarContainer={() => host}
+  findBarOffset={{ bottom: 8, left: 8 }}   // 默认 { top: 4, right: 4 }
+  onEditorReady={setEditor}
+/>
+```
+
+<kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> still opens it, `handle.openFind()` still works, and the bar now lives inside `my-find-slot`, placed at `findBarOffset` inside it. Reach for plain CSS only if you want more than an inset (the bar keeps the class the editor gives it). A function is the safer form: it re-resolves on every render, so a container that mounts later is picked up. Resolving to `null` falls back to the in-editor bar.
+
+With `findBar={false}` the editor does not bind <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (it would swallow the browser's find without opening anything), so bind your own shortcut to `setOpen`. Two invariants to keep: leave `findReplace` on — the bar needs the extension's commands — and render it inside the same editor instance it drives.
+
+`FindReplaceBar` is exported if you'd rather place the bar yourself, `FindLabels` / `defaultFindLabels` for i18n, and `FindAndReplace` for hand-built pipelines. Two details to reuse when driving it yourself: keep `searchDebounceMs: 0` on the extension and debounce in your own UI, and route calls through `runFindCommand()` — it absorbs a Tiptap 3.31.3 transaction mismatch that fires on the first search when the document ends with a code block / table / chart (see the comment on `runFindCommand` for the mechanism).
+
+#### i18n (labels)
+
+There is no global locale and no provider: every visible string comes from a `Partial<XLabels>` prop that is merged over built-in English defaults (`{ ...defaultToolbarLabels, ...labels }`). A host ships one object per language and passes it down; switching languages is picking a different object. Override only the keys you care about — everything else falls back to English.
+
+| Component | Prop | Type |
+| --- | --- | --- |
+| `<EditorToolbar>` | `labels` | `Partial<ToolbarLabels>` (also covers the Import menu and the equation popover) |
+| `<MarkdownWysiwygEditor>` | `findLabels` | `Partial<FindLabels>` (replace / replace-all appear as icon buttons, so their labels are the tooltip + accessible name) |
+| `<MarkdownWysiwygEditor>` | `codeBlockLabels` | `Partial<CodeBlockLabels>` |
+| `<TocPanel>` | `labels` | `Partial<TocLabels>` |
+| `<ColorPalette>` | `labels` | `Partial<ColorPaletteLabels>` |
+
+```ts
+// zh.ts — only the keys you want to change
+export const zhToolbar: Partial<ToolbarLabels> = {
+  undo: '撤销', bold: '加粗', headingLabel: (level) => `标题 ${level}`, importDocument: '导入',
+};
+export const zhFind: Partial<FindLabels> = { find: '查找', next: '下一处', replaceAll: '全部替换' };
+```
+
+Toolbar, TOC, palette and the find bar merge at render time, so they switch live. `codeBlockLabels` is different: it is written into the code-block extension's options when the editor is constructed (the NodeView reads `extension.options`), so existing code blocks keep the old text until the editor is rebuilt — remount with `key={locale}` and feed the current markdown back via `getMarkdown()` first, because `initialMarkdown` is init-only. Not yet injectable: **chart labels** (only reachable through `createChart({ chartLabels })` on a hand-built pipeline) and comment popover text (the popover renders your `children`). One `aria-label` is hardcoded English (`Code language` in the code-block header, screen readers only).
 
 #### Markdown in: paste, drop, import
 

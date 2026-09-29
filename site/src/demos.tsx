@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import {
   CommentPopover,
   EditorToolbar,
+  FindReplaceBar,
   MarkdownPreview,
   MarkdownWysiwygEditor,
   ReportContent,
@@ -18,6 +19,7 @@ import {
   type TocItem,
 } from 'tiptap-markdown-react';
 import { renderReportHtml } from 'tiptap-markdown-react/server';
+import { LOCALES, type LocaleCode } from './i18n';
 import {
   CODEBLOCK_MD,
   CITATION_MD,
@@ -661,6 +663,179 @@ export function HeroDemo() {
           <code>{markdown}</code>
         </pre>
       )}
+    </div>
+  );
+}
+
+/** 查找替换：文末故意留一个代码块（TrailingNode 的边界），并给按钮触发 openFind() */
+const FIND_MD = `# 查找替换演示
+
+营收 由 **营收** 与 营收 三处构成，其中一处跨粗体。
+
+\`\`\`text
+营收 也在代码块里（textblock，能搜到）
+\`\`\``;
+
+export function FindReplaceDemo() {
+  const ref = useRef<MarkdownWysiwygEditorHandle>(null);
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBar">
+        <button type="button" onClick={() => ref.current?.openFind()}>
+          Open find (or press Cmd/Ctrl+F)
+        </button>
+        <span>
+          搜「营收」→ 输入框内的计数与正文高亮；替换 / 全部替换；<code>Aa</code> / <code>ab</code>
+          两个开关。
+        </span>
+      </div>
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor ref={ref} initialMarkdown={FIND_MD} />
+      </div>
+    </div>
+  );
+}
+
+/** 国际化：按语言挑一份 labels 传给各组件（库内方案，无全局 locale） */
+const I18N_MD = `# 国际化演示
+
+语言切换靠**按组件注入 labels**：工具栏 / 目录随 props 实时变，
+代码块文案在编辑器构造时写进扩展 options，所以要重建编辑器——内容先用
+getMarkdown() 取回来回灌，不丢。
+
+\`\`\`js
+// 切语言时重建编辑器，但内容不丢
+const md = editorRef.current?.getMarkdown();
+setMarkdown(md);
+setLocale(next);
+\`\`\``;
+
+export function I18nDemo() {
+  const [locale, setLocale] = useState<LocaleCode>('zh');
+  const [markdown, setMarkdown] = useState(I18N_MD);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [toc, setToc] = useState<TocItem[]>([]);
+  const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
+  const labels = LOCALES[locale];
+
+  const switchLocale = (next: LocaleCode) => {
+    if (next === locale) return;
+    // initialMarkdown 是 init-only，重建前必须把当前内容取回来，否则未保存的编辑会丢
+    setMarkdown(editorRef.current?.getMarkdown() ?? markdown);
+    setLocale(next);
+  };
+
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBar">
+        <button
+          type="button"
+          onClick={() => switchLocale('zh')}
+          disabled={locale === 'zh'}
+        >
+          中文
+        </button>
+        <button
+          type="button"
+          onClick={() => switchLocale('en')}
+          disabled={locale === 'en'}
+        >
+          English
+        </button>
+        <span>
+          当前：{locale}。工具栏 / 目录实时切换；代码块文案要重建编辑器（用
+          getMarkdown 回灌内容）。Cmd/Ctrl+F 的查找条也随 findLabels 切换。
+        </span>
+      </div>
+      <div className="editorDemoBody">
+        {editor && <EditorToolbar editor={editor} labels={labels.toolbar} />}
+        <div className="editorTocDemo">
+          <div className="editorTocDemoEditor">
+            <MarkdownWysiwygEditor
+              key={locale}
+              ref={editorRef}
+              initialMarkdown={markdown}
+              codeBlockLabels={labels.codeBlock}
+              findLabels={labels.find}
+              onTocChange={setToc}
+              onEditorReady={setEditor}
+            />
+          </div>
+          {toc.length > 0 && (
+            <TocPanel items={toc} activeId={toc[0].id} labels={labels.toc} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 宿主摆位：编辑器不出条子（findBar={false}），条子由宿主渲染在自己的布局里 */
+const HOST_FIND_MD = `# 宿主摆位的查找条
+
+这个编辑器 **findBar={false}**：扩展照旧注册（命令、storage、高亮都在），但编辑器不渲染
+浮动条，定位完全归宿主。上面那个按钮切换的就是宿主自己渲染的 <FindReplaceBar />。
+
+因为编辑器没有条子可开，Cmd/Ctrl+F 也不再被接管——宿主自己绑到自己的状态上。`;
+
+export function HostPlacedFindDemo() {
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBar">
+        <button type="button" onClick={() => setOpen((v) => !v)}>
+          {open ? '收起查找面板' : '展开查找面板'}
+        </button>
+        <span>
+          面板位置 / 层级 / 外观全归宿主：这里渲染在编辑器上方，也可以放进侧栏或弹窗。
+        </span>
+      </div>
+      {open && editor ? (
+        <div className="hostPlacedBar">
+          <FindReplaceBar editor={editor} onClose={() => setOpen(false)} />
+        </div>
+      ) : null}
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor
+          initialMarkdown={HOST_FIND_MD}
+          findBar={false}
+          onEditorReady={setEditor}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** getPopupContainer 式：库仍管开合与 Cmd/Ctrl+F，只把条子挂进宿主指定的容器 */
+const CONTAINER_FIND_MD = `# 条子挂到宿主容器
+
+这个编辑器传了 **findBarContainer**：条子不再浮在正文右上角，而是挂进上面那个虚线框里。
+快捷键照旧归库——把光标放进正文按 Cmd/Ctrl+F，条子出现在那个框里。`;
+
+export function FindBarContainerDemo() {
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBar">
+        <span>
+          宿主容器（虚线框）——按 Cmd/Ctrl+F 或点
+          <button type="button" onClick={() => editor?.commands.focus()}>
+            这里聚焦正文
+          </button>
+          再按快捷键：条子挂进框里，并按 findBarOffset（这里是左下 6px）落位。
+        </span>
+      </div>
+      <div className="hostContainerSlot" ref={setHost} />
+      <div className="editorDemoBody">
+        <MarkdownWysiwygEditor
+          initialMarkdown={CONTAINER_FIND_MD}
+          findBarContainer={() => host}
+          findBarOffset={{ bottom: 6, left: 6 }}
+          onEditorReady={setEditor}
+        />
+      </div>
     </div>
   );
 }

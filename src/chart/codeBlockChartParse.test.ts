@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Editor } from '@tiptap/core';
+import { Editor, type JSONContent, type MarkdownParseHelpers } from '@tiptap/core';
 import { Markdown } from '@tiptap/markdown';
 import {
   parseCodeTokenAsChartOrCodeBlock,
@@ -39,15 +39,18 @@ describe('codeBlockChartParse', () => {
     parseCodeTokenAsChartOrCodeBlock(
       { lang: 'tmr-chart', text: body, raw: fence },
       {
-        createNode: (type, attrs) => {
+        createNode: (
+          type: string,
+          attrs?: Record<string, unknown> | null,
+        ) => {
           created.push({ type, attrs: attrs ?? undefined });
           return { type, attrs };
         },
-        createTextNode: (text) => ({ type: 'text', text }),
-        parseInline: () => [],
-        parseChildren: () => [],
-        applyMark: (_mark, content) => content,
-      } as never,
+        createTextNode: (text: string) => ({ type: 'text', text }),
+        parseInline: () => [] as JSONContent[],
+        parseChildren: () => [] as JSONContent[],
+        applyMark: (_mark: unknown, content: JSONContent[]) => content,
+      } as unknown as MarkdownParseHelpers,
     );
     expect(created).toHaveLength(1);
     expect(created[0].type).toBe('chart');

@@ -3,6 +3,7 @@
 import CodeBlockLowlight, {
   type CodeBlockLowlightOptions,
 } from '@tiptap/extension-code-block-lowlight';
+import FindAndReplace from '@tiptap/extension-find-and-replace';
 import Image from '@tiptap/extension-image';
 import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { Markdown } from '@tiptap/markdown';
@@ -13,7 +14,16 @@ import {
   type AnyExtension,
   type Editor,
 } from '@tiptap/react';
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import {
   enrichMarkdownCitations,
   type SourceRef,
@@ -38,8 +48,9 @@ import type {
   CommentRef,
 } from '../commentAnchor/commentTypes';
 import { baseExtensions, lowlight } from '../extensions';
+import { FindReplaceBar } from './FindReplaceBar';
 import { ImportPlaceholder } from '../importPlaceholder';
-import type { CodeBlockLabels } from '../labels';
+import type { CodeBlockLabels, FindLabels } from '../labels';
 import { MarkdownFileDrop } from '../markdownFileDrop';
 import {
   pendingAnchorExtension,
@@ -53,6 +64,7 @@ import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import '../styles/chart.css';
 import '../styles/pending.css';
+import '../styles/find.css';
 import styles from '../styles/content.module.css';
 import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
@@ -134,6 +146,28 @@ const ImageWithConfirmDelete = Image.extend({
   },
 });
 
+/** 浮动条相对其定位上下文的偏移（数字按 px）。内部路径的上下文是编辑器，portal 路径是宿主容器。 */
+export interface FindBarOffset {
+  top?: number | string;
+  right?: number | string;
+  bottom?: number | string;
+  left?: number | string;
+}
+
+const DEFAULT_FIND_BAR_OFFSET: FindBarOffset = { top: 4, right: 4 };
+
+function findBarOffsetStyle(offset: FindBarOffset): CSSProperties {
+  const px = (v: number | string | undefined) =>
+    typeof v === 'number' ? `${v}px` : v;
+  return {
+    position: 'absolute',
+    top: px(offset.top),
+    right: px(offset.right),
+    bottom: px(offset.bottom),
+    left: px(offset.left),
+  };
+}
+
 export interface MarkdownWysiwygEditorHandle {
   /** 取当前正文的 markdown 字符串。 */
   getMarkdown: () => string;
@@ -149,6 +183,10 @@ export interface MarkdownWysiwygEditorHandle {
   nextComment: (dir?: 'next' | 'prev') => string | null;
   /** 当前 doc 内已锚定的去重 commentId 列表（文档顺序）。 */
   getCommentIds: () => string[];
+  /** 打开编辑器自带的查找浮动条（宿主自己绑快捷键/按钮时用）。findBar={false} 时不生效。 */
+  openFind: () => void;
+  /** 收起自带浮动条，清空高亮并把焦点还给编辑器。findBar={false} 时不生效。 */
+  closeFind: () => void;
 }
 
 export interface MarkdownWysiwygEditorProps {
@@ -227,6 +265,42 @@ export interface MarkdownWysiwygEditorProps {
    * 只靠侧栏单项驱动滚动定位时传 false。
    */
   commentInteractive?: boolean;
+  /**
+   * 启用查找替换（默认 true）：注册官方 `@tiptap/extension-find-and-replace`
+   * （自带命令 `setSearchTerm / replace / replaceAll / goToNextResult …` 与
+   * `editor.storage.findAndReplace`）。传 false 则连扩展一起不注册——此时命令与 storage 都不存在，
+   * 宿主的自绘面板也无从驱动。
+   */
+  findReplace?: boolean;
+  /**
+   * 是否由编辑器渲染浮动条（默认跟随 {@link findReplace}）。传 false = **定位交给宿主**：
+   * 扩展照旧注册，但编辑器不出条子，宿主自己在任意位置渲染 `<FindReplaceBar editor={…} />`
+   * （与工具栏同一套分工——组件归库，摆位归宿主）。此时 {@link findShortcut} 与
+   * `handle.openFind/closeFind` 一并失效，因为内部没有条子可开。
+   */
+  findBar?: boolean;
+  /**
+   * 把自带的浮动条挂到宿主的容器里（antd `getPopupContainer` 那一套）：给元素或返回元素的函数
+   * 即可，开合状态与 Cmd/Ctrl+F 仍归库——只换挂载点。适合条子被 `overflow: hidden` 祖先裁掉、
+   * 或想让它落在自己的头部 / 侧栏里。挂进去后**定位由宿主负责**（库不再加绝对定位），
+   * 且容器若在主题子树之外，记得把 `--tmr-*` 变量也带到那里。
+   * 返回 null / 不传时回落到编辑器内自带的浮动条。
+   */
+  findBarContainer?: HTMLElement | null | (() => HTMLElement | null);
+  /**
+   * 浮动条相对其定位上下文的偏移，默认 `{ top: 4, right: 4 }`（右上角）。数字按 px，也收 CSS 字符串。
+   * 内部路径的上下文是编辑器（粘在滚动容器顶部的那层锚点），`findBarContainer` 路径的上下文是那个容器
+   * ——那条路径下库会保证容器是定位上下文（computed position 为 static 时补 `position: relative`）。
+   */
+  findBarOffset?: FindBarOffset;
+  /**
+   * 焦点在编辑器内时接管 Cmd/Ctrl+F 打开**编辑器自带的**浮动条（默认 true；`findBar={false}`
+   * 时不接管，免得抢了键却不弹东西）。传 false 则只保留 `handle.openFind()`——例如宿主想
+   * 保留浏览器原生查找，或自己摆入口。焦点不在编辑器内时不接管，同页多编辑器不会互相抢。
+   */
+  findShortcut?: boolean;
+  /** 查找替换浮动条的本地化文案。 */
+  findLabels?: Partial<FindLabels>;
 }
 
 /**
@@ -259,12 +333,21 @@ export const MarkdownWysiwygEditor = forwardRef<
     pendingAnchors,
     onAnchorClick,
     onSelectionChange,
+    findReplace = true,
+    findBar = findReplace,
+    findBarContainer,
+    findBarOffset = DEFAULT_FIND_BAR_OFFSET,
+    findShortcut = true,
+    findLabels,
   },
   ref,
 ) {
   const preparedInitial = prepareChartMarkdown(
     enrichMarkdownCitations(initialMarkdown, sources ?? []),
   );
+
+  const [findOpen, setFindOpen] = useState(false);
+  const findInputRef = useRef<HTMLInputElement | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -281,6 +364,14 @@ export const MarkdownWysiwygEditor = forwardRef<
       }),
       Markdown,
       pendingAnchorExtension,
+      // 官方查找替换：只出命令 / storage / 装饰，UI 自绘（见 FindReplaceBar）。
+      // - injectCSS 关掉：它默认会往页面插一个 <style>，绕开宿主的 --tmr-* 主题与 style.css，
+      //   命中样式改由 src/styles/find.css 承担。
+      // - searchDebounceMs 关掉：官方防抖走 setTimeout，抛错会落在异步回调里兜不住；
+      //   防抖改由浮动条自己做（见 findReplace.ts）。
+      ...(findReplace
+        ? [FindAndReplace.configure({ injectCSS: false, searchDebounceMs: 0 })]
+        : []),
       TableOfContents.configure({
         getId: makeTocGetId(),
         onUpdate: (anchors) => {
@@ -317,6 +408,42 @@ export const MarkdownWysiwygEditor = forwardRef<
   useEffect(() => {
     editor?.setEditable(editable);
   }, [editor, editable]);
+
+  const closeFind = useCallback(() => {
+    setFindOpen(false);
+    // 焦点归还：Tiptap 的 focus 命令内部就是 requestAnimationFrame 延后执行的
+    // （`delayedFocus`），正好落在 React 卸载浮动条之后——否则被卸载的输入框会把焦点丢给 body。
+    editor?.commands.focus();
+  }, [editor]);
+
+  // Cmd/Ctrl+F → 打开查找条。接管条件必须收得比「焦点在编辑器内」松、比「谁都能接管」紧：
+  //   - 焦点在本编辑器内：接管 ✓
+  //   - 焦点不在任何输入控件里（body）且页面上只有本编辑器：接管 ✓（单编辑器页面点完工具栏按钮能直接按）
+  //   - 其余情况一律不接管：同页多编辑器时不会一起弹条（文档站就是这样），宿主的其它输入框
+  //     也不会被夺走原生查找。多编辑器页面上宿主可自己调 handle.openFind()。
+  // 只有容器里真有那条浮动条（findBar）时才绑：否则会白抢浏览器原生查找，却什么都不弹。
+  useEffect(() => {
+    if (!editor || !findReplace || !findBar || !findShortcut) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) {
+        return;
+      }
+      if (event.key !== 'f' && event.key !== 'F') return;
+      const active = document.activeElement;
+      const inEditor = !!active && editor.view.dom.contains(active);
+      const nothingFocused = active === null || active === document.body;
+      const soleEditor = document.querySelectorAll('.ProseMirror').length <= 1;
+      if (!inEditor && !editor.isFocused && !(nothingFocused && soleEditor)) {
+        return;
+      }
+      event.preventDefault();
+      setFindOpen(true);
+      // 已打开时再按一次：聚焦并全选当前查询（首次打开由浮动条的 autoFocus 负责）
+      requestAnimationFrame(() => findInputRef.current?.select());
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [editor, findReplace, findBar, findShortcut]);
 
   // 评论列表 → 铺 mark。用 commentId 签名做防抖：宿主每次渲染传新数组引用时
   // 不会反复清/铺（清空再重铺会丢掉 mark 随编辑移动后的位置）。
@@ -437,16 +564,54 @@ export const MarkdownWysiwygEditor = forwardRef<
       nextComment: (dir?: 'next' | 'prev') =>
         editor ? nextComment(editor, dir ?? 'next') : null,
       getCommentIds: () => (editor ? collectCommentIds(editor) : []),
+      openFind: () => setFindOpen(true),
+      closeFind,
     }),
-    [editor],
+    [editor, closeFind],
   );
 
+  // 宿主指定了容器就把条子 portal 进去；解析不到则回落到编辑器内的粘性锚点。
+  const findBarTarget =
+    typeof findBarContainer === 'function'
+      ? findBarContainer()
+      : (findBarContainer ?? null);
+
+  // 条子是绝对定位的：容器得先是定位上下文。宿主容器是 static 时补一个 relative——
+  // 不补的话条子会以「最近的定位祖先」为基准（可能是页面），位置会莫名其妙。
+  useEffect(() => {
+    if (!findBarTarget) return;
+    if (getComputedStyle(findBarTarget).position === 'static') {
+      findBarTarget.style.position = 'relative';
+    }
+  }, [findBarTarget]);
+
+  const findBarNode =
+    editor && findBar && findOpen ? (
+      <FindReplaceBar
+        editor={editor}
+        labels={findLabels}
+        onClose={closeFind}
+        inputRef={findInputRef}
+        className={styles.findBar}
+        style={findBarOffsetStyle(findBarOffset)}
+      />
+    ) : null;
+
   return (
-    <EditorContent
-      editor={editor}
-      className={
-        className ? `${styles.editorScroll} ${className}` : styles.editorScroll
-      }
-    />
+    <div className={styles.editorHost}>
+      {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
+      {findBarNode && !findBarTarget ? (
+        <div className={styles.findBarAnchor}>{findBarNode}</div>
+      ) : null}
+      {findBarNode && findBarTarget
+        ? createPortal(findBarNode, findBarTarget)
+        : null}
+      <EditorContent
+        editor={editor}
+        className={
+          className ? `${styles.editorScroll} ${className}` : styles.editorScroll
+        }
+      />
+    </div>
   );
 });

@@ -1,0 +1,18 @@
+/* 查找替换命中（decoration，只存在于编辑会话里、不进 markdown、不进 undo 历史）。
+   普通 CSS（不是 *.module.css）：类名由 @tiptap/extension-find-and-replace 输出，必须保持全局，
+   与 chart.css / pending.css 同一种写法，保证能进 dist/style.css。色值走 --tmr-* 变量，宿主可覆盖。 */
+
+/* 全部命中：淡黄底 + 轻微圆角（跨行的命中靠 box-decoration-break 保持断行处也有底色） */
+.find-and-replace-result {
+  background: var(--tmr-find-bg, rgba(255, 196, 0, 0.32));
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* 当前命中：官方在同一个元素上同时挂 result 与 result-current 两个类，所以这条规则必须写在上面
+   那条之后——同优先级下后来者胜出。 */
+.find-and-replace-result-current {
+  background: var(--tmr-find-active-bg, rgba(255, 145, 0, 0.5));
+  box-shadow: 0 0 0 1px var(--tmr-find-active-ring, rgba(230, 122, 0, 0.7));
+}

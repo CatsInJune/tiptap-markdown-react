@@ -1,0 +1,159 @@
+/* 查找替换浮动条。配色走 --tmr-* 变量（与工具栏/评论同一套），宿主可覆盖。 */
+
+.bar {
+  --fb-accent: var(--tmr-accent, #ff6719);
+  --fb-text: var(--tmr-text, #363737);
+  --fb-muted: var(--tmr-toolbar-muted, #6b6b6b);
+  --fb-border: var(--tmr-toolbar-border, #ececec);
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: max-content;
+  max-width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--fb-border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 14%);
+  color: var(--fb-text);
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  /* 行内不留统一 gap：按钮的内边距各不相同（chip 有边框、图标按钮 4px、文字按钮更宽），
+     同一个盒子间距看起来并不一致。间距一律由下面 .toggle / .iconGroup / .textBtn 的
+     margin 补足，目标都是「视觉上看过去 8px」。 */
+  gap: 0;
+  /* 窄屏（手机）允许折行，浮动条不会横向溢出 */
+  flex-wrap: wrap;
+}
+
+/* 第二行起（替换 / 只读提示）与查找行之间用细线分开 */
+.row + .row {
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--fb-border);
+}
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  /* 两个输入框（带不带放大镜图标）总宽一致，左右边缘都对得齐 */
+  width: 228px;
+  height: 30px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--fb-border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.field:focus-within {
+  border-color: var(--fb-accent);
+}
+
+.fieldIcon {
+  flex: none;
+  color: var(--fb-muted);
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+/* 计数：在输入框内右侧，等宽数字避免 1 / 9 → 1 / 10 时跳动；
+   圈到 12px 是为了不跟输入文字抢宽度（长文案时靠 input 的 min-width:0 让位） */
+.counter {
+  flex: none;
+  margin-left: auto;
+  padding-left: 6px;
+  color: var(--fb-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.counterInvalid {
+  color: var(--tmr-danger, #d4380d);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 30px;
+  min-width: 24px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fb-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  background: #f3f3f3;
+  color: var(--fb-text);
+}
+
+.btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 查找开关用短标记（Aa / ab），省宽度且不依赖文案；带边框才读得出是控件。
+   有边框 → 边框就是视觉边缘，与前面控件（输入框边框 / 另一个 chip）留 8px 即视觉 8px。 */
+.toggle {
+  min-width: 28px;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--fb-border);
+  font-family: var(--tmr-mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 13px;
+}
+
+.toggle:hover:not(:disabled) {
+  border-color: var(--fb-muted);
+}
+
+.toggleOn,
+.toggleOn:hover:not(:disabled) {
+  color: var(--fb-accent);
+  border-color: var(--fb-accent);
+  background: #fff3ec;
+}
+
+/* 上一条 / 下一条 / 关闭 是一组图标按钮：组内零间距，字形之间只隔各自 4px 内边距（=8px）；
+   组与左侧 chip 之间补 4px margin，加上图标自身的 4px，视觉同为 8px。 */
+.iconGroup {
+  display: inline-flex;
+  gap: 0;
+  margin-left: 4px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.readOnly {
+  color: var(--fb-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}

@@ -221,3 +221,40 @@ export const defaultCommentLabels: CommentLabels = {
   partial: 'Partially matched',
   gutterTitle: 'Comment',
 };
+
+export interface FindLabels {
+  /** 查找输入框的占位与无障碍名，也用作浮动条的 aria-label。 */
+  find: string;
+  /** 替换输入框的占位与无障碍名。 */
+  replace: string;
+  next: string;
+  previous: string;
+  replaceOne: string;
+  replaceAll: string;
+  close: string;
+  caseSensitive: string;
+  wholeWord: string;
+  useRegex: string;
+  /** 计数文案。无结果时 current 传 0。 */
+  counter: (current: number, total: number) => string;
+  /** 正则模式下模式非法（RE2 不支持 lookaround / backreference 等，见官方扩展）。 */
+  invalidRegex: string;
+  /** 只读态提示：可查不可换。 */
+  readOnly: string;
+}
+
+export const defaultFindLabels: FindLabels = {
+  find: 'Find',
+  replace: 'Replace with',
+  next: 'Next match',
+  previous: 'Previous match',
+  replaceOne: 'Replace',
+  replaceAll: 'Replace all',
+  close: 'Close',
+  caseSensitive: 'Match case',
+  wholeWord: 'Whole word',
+  useRegex: 'Use regular expression',
+  counter: (current, total) => `${current} / ${total}`,
+  invalidRegex: 'Invalid pattern',
+  readOnly: 'Read-only',
+};
