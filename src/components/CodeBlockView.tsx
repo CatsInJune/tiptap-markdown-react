@@ -182,7 +182,7 @@ export function CodeBlockView({
           </button>
         </div>
       ) : (
-        // 只读头部：左侧语言标签，右侧复制 + 展开收起（内容不超限高时隐藏展开钮）
+        // 只读头部：左侧语言标签，右侧复制 + 展开收起（展开后按钮保留，供收回）
         <div className={styles.readonlyHeader} contentEditable={false}>
           <span className={styles.langBadge}>
             <span className={styles.langBraces}>{'{}'}</span>
@@ -198,7 +198,7 @@ export function CodeBlockView({
             >
               {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
             </button>
-            {scrollable ? (
+            {scrollable || expanded ? (
               <button
                 type="button"
                 className={styles.actionBtn}
