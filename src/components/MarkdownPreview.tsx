@@ -93,31 +93,9 @@ export function MarkdownPreview({
     [extensions],
   );
 
-  // @tiptap/markdown 的空行保真会把源码空行重建成显式空段落，内容以块级节点
-  // 结尾时会被补一个尾随空段（只读预览里是多余的空白）。这里在每次内容更新后
-  // 剥离末尾空段；只在末段确为空段落时 dispatch，事务不会形成循环。
-  useEffect(() => {
-    if (!editor) return;
-    const strip = () => {
-      const { doc, tr } = editor.state;
-      const last = doc.lastChild;
-      // textContent 判空可同时覆盖「真空段落」与「仅含 hardBreak 的段落」
-      if (
-        doc.childCount > 1 &&
-        last?.type.name === 'paragraph' &&
-        last.textContent.trim() === ''
-      ) {
-        editor.view.dispatch(
-          tr.delete(doc.content.size - last.nodeSize, doc.content.size),
-        );
-      }
-    };
-    strip();
-    editor.on('update', strip);
-    return () => {
-      editor.off('update', strip);
-    };
-  }, [editor]);
+  // 文档尾随空段不在这里处理：它是 StarterKit 的 TrailingNode 补的（文末是代码块/
+  // 表格/图表时），事后删节点会被它重建；改成 appendTransaction 里删则会与它互相
+  // 触发形成死循环。只读预览由消费方用 CSS 隐藏该空段即可。
 
   useEffect(() => {
     if (!editor) return;
