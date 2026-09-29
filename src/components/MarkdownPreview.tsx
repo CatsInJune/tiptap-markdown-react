@@ -1,7 +1,7 @@
 'use client';
 
 import { Markdown } from '@tiptap/markdown';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent, ReactNodeViewRenderer, useEditor } from '@tiptap/react';
 import { useEffect, useMemo } from 'react';
 import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
@@ -12,6 +12,7 @@ import {
 import type { RenderCitation } from '../citationTypes';
 import { createCitationRef } from '../createCitationRef';
 import { baseExtensions, pureCodeBlock, pureImage } from '../extensions';
+import { CodeBlockView } from './CodeBlockView';
 import '../styles/chart.css';
 import styles from '../styles/content.module.css';
 
@@ -54,10 +55,22 @@ export function MarkdownPreview({
     [markdown, sources],
   );
 
+  // 预览代码块挂只读 NodeView（语言标签 + 复制 + 展开收起 + 行号槽）。
+  // 仅客户端入口挂；server 入口（renderReportHtml）保持纯版，静态 HTML 零 React 依赖。
+  const previewCodeBlock = useMemo(
+    () =>
+      pureCodeBlock.extend({
+        addNodeView() {
+          return ReactNodeViewRenderer(CodeBlockView);
+        },
+      }),
+    [],
+  );
+
   const extensions = useMemo(
     () => [
       ...baseExtensions,
-      pureCodeBlock,
+      previewCodeBlock,
       pureImage,
       createChart({ editable: false }),
       createCitationRef({ renderCitation }),

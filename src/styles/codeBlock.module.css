@@ -53,11 +53,18 @@
 }
 
 /* 只读态语言徽标：无下拉 / 删除交互，样式对齐 langTrigger 但不可点 */
+.readonlyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #efefef;
+}
+
 .langBadge {
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
-  margin: 8px 12px;
   border-radius: 8px;
   background: #f0f0f0;
   color: #6b7280;
@@ -139,9 +146,76 @@
   background: transparent;
   border: none;
   border-radius: 0;
-  overflow-x: auto;
+  overflow: auto;
   font-size: 0.9em;
   line-height: 1.65;
+}
+
+/* 只读展示（MarkdownPreview / 只读编辑器）：默认限高块内滚动，
+   头部展开按钮可切换为不限高；编辑态不封顶（写长代码不应被折断） */
+.readonly .pre {
+  display: flex;
+  align-items: flex-start;
+  max-height: var(--tmr-code-max-height, 480px);
+}
+
+.readonly.expanded .pre {
+  max-height: none;
+}
+
+/* 行号槽：sticky-left 保证横向滚动时行号可见；code 不折行（white-space: pre），
+   逻辑行与视觉行一一对应，行高继承 pre，格子无需逐行测高 */
+.gutter {
+  display: block;
+  flex: none;
+  position: sticky;
+  left: 0;
+  align-self: stretch;
+  padding-right: 12px;
+  margin-right: 14px;
+  border-right: 1px solid #f0f0f0;
+  background: #fff;
+  color: #9ca3af;
+  text-align: right;
+  min-width: 2ch;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.gutterLine {
+  display: block;
+}
+
+.readonlyActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #57606a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.actionBtn:hover {
+  background: #f0f0f0;
+  color: #1f2937;
+}
+
+.langBraces {
+  margin-right: 6px;
+  color: var(--tmr-accent, #ff6719);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
 }
 
 .pre code {
@@ -172,7 +246,7 @@
 .pre :global(.hljs-string),
 .pre :global(.hljs-meta .hljs-string),
 .pre :global(.hljs-regexp) {
-  color: #032f62;
+  color: #c0392b;
 }
 
 .pre :global(.hljs-number),
@@ -191,7 +265,11 @@
 .pre :global(.hljs-attribute),
 .pre :global(.hljs-variable),
 .pre :global(.hljs-template-variable) {
-  color: #e36209;
+  color: #24292e;
+}
+
+.pre :global(.hljs-punctuation) {
+  color: #57606a;
 }
 
 .pre :global(.hljs-tag) {

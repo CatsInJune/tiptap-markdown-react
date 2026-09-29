@@ -195,11 +195,20 @@ export const defaultTocLabels: TocLabels = {
 export interface CodeBlockLabels {
   autoDetect: string;
   delete: string;
+  /** 只读态：复制代码内容。 */
+  copy: string;
+  /** 只读态：展开超出限高的代码块。 */
+  expand: string;
+  /** 只读态：收起已展开的代码块。 */
+  collapse: string;
 }
 
 export const defaultCodeBlockLabels: CodeBlockLabels = {
   autoDetect: 'Auto-detect',
   delete: 'Delete code block',
+  copy: 'Copy code',
+  expand: 'Expand code',
+  collapse: 'Collapse code',
 };
 
 export interface CommentLabels {

@@ -88,6 +88,8 @@ export {
 export {
   applyCitationSources,
   enrichMarkdownCitations,
+  extractFootnoteSources,
+  type ExtractedFootnotes,
   type SourceRef,
 } from './citationUtils';
 export { stabilizeMarkdown } from './stabilizeMarkdown';

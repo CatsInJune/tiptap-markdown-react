@@ -258,6 +258,7 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `--tmr-line-height` | `1.7` | Content line height |
 | `--tmr-min-height` | `420px` | Editor min height |
 | `--tmr-code-bg` | `#f4f4f4` | Inline code background |
+| `--tmr-code-max-height` | `480px` | Readonly code block max height (long blocks scroll internally; the header toggle expands to full height; `none` disables the cap). Editable code blocks are never capped |
 | `--tmr-table-header-bg` | `#f7f7f7` | Table header background |
 | `--tmr-comment-ring` | `rgba(219, 171, 10, 0.55)` | Active mark / block outline ring |
 | `--tmr-comment-gutter-bg` | `#f4b400` | Gutter bubble background |
@@ -425,6 +426,7 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 | `ReportContentInteractive` | `ReportContent` + citation click delegation. |
 | `ReportContent`, `CitationInteractive` | Compose your own wrapper. |
 | `SourceRef`, citation DOM/types | Footnote helpers. |
+| `extractFootnoteSources(markdown)` | `{ markdown, sources }` — 把 GFM 脚注定义行（`[^n]: …`）抽成 `SourceRef[]` 并从正文剥离；标记那一半交给 enrich / apply。 |
 | `scrollToTocHeading` | Scroll the reading container to a heading. |
 
 ## License
