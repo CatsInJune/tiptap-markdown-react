@@ -39,6 +39,8 @@ export {
 export {
   applyCitationSources,
   enrichMarkdownCitations,
+  extractFootnoteSources,
+  type ExtractedFootnotes,
   type SourceRef,
 } from './citationUtils';
 export { scrollToTocHeading } from './toc/scrollToTocHeading';
