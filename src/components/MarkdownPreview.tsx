@@ -101,10 +101,11 @@ export function MarkdownPreview({
     const strip = () => {
       const { doc, tr } = editor.state;
       const last = doc.lastChild;
+      // textContent 判空可同时覆盖「真空段落」与「仅含 hardBreak 的段落」
       if (
         doc.childCount > 1 &&
         last?.type.name === 'paragraph' &&
-        last.content.size === 0
+        last.textContent.trim() === ''
       ) {
         editor.view.dispatch(
           tr.delete(doc.content.size - last.nodeSize, doc.content.size),
