@@ -54,7 +54,7 @@ describe('只读代码块 NodeView（MarkdownPreview 形态）', () => {
     host.remove();
   });
 
-  it('头部带语言标签与复制钮；内容不超限高时不渲染展开钮', async () => {
+  it('头部带语言标签、复制钮与折叠钮（常驻）', async () => {
     const host = await mount('```json\n{"a": 1}\n```\n正文');
     expect(host.querySelector('[class*="langBadge"]')?.textContent).toContain(
       'JSON',
@@ -63,8 +63,36 @@ describe('只读代码块 NodeView（MarkdownPreview 形态）', () => {
       host.querySelector<HTMLButtonElement>('button[aria-label="Copy code"]'),
     ).toBeTruthy();
     expect(
-      host.querySelector<HTMLButtonElement>('button[aria-label="Expand code"]'),
-    ).toBeNull();
+      host.querySelector<HTMLButtonElement>(
+        'button[aria-label="Collapse code"]',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('点折叠 → pre 隐藏且 wrapper 带 folded 类；再点展开恢复', async () => {
+    const host = await mount('```json\n{"a": 1, "b": 2}\n```\n正文');
+    const fold = () =>
+      host.querySelector<HTMLButtonElement>(
+        'button[aria-label="Collapse code"]',
+      )!;
+    const unfold = () =>
+      host.querySelector<HTMLButtonElement>(
+        'button[aria-label="Expand code"]',
+      )!;
+
+    await act(async () => {
+      fold().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    // 折叠语义 = pre 隐藏（css .folded .pre display:none；happy-dom 不应用样式表，
+    // 这里断言类与按钮状态，视觉效果真机验证）
+    expect(host.querySelector('[class*="folded"]')).toBeTruthy();
+    expect(unfold()).toBeTruthy();
+
+    await act(async () => {
+      unfold().dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(host.querySelector('[class*="folded"]')).toBeNull();
+    expect(fold()).toBeTruthy();
   });
 
   it('行号槽数量与代码逻辑行一致（含末尾换行）', async () => {

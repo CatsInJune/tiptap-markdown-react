@@ -71,32 +71,25 @@ export function CodeBlockView({
   const readonly = !editable;
 
   const [copied, setCopied] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [scrollable, setScrollable] = useState(false);
+  const [folded, setFolded] = useState(false);
   const [lineCount, setLineCount] = useState(() =>
     Math.max((node.textContent ?? '').split('\n').length, 1),
   );
   const preRef = useRef<HTMLPreElement | null>(null);
 
-  // 流式更新只改 code 里的文本节点，React 不重渲染；观察 pre 子树同步行数
-  // 与「是否需要展开按钮」。展开/收起本身改变限高，也要重算 scrollable。
+  // 流式更新只改 code 里的文本节点，React 不重渲染；观察 pre 子树同步行数。
   useEffect(() => {
     if (!readonly) return;
     const pre = preRef.current;
     if (!pre) return;
     const update = () => {
       setLineCount(Math.max((pre.textContent ?? '').split('\n').length, 1));
-      setScrollable(pre.scrollHeight > pre.clientHeight + 2);
     };
     update();
     const mo = new MutationObserver(update);
     mo.observe(pre, { childList: true, subtree: true, characterData: true });
-    window.addEventListener('resize', update);
-    return () => {
-      mo.disconnect();
-      window.removeEventListener('resize', update);
-    };
-  }, [readonly, expanded]);
+    return () => mo.disconnect();
+  }, [readonly]);
 
   const handleCopy = () => {
     const text = node.textContent ?? '';
@@ -125,7 +118,7 @@ export function CodeBlockView({
   const wrapperClass = [
     styles.wrapper,
     readonly ? styles.readonly : '',
-    expanded ? styles.expanded : '',
+    folded ? styles.folded : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -198,18 +191,16 @@ export function CodeBlockView({
             >
               {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
             </button>
-            {scrollable || expanded ? (
-              <button
-                type="button"
-                className={styles.actionBtn}
-                onClick={() => setExpanded((v) => !v)}
-                aria-label={expanded ? labels.collapse : labels.expand}
-                title={expanded ? labels.collapse : labels.expand}
-                aria-expanded={expanded}
-              >
-                <ChevronsUpDownIcon size={14} />
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className={styles.actionBtn}
+              onClick={() => setFolded((v) => !v)}
+              aria-label={folded ? labels.expand : labels.collapse}
+              title={folded ? labels.expand : labels.collapse}
+              aria-expanded={!folded}
+            >
+              <ChevronsUpDownIcon size={14} />
+            </button>
           </span>
         </div>
       )}

@@ -151,16 +151,15 @@
   line-height: 1.65;
 }
 
-/* 只读展示（MarkdownPreview / 只读编辑器）：默认限高块内滚动，
-   头部展开按钮可切换为不限高；编辑态不封顶（写长代码不应被折断） */
+/* 只读展示（MarkdownPreview / 只读编辑器）：默认完整显示不封顶；
+   头部按钮可把整个代码块折叠成只剩头部一行（编辑态同样不封顶） */
 .readonly .pre {
   display: flex;
   align-items: flex-start;
-  max-height: var(--tmr-code-max-height, 480px);
 }
 
-.readonly.expanded .pre {
-  max-height: none;
+.readonly.folded .pre {
+  display: none;
 }
 
 /* 行号槽：sticky-left 保证横向滚动时行号可见；code 不折行（white-space: pre），
