@@ -139,7 +139,10 @@
   background: transparent;
   border: none;
   border-radius: 0;
-  overflow-x: auto;
+  /* 垂直方向默认不封顶（--tmr-code-max-height 缺省 none，保持既有布局）；
+     聊天气泡等消费方可设具体值让长代码块在块内滚动，避免千行 JSON 撑破容器 */
+  overflow: auto;
+  max-height: var(--tmr-code-max-height, none);
   font-size: 0.9em;
   line-height: 1.65;
 }
