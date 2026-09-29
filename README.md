@@ -425,6 +425,7 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 | `ReportContentInteractive` | `ReportContent` + citation click delegation. |
 | `ReportContent`, `CitationInteractive` | Compose your own wrapper. |
 | `SourceRef`, citation DOM/types | Footnote helpers. |
+| `extractFootnoteSources(markdown)` | `{ markdown, sources }` — 把 GFM 脚注定义行（`[^n]: …`）抽成 `SourceRef[]` 并从正文剥离；标记那一半交给 enrich / apply。 |
 | `scrollToTocHeading` | Scroll the reading container to a heading. |
 
 ## License
