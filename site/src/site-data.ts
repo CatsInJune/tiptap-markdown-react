@@ -114,6 +114,11 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'findBarOffset', desc: 'Where the library-rendered bar sits in its context (editor, or your container)', type: '{ top?; right?; bottom?; left? }', defaultVal: '{ top: 4, right: 4 }' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())', type: 'boolean', defaultVal: 'true' },
   { name: 'findLabels', desc: 'Find & replace bar labels', type: 'Partial<FindLabels>', defaultVal: '—' },
+  { name: 'slashMenu', desc: 'Type / (line start or after whitespace) to open the block-insert menu. Table cells included, code blocks excluded; inert read-only', type: 'boolean', defaultVal: 'true' },
+  { name: 'slashMenuLabels', desc: 'Slash menu labels (groups + item titles)', type: 'Partial<SlashMenuLabels>', defaultVal: '—' },
+  { name: 'shortcutPanel', desc: 'Keyboard FAB bottom-right opens the shortcuts drawer (Format / Shortcut / Markdown). Hidden read-only', type: 'boolean', defaultVal: 'true' },
+  { name: 'shortcutFabContainer', desc: 'Mount the keyboard FAB into a container you own (getPopupContainer style); positioning becomes yours — e.g. stack it above a back-to-top button. null falls back to the in-editor FAB', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'in-editor FAB' },
+  { name: 'shortcutLabels', desc: 'Shortcuts drawer labels', type: 'Partial<ShortcutLabels>', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
 ];
 
