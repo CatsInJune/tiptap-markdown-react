@@ -314,6 +314,14 @@ export interface MarkdownWysiwygEditorProps {
   /** 快捷键抽屉的本地化文案。 */
   shortcutLabels?: Partial<ShortcutLabels>;
   /**
+   * 把快捷键悬浮键挂到宿主的容器里（与 `findBarContainer` 同一套）：
+   * 给元素或返回元素的函数即可，开合状态与抽屉归库——只换按钮落点。
+   * 挂进去后**定位由宿主负责**（库不再给按钮加粘性定位与右下角外边距），
+   * 适合把按钮叠在宿主自己的浮层控件旁边（如「回到顶部」按钮上方）。
+   * 返回 null / 不传时回落到编辑器内容右下的粘性按钮。
+   */
+  shortcutFabContainer?: HTMLElement | null | (() => HTMLElement | null);
+  /**
    * 启用斜杠菜单：键入 `/`（行首或空白后）唤起块级插入弹窗（默认 true）。
    * 代码块内不触发，表格单元格内触发；只读态不激活。
    * 追加自定义命令项请传 `extraExtensions` 注册 `SlashMenu.configure({ items })`。
@@ -363,6 +371,7 @@ export const MarkdownWysiwygEditor = forwardRef<
   slashMenuLabels,
   shortcutPanel = true,
   shortcutLabels,
+  shortcutFabContainer,
   },
   ref,
 ) {
@@ -629,6 +638,30 @@ export const MarkdownWysiwygEditor = forwardRef<
     [shortcutLabels],
   );
 
+  // 宿主指定了容器就把悬浮键 portal 进去（定位归宿主），解析不到回落编辑器内粘性按钮。
+  const shortcutFabTarget =
+    typeof shortcutFabContainer === 'function'
+      ? shortcutFabContainer()
+      : (shortcutFabContainer ?? null);
+
+  const shortcutFabNode =
+    shortcutPanel && editable ? (
+      <button
+        type="button"
+        className={
+          shortcutFabTarget
+            ? `${styles.shortcutFab} ${styles.shortcutFabHosted}`
+            : styles.shortcutFab
+        }
+        title={shortcutT.panelTitle}
+        aria-label={shortcutT.panelTitle}
+        aria-expanded={shortcutsOpen}
+        onClick={() => setShortcutsOpen((v) => !v)}
+      >
+        <KeyboardIcon size={18} />
+      </button>
+    ) : null;
+
   return (
     <div className={styles.editorHost}>
       {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
@@ -644,19 +677,11 @@ export const MarkdownWysiwygEditor = forwardRef<
           className ? `${styles.editorScroll} ${className}` : styles.editorScroll
         }
       />
-      {/* 快捷键抽屉入口：sticky-bottom 悬浮在可视区右下，只读态隐藏 */}
-      {shortcutPanel && editable ? (
-        <button
-          type="button"
-          className={styles.shortcutFab}
-          title={shortcutT.panelTitle}
-          aria-label={shortcutT.panelTitle}
-          aria-expanded={shortcutsOpen}
-          onClick={() => setShortcutsOpen((v) => !v)}
-        >
-          <KeyboardIcon size={18} />
-        </button>
-      ) : null}
+      {/* 快捷键抽屉入口：默认 sticky-bottom 悬浮在可视区右下；
+          宿主给了 shortcutFabContainer 就 portal 进去，定位归宿主。只读态隐藏 */}
+      {shortcutFabNode && shortcutFabTarget
+        ? createPortal(shortcutFabNode, shortcutFabTarget)
+        : shortcutFabNode}
       {shortcutPanel && editable ? (
         <ShortcutPanel
           open={shortcutsOpen}

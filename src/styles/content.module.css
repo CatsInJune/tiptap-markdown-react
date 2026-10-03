@@ -410,3 +410,10 @@
   color: var(--tmr-accent, #ff6719);
   box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
 }
+
+/* 宿主容器模式的悬浮键：定位归宿主（如叠在「回到顶部」按钮上方），
+   库只保留按钮本体视觉，不加粘性定位与右下角外边距 */
+.shortcutFabHosted {
+  position: static;
+  margin: 0;
+}
