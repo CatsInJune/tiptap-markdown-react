@@ -1,0 +1,108 @@
+/* 斜杠菜单弹层。样式对齐工具栏下拉菜单（toolbar.module.css 的 .menu/.menuItem）
+   ——同一套面板（10px 圆角 + ring 阴影）、条目（6px 圆角 + #f3f3f3 悬停）、
+   选中态（#fff3ec + 品牌色）、文字字形图标槽（26px，SF Pro Display 粗体）。
+   配色走 --tmr-* 变量：弹层挂 document.body（逃出宿主 overflow 裁剪），
+   挂载时由扩展把编辑器上解析出的变量值复制到宿主元素，主题保真不依赖
+   变量定义位置。定位（absolute + left/top）由 @tiptap/suggestion 的
+   mount（floating-ui autoUpdate）写在外层宿主元素上。 */
+
+/* ReactRenderer 宿主元素：真正被 suggestion 定位/显示隐藏的那层。
+   z-index 对齐库内菜单面板（1000），保证盖过宿主页面的 sticky 头部。 */
+.popupHost {
+  z-index: 1000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 24px));
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  /* 矮视口里弹层不至于翻转后两头裁切：列表自身封顶，内部滚动 */
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+  min-width: 208px;
+  padding: 6px;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  color: var(--tmr-text, #363737);
+  /* 弹层是 UI 控件，不继承正文的衬线字号字距（同工具栏字体栈） */
+  font-family: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.menu:empty {
+  display: none;
+}
+
+/* 分组标题：弱化的节头，节奏同条目内衬 */
+.groupLabel {
+  padding: 8px 10px 3px;
+  color: var(--tmr-toolbar-muted, #6b6b6b);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.item,
+.itemActive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition: background 0.1s, color 0.1s;
+}
+
+.itemActive {
+  background: #fff3ec;
+  color: var(--tmr-accent, #ff6719);
+}
+
+/* 文字字形图标槽：对齐 toolbar.module.css 的 .styleIcon */
+.itemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 26px;
+  color: var(--tmr-toolbar-muted, #6b6b6b);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  white-space: pre;
+}
+
+.itemActive .itemIcon {
+  color: var(--tmr-accent, #ff6719);
+}
+
+/* 宿主传 SVG 图标时按库内按钮规格呈现 */
+.itemIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.itemTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -108,6 +108,8 @@ export {
   defaultColorPaletteLabels,
   defaultCommentLabels,
   defaultFindLabels,
+  defaultShortcutLabels,
+  defaultSlashMenuLabels,
   defaultTocLabels,
   defaultToolbarLabels,
   type ChartLabels,
@@ -115,6 +117,8 @@ export {
   type ColorPaletteLabels,
   type CommentLabels,
   type FindLabels,
+  type ShortcutLabels,
+  type SlashMenuLabels,
   type TocLabels,
   type ToolbarLabels,
 } from './labels';
@@ -177,6 +181,20 @@ export {
 export { replaceRangeWithMarkdown, type ReplaceRangeOptions } from './replaceRange';
 export { FIND_DEBOUNCE_MS, runFindCommand } from './findReplace';
 export { selectionKind, type SelectionKind } from './selectionKind';
+
+// ── 斜杠菜单（键入 / 唤起块级插入弹窗） ──
+export { SlashMenu, type SlashMenuOptions } from './slashMenu/SlashMenuExtension';
+export {
+  createDefaultSlashMenuItems,
+  filterSlashItems,
+} from './slashMenu/items';
+export { insertSlashMarkdown } from './slashMenu/insertSlashMarkdown';
+export type { SlashMenuItem } from './slashMenu/types';
+
+// ── 快捷键抽屉（键位 + Markdown 写法对照） ──
+export { ShortcutPanel } from './shortcuts/ShortcutPanel';
+export { buildShortcutGroups } from './shortcuts/types';
+export type { ShortcutEntry, ShortcutGroup } from './shortcuts/types';
 
 // ── 常用 Tiptap 类型（宿主无需再安装 / import @tiptap/*） ──
 export type { Editor } from '@tiptap/react';

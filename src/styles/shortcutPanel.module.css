@@ -1,0 +1,165 @@
+/* 快捷键抽屉（语雀式右侧滑出）。配色走 --tmr-* 变量（与工具栏同一套），
+   面板形态对齐工具栏下拉菜单：白底 + ring 阴影 + 10px 圆角。
+   fixed 贴视口右缘，不随编辑器滚动；开合走 transform 过渡。 */
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  width: min(480px, 94vw);
+  height: 100dvh;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 0;
+  box-shadow:
+    -12px 0 40px rgb(0 0 0 / 10%),
+    0 0 0 1px rgb(0 0 0 / 6%);
+  color: var(--tmr-text, #363737);
+  font-family: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  animation: tmr-shortcut-drawer-in 0.24s ease-out;
+}
+
+@keyframes tmr-shortcut-drawer-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer {
+    animation: none;
+  }
+}
+
+.closeBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tmr-toolbar-muted, #6b6b6b);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.closeBtn:hover {
+  background: #f3f3f3;
+  color: var(--tmr-text, #363737);
+}
+
+/* 三列表头：sticky 吸顶 */
+.head {
+  display: grid;
+  grid-template-columns: 1.4fr 1.2fr 1.4fr;
+  gap: 12px;
+  flex: none;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid var(--tmr-toolbar-border, #ececec);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.colShortcut {
+  text-align: center;
+}
+
+.colMarkdown {
+  text-align: center;
+}
+
+/* 滚动区 */
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 18px 24px;
+}
+
+.group {
+  padding-top: 14px;
+}
+
+.groupTitle {
+  margin: 0 0 6px;
+  color: var(--tmr-toolbar-muted, #6b6b6b);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.2fr 1.4fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--tmr-toolbar-border, #ececec);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.rowLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowKeys,
+.rowMd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 键帽 */
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 2px 7px;
+  box-sizing: border-box;
+  border: 1px solid var(--tmr-toolbar-border, #e2e2e2);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: #fafafa;
+  color: var(--tmr-text, #363737);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* markdown 片段键帽用等宽字体，字符间不拆 */
+.rowMd .keycap {
+  font-family: var(--tmr-mono-font, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+}
+
+.none {
+  color: var(--tmr-toolbar-muted, #b5b5b5);
+}
