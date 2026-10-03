@@ -20,6 +20,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -639,10 +640,21 @@ export const MarkdownWysiwygEditor = forwardRef<
   );
 
   // 宿主指定了容器就把悬浮键 portal 进去（定位归宿主），解析不到回落编辑器内粘性按钮。
-  const shortcutFabTarget =
-    typeof shortcutFabContainer === 'function'
-      ? shortcutFabContainer()
-      : (shortcutFabContainer ?? null);
+  // 用 layout effect（同步于提交后、绘制前）解析：函数形式读 ref 时首渲染拿到的是
+  // null，等 DOM 提交后 ref 才就绪——这里在绘制前再解析一次，避免闪一帧编辑器内按钮；
+  // setState 同值会 bail out，不会死循环。
+  const [shortcutFabTarget, setShortcutFabTarget] = useState<HTMLElement | null>(
+    null,
+  );
+  const useIsoLayoutEffect =
+    typeof window === 'undefined' ? useEffect : useLayoutEffect;
+  useIsoLayoutEffect(() => {
+    const target =
+      typeof shortcutFabContainer === 'function'
+        ? shortcutFabContainer()
+        : (shortcutFabContainer ?? null);
+    setShortcutFabTarget((prev) => (prev === target ? prev : target));
+  });
 
   const shortcutFabNode =
     shortcutPanel && editable ? (
