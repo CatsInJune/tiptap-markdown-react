@@ -2,6 +2,7 @@ import type {
   CodeBlockLabels,
   ColorPaletteLabels,
   FindLabels,
+  ShortcutLabels,
   TocLabels,
   ToolbarLabels,
 } from 'tiptap-markdown-react';
@@ -21,6 +22,7 @@ export interface LocaleBundle {
   codeBlock: Partial<CodeBlockLabels>;
   toc: Partial<TocLabels>;
   palette: Partial<ColorPaletteLabels>;
+  shortcut: Partial<ShortcutLabels>;
 }
 
 const zh: LocaleBundle = {
@@ -81,6 +83,34 @@ const zh: LocaleBundle = {
   },
   toc: { title: '目录', expand: '展开', collapse: '收起' },
   palette: { none: '无', theme: '主题色' },
+  shortcut: {
+    panelTitle: '快捷键',
+    close: '关闭',
+    colFormat: '格式',
+    colShortcut: '快捷键',
+    colMarkdown: 'Markdown',
+    formatGroup: '格式',
+    insertGroup: '插入',
+    editGroup: '编辑',
+    bold: '加粗',
+    italic: '斜体',
+    strike: '删除线',
+    underline: '下划线',
+    inlineCode: '行内代码',
+    highlight: '高亮',
+    headingLabel: (level) => `标题 ${level}`,
+    paragraph: '正文',
+    blockquote: '引用',
+    bulletList: '无序列表',
+    orderedList: '有序列表',
+    taskList: '任务列表',
+    codeBlock: '代码块',
+    divider: '分割线',
+    undo: '撤销',
+    redo: '重做',
+    hardBreak: '硬换行',
+    findReplace: '查找替换',
+  },
 };
 
 /** English 只给空对象：全部走库内置默认，正好演示 `Partial` 的语义。 */
@@ -90,6 +120,7 @@ const en: LocaleBundle = {
   codeBlock: {},
   toc: {},
   palette: {},
+  shortcut: {},
 };
 
 export const LOCALES: Record<LocaleCode, LocaleBundle> = { zh, en };

@@ -22,35 +22,35 @@ export const COMPONENT_NAV: NavGroup[] = [
   {
     title: 'Editing',
     items: [
-      { id: 'editor', label: 'MarkdownWysiwygEditor', href: '#editor' },
-      { id: 'toolbar', label: 'EditorToolbar', href: '#toolbar' },
-      { id: 'find', label: 'Find & replace', href: '#find' },
-      { id: 'i18n', label: 'Internationalization', href: '#i18n' },
-      { id: 'equations', label: 'Equations', href: '#equations' },
-      { id: 'charts', label: 'Charts', href: '#charts' },
-      { id: 'comment-anchors', label: 'Comment Anchors', href: '#comment-anchors' },
+      { id: 'editor', label: 'MarkdownWysiwygEditor', href: '#/components?editor' },
+      { id: 'toolbar', label: 'EditorToolbar', href: '#/components?toolbar' },
+      { id: 'find', label: 'Find & replace', href: '#/components?find' },
+      { id: 'i18n', label: 'Internationalization', href: '#/components?i18n' },
+      { id: 'equations', label: 'Equations', href: '#/components?equations' },
+      { id: 'charts', label: 'Charts', href: '#/components?charts' },
+      { id: 'comment-anchors', label: 'Comment Anchors', href: '#/components?comment-anchors' },
     ],
   },
   {
     title: 'Reading',
     items: [
-      { id: 'preview', label: 'MarkdownPreview', href: '#preview' },
-      { id: 'report-content', label: 'ReportContent', href: '#report-content' },
-      { id: 'citations', label: 'Citations [^n]', href: '#citations' },
+      { id: 'preview', label: 'MarkdownPreview', href: '#/components?preview' },
+      { id: 'report-content', label: 'ReportContent', href: '#/components?report-content' },
+      { id: 'citations', label: 'Citations [^n]', href: '#/components?citations' },
     ],
   },
   {
     title: 'Navigation',
-    items: [{ id: 'toc', label: 'TocPanel', href: '#toc' }],
+    items: [{ id: 'toc', label: 'TocPanel', href: '#/components?toc' }],
   },
   {
     title: 'UI',
-    items: [{ id: 'color-palette', label: 'ColorPalette', href: '#color-palette' }],
+    items: [{ id: 'color-palette', label: 'ColorPalette', href: '#/components?color-palette' }],
   },
   {
     title: 'Server',
     items: [
-      { id: 'render-html', label: 'renderReportHtml', href: '#render-html' },
+      { id: 'render-html', label: 'renderReportHtml', href: '#/components?render-html' },
     ],
   },
 ];
@@ -59,32 +59,33 @@ export const DEMO_NAV: NavGroup[] = [
   {
     title: 'Editing',
     items: [
-      { id: 'demo-editor', label: 'WYSIWYG Editor', href: '#demo-editor' },
-      { id: 'demo-markdown-in', label: 'Paste / Drop / Import', href: '#demo-markdown-in' },
-      { id: 'demo-toolbar', label: 'Toolbar + Image', href: '#demo-toolbar' },
-      { id: 'demo-codeblock', label: 'Code Block', href: '#demo-codeblock' },
-      { id: 'demo-equations', label: 'Equations', href: '#demo-equations' },
-      { id: 'demo-charts', label: 'Charts', href: '#demo-charts' },
+      { id: 'demo-editor', label: 'WYSIWYG Editor', href: '#/demos?demo-editor' },
+      { id: 'demo-markdown-in', label: 'Paste / Drop / Import', href: '#/demos?demo-markdown-in' },
+      { id: 'demo-toolbar', label: 'Toolbar + Image', href: '#/demos?demo-toolbar' },
+      { id: 'demo-codeblock', label: 'Code Block', href: '#/demos?demo-codeblock' },
+      { id: 'demo-shortcuts', label: 'Shortcuts', href: '#/demos?demo-shortcuts' },
+      { id: 'demo-equations', label: 'Equations', href: '#/demos?demo-equations' },
+      { id: 'demo-charts', label: 'Charts', href: '#/demos?demo-charts' },
     ],
   },
   {
     title: 'Reading',
     items: [
-      { id: 'demo-preview', label: 'Client Preview', href: '#demo-preview' },
-      { id: 'demo-equations-ssr', label: 'SSR equations', href: '#demo-equations-ssr' },
-      { id: 'demo-charts-ssr', label: 'SSR charts', href: '#demo-charts-ssr' },
-      { id: 'demo-citations', label: 'Citation pills', href: '#demo-citations' },
-      { id: 'demo-citations-ssr', label: 'SSR + citations', href: '#demo-citations-ssr' },
-      { id: 'demo-markdown-out', label: 'Markdown Output', href: '#demo-markdown-out' },
+      { id: 'demo-preview', label: 'Client Preview', href: '#/demos?demo-preview' },
+      { id: 'demo-equations-ssr', label: 'SSR equations', href: '#/demos?demo-equations-ssr' },
+      { id: 'demo-charts-ssr', label: 'SSR charts', href: '#/demos?demo-charts-ssr' },
+      { id: 'demo-citations', label: 'Citation pills', href: '#/demos?demo-citations' },
+      { id: 'demo-citations-ssr', label: 'SSR + citations', href: '#/demos?demo-citations-ssr' },
+      { id: 'demo-markdown-out', label: 'Markdown Output', href: '#/demos?demo-markdown-out' },
     ],
   },
   {
     title: 'Navigation',
-    items: [{ id: 'demo-toc', label: 'Table of Contents', href: '#demo-toc' }],
+    items: [{ id: 'demo-toc', label: 'Table of Contents', href: '#/demos?demo-toc' }],
   },
   {
     title: 'Theming',
-    items: [{ id: 'demo-theme', label: 'CSS Variables', href: '#demo-theme' }],
+    items: [{ id: 'demo-theme', label: 'CSS Variables', href: '#/demos?demo-theme' }],
   },
 ];
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ApiRow, NavGroup, PageId } from './site-data';
 import { TOP_NAV } from './site-data';
+import { LangToggle, useT } from './lang';
 
 export function Reveal({
   children,
@@ -50,26 +51,38 @@ export function useScrolled(threshold = 8) {
   return scrolled;
 }
 
-export function useHashPage(): PageId {
-  const [page, setPage] = useState<PageId>(() => parsePage(window.location.hash));
+export interface HashRoute {
+  page: PageId;
+  /** `#/components?editor` 形态里的页内锚点。 */
+  anchor: string | null;
+}
+
+export function useHashRoute(): HashRoute {
+  const [route, setRoute] = useState<HashRoute>(() => parseRoute(window.location.hash));
   useEffect(() => {
-    const onHash = () => setPage(parsePage(window.location.hash));
+    const onHash = () => setRoute(parseRoute(window.location.hash));
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-  return page;
+  return route;
 }
 
-function parsePage(hash: string): PageId {
-  const path = hash.replace(/^#/, '') || '/';
-  if (path.startsWith('/components')) return 'components';
-  if (path.startsWith('/demos')) return 'demos';
-  if (path.startsWith('/api')) return 'api';
-  return 'home';
+/**
+ * hash 即路由：`#/页面?锚点`。页面内锚点必须寄生在路由 hash 上——
+ * 若菜单直接写 `#anchor`，hashchange 会把路由解析成 home（整站跳走的 bug）。
+ */
+function parseRoute(hash: string): HashRoute {
+  const [path, anchorPart] = hash.replace(/^#/, '').split('?');
+  const anchor = anchorPart?.trim() || null;
+  if (path.startsWith('/components')) return { page: 'components', anchor };
+  if (path.startsWith('/demos')) return { page: 'demos', anchor };
+  if (path.startsWith('/api')) return { page: 'api', anchor };
+  return { page: 'home', anchor };
 }
 
 export function TopNav({ active }: { active: PageId }) {
   const scrolled = useScrolled();
+  const t = useT();
   return (
     <header className={`topNav ${scrolled ? 'scrolled' : ''}`}>
       <a className="brand" href="#/">
@@ -83,7 +96,7 @@ export function TopNav({ active }: { active: PageId }) {
             className={`topNavLink ${active === item.id ? 'active' : ''}`}
             href={item.href}
           >
-            {item.label}
+            {t(item.label)}
           </a>
         ))}
         <a
@@ -94,6 +107,7 @@ export function TopNav({ active }: { active: PageId }) {
         >
           GitHub
         </a>
+        <LangToggle />
       </nav>
     </header>
   );
@@ -118,16 +132,17 @@ export function DocsShell({
 }
 
 export function SideNav({ groups }: { groups: NavGroup[] }) {
+  const t = useT();
   return (
     <nav className="sideNav">
       {groups.map((group) => (
         <div key={group.title} className="sideNavGroup">
-          <p className="sideNavTitle">{group.title}</p>
+          <p className="sideNavTitle">{t(group.title)}</p>
           <ul>
             {group.items.map((item) => (
               <li key={item.id}>
                 <a className="sideNavLink" href={item.href}>
-                  {item.label}
+                  {t(item.label)}
                 </a>
               </li>
             ))}
@@ -138,14 +153,22 @@ export function SideNav({ groups }: { groups: NavGroup[] }) {
   );
 }
 
-export function PageToc({ items }: { items: { id: string; label: string }[] }) {
+export function PageToc({
+  page,
+  items,
+}: {
+  page: PageId;
+  items: { id: string; label: string }[];
+}) {
+  const t = useT();
   return (
     <nav className="pageToc">
-      <p className="pageTocTitle">On this page</p>
+      <p className="pageTocTitle">{t('On this page')}</p>
       <ul>
         {items.map((item) => (
           <li key={item.id}>
-            <a href={`#${item.id}`}>{item.label}</a>
+            {/* 锚点寄生在路由 hash 上，避免把路由顶掉 */}
+            <a href={`#/${page}?${item.id}`}>{t(item.label)}</a>
           </li>
         ))}
       </ul>
@@ -198,7 +221,7 @@ export function NpmRow() {
         rel="noreferrer"
         className="npmBadge"
       >
-        npm v0.2.0
+        npm v{__LIB_VERSION__}
       </a>
       <CopyRow text="npm install tiptap-markdown-react" />
     </div>
@@ -218,11 +241,12 @@ export function DemoBlock({
   children: ReactNode;
   anchor?: string;
 }) {
+  const t = useT();
   return (
     <div className="demoBlock" id={anchor}>
       <div className="demoBlockHead">
-        <h3>{title}</h3>
-        {description && <p>{description}</p>}
+        <h3>{t(title)}</h3>
+        {description && <p>{t(description)}</p>}
       </div>
       {controls && <div className="demoControls">{controls}</div>}
       <div className="demoCard">
@@ -234,16 +258,17 @@ export function DemoBlock({
 }
 
 export function ApiTable({ rows }: { rows: ApiRow[] }) {
+  const t = useT();
   const hasDefault = rows.some((r) => r.defaultVal !== undefined);
   return (
     <div className="apiTableWrap">
       <table className="apiTable">
         <thead>
           <tr>
-            <th>属性</th>
-            <th>说明</th>
-            <th>类型</th>
-            {hasDefault && <th>默认值</th>}
+            <th>{t('属性')}</th>
+            <th>{t('说明')}</th>
+            <th>{t('类型')}</th>
+            {hasDefault && <th>{t('默认值')}</th>}
           </tr>
         </thead>
         <tbody>
@@ -252,7 +277,7 @@ export function ApiTable({ rows }: { rows: ApiRow[] }) {
               <td>
                 <code>{row.name}</code>
               </td>
-              <td>{row.desc}</td>
+              <td>{t(row.desc)}</td>
               <td>
                 <code className="typeCell">{row.type}</code>
               </td>
@@ -294,28 +319,29 @@ export function ComponentSection({
   refApi?: ApiRow[];
   extra?: ReactNode;
 }) {
+  const t = useT();
   return (
     <section className="componentSection" id={id}>
       <h2>{title}</h2>
-      <p className="componentDesc">{description}</p>
+      <p className="componentDesc">{t(description)}</p>
       <ImportRow name={importName} />
       <NpmRow />
       <ul className="featureList">
         {features.map((f) => (
-          <li key={f}>{f}</li>
+          <li key={f}>{t(f)}</li>
         ))}
       </ul>
       {demo && (
         <>
-          <h3 className="sectionSub">🚀 代码演示</h3>
+          <h3 className="sectionSub">{t('🚀 代码演示')}</h3>
           {demo}
         </>
       )}
-      <h3 className="sectionSub">📖 API 参考</h3>
+      <h3 className="sectionSub">{t('📖 API 参考')}</h3>
       <ApiTable rows={api} />
       {refApi && refApi.length > 0 && (
         <>
-          <h4 className="sectionSubSm">Ref 方法</h4>
+          <h4 className="sectionSubSm">{t('Ref 方法')}</h4>
           <ApiTable rows={refApi} />
         </>
       )}

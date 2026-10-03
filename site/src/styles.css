@@ -217,6 +217,36 @@ a {
   transform: translateY(-1px);
 }
 
+/* 中 / EN 语言切换（分段式小按钮） */
+.langToggle {
+  display: inline-flex;
+  margin-left: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.langOption {
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted, #6b6b6b);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.langOption:hover {
+  color: var(--ink, #1b1b1b);
+}
+
+.langOption.active {
+  background: var(--ink, #1b1b1b);
+  color: #fff;
+}
+
 /* legacy nav aliases (unused) */
 .nav {
   display: flex;
@@ -815,6 +845,12 @@ a {
   font-size: 16px;
   line-height: 1.6;
   max-width: 640px;
+}
+
+.componentSection,
+.demoBlock,
+.apiSection {
+  scroll-margin-top: 84px; /* sticky 顶栏让位 */
 }
 
 .componentSection {
