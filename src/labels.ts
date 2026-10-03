@@ -85,6 +85,29 @@ export interface ToolbarLabels {
   mathNewBlock: string;
 }
 
+/** 斜杠菜单（键入 / 唤起的块级插入弹窗）文案。 */
+export interface SlashMenuLabels {
+  /** 弹窗 aria-label。 */
+  menuLabel: string;
+  /** 分组标题：文本块。 */
+  groupText: string;
+  /** 分组标题：列表。 */
+  groupList: string;
+  /** 分组标题：结构 / 高级块。 */
+  groupAdvanced: string;
+  normalText: string;
+  headingLabel: (level: number) => string;
+  bulletList: string;
+  orderedList: string;
+  taskList: string;
+  blockquote: string;
+  codeBlock: string;
+  divider: string;
+  table: string;
+  inlineMath: string;
+  blockMath: string;
+}
+
 export interface ChartLabels {
   /** Tab label when config has no title. */
   tabLabel: (chartType: string, index: number) => string;
@@ -168,6 +191,87 @@ export const defaultToolbarLabels: ToolbarLabels = {
   mathCancel: 'Cancel',
   mathNewInline: 'New equation',
   mathNewBlock: 'Add a TeX equation',
+};
+
+export const defaultSlashMenuLabels: SlashMenuLabels = {
+  menuLabel: 'Insert block',
+  groupText: 'Text',
+  groupList: 'Lists',
+  groupAdvanced: 'Advanced',
+  normalText: 'Normal text',
+  headingLabel: (level) => `Heading ${level}`,
+  bulletList: 'Bullet list',
+  orderedList: 'Ordered list',
+  taskList: 'Task list',
+  blockquote: 'Blockquote',
+  codeBlock: 'Code block',
+  divider: 'Divider',
+  table: 'Table',
+  inlineMath: 'Inline equation',
+  blockMath: 'Block equation',
+};
+
+/** 快捷键抽屉面板（键位 + Markdown 触发写法对照）文案。 */
+export interface ShortcutLabels {
+  /** 抽屉标题。 */
+  panelTitle: string;
+  /** 关闭按钮 aria / title。 */
+  close: string;
+  /** 三列表头：格式 / 快捷键 / Markdown。 */
+  colFormat: string;
+  colShortcut: string;
+  colMarkdown: string;
+  /** 分组标题。 */
+  formatGroup: string;
+  insertGroup: string;
+  editGroup: string;
+  bold: string;
+  italic: string;
+  strike: string;
+  underline: string;
+  inlineCode: string;
+  highlight: string;
+  headingLabel: (level: number) => string;
+  paragraph: string;
+  blockquote: string;
+  bulletList: string;
+  orderedList: string;
+  taskList: string;
+  codeBlock: string;
+  divider: string;
+  undo: string;
+  redo: string;
+  hardBreak: string;
+  findReplace: string;
+}
+
+export const defaultShortcutLabels: ShortcutLabels = {
+  panelTitle: 'Shortcuts',
+  close: 'Close',
+  colFormat: 'Format',
+  colShortcut: 'Shortcut',
+  colMarkdown: 'Markdown',
+  formatGroup: 'Formatting',
+  insertGroup: 'Insert',
+  editGroup: 'Editing',
+  bold: 'Bold',
+  italic: 'Italic',
+  strike: 'Strikethrough',
+  underline: 'Underline',
+  inlineCode: 'Inline code',
+  highlight: 'Highlight',
+  headingLabel: (level) => `Heading ${level}`,
+  paragraph: 'Normal text',
+  blockquote: 'Blockquote',
+  bulletList: 'Bullet list',
+  orderedList: 'Ordered list',
+  taskList: 'Task list',
+  codeBlock: 'Code block',
+  divider: 'Divider',
+  undo: 'Undo',
+  redo: 'Redo',
+  hardBreak: 'Hard break',
+  findReplace: 'Find & replace',
 };
 
 export interface ColorPaletteLabels {

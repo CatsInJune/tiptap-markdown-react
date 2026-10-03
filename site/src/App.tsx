@@ -58,8 +58,10 @@ import {
   SiteFooter,
   Snippet,
   TopNav,
-  useHashPage,
+  useHashRoute,
 } from './ui';
+import { LangProvider, useT, useTx } from './lang';
+import { useEffect } from 'react';
 
 const COLOR_PALETTE_API = [
   { name: 'value', desc: 'Currently applied color (shows checkmark)', type: 'string', defaultVal: '—' },
@@ -83,6 +85,8 @@ const COMMENT_REF_API = [
 ];
 
 function HomePage() {
+  const tx = useTx();
+  const t = useT();
   return (
     <>
       <section className="hero">
@@ -92,20 +96,22 @@ function HomePage() {
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
-          <span className="badge">zero Ant Design</span>
+          <span className="badge">{tx('零 Ant Design', 'zero Ant Design')}</span>
         </div>
         <h1>
-          Markdown editing, <span className="accent">done beautifully</span>
+          {tx('Markdown 编辑，', 'Markdown editing, ')}
+          <span className="accent">{tx('优雅至上', 'done beautifully')}</span>
         </h1>
         <p className="lede">
-          A batteries-included WYSIWYG editor and reader on Tiptap&nbsp;v3.
-          Markdown in/out, styled toolbar, table of contents, live preview,
-          and server-side rendering — themeable and Ant&nbsp;Design-free.
+          {tx(
+            '基于 Tiptap v3 的全家桶所见即所得编辑器与阅读器。Markdown 进出、自带样式的工具栏、目录、实时预览、服务端渲染——可主题化，零 Ant Design。',
+            'A batteries-included WYSIWYG editor and reader on Tiptap\u00A0v3. Markdown in/out, styled toolbar, table of contents, live preview, and server-side rendering — themeable and Ant\u00A0Design-free.',
+          )}
         </p>
         <div className="heroActions">
           <CopyRow text="npm install tiptap-markdown-react" />
           <a className="ghost" href="#/components">
-            Browse components →
+            {tx('浏览组件 →', 'Browse components →')}
           </a>
         </div>
       </section>
@@ -113,11 +119,13 @@ function HomePage() {
       <section className="homeSection">
         <Reveal>
           <div className="sectionHead">
-            <p className="kicker">Live</p>
-            <h2>Try it right here</h2>
+            <p className="kicker">{tx('实时演示', 'Live')}</p>
+            <h2>{tx('就在这里试', 'Try it right here')}</h2>
             <p className="sectionLede">
-              The panel below is the real package. Edit, switch to rendered
-              reader, or peek at Markdown output.
+              {tx(
+                '下面的面板就是真实的包。编辑、切换到渲染视图，或查看 Markdown 产物。',
+                'The panel below is the real package. Edit, switch to rendered reader, or peek at Markdown output.',
+              )}
             </p>
           </div>
         </Reveal>
@@ -129,8 +137,8 @@ function HomePage() {
       <section className="homeSection">
         <Reveal>
           <div className="sectionHead">
-            <p className="kicker">Why</p>
-            <h2>Everything the editor needs, styled</h2>
+            <p className="kicker">{tx('为什么', 'Why')}</p>
+            <h2>{tx('编辑器需要的都在，且带样式', 'Everything the editor needs, styled')}</h2>
           </div>
         </Reveal>
         <div className="features">
@@ -138,8 +146,8 @@ function HomePage() {
             <Reveal key={f.title} delay={i * 50}>
               <div className="feature">
                 <span className="featureIcon">{f.icon}</span>
-                <h3>{f.title}</h3>
-                <p>{f.body}</p>
+                <h3>{t(f.title)}</h3>
+                <p>{t(f.body)}</p>
               </div>
             </Reveal>
           ))}
@@ -149,11 +157,11 @@ function HomePage() {
       <section className="homeSection">
         <Reveal>
           <div className="sectionHead">
-            <p className="kicker">Quick start</p>
-            <h2>Three ways to render</h2>
+            <p className="kicker">{tx('快速上手', 'Quick start')}</p>
+            <h2>{tx('三种渲染方式', 'Three ways to render')}</h2>
           </div>
         </Reveal>
-        <h3>1. Editor + toolbar</h3>
+        <h3>{tx('1. 编辑器 + 工具栏', '1. Editor + toolbar')}</h3>
         <Snippet
           code={`import { useState } from 'react';
 import type { Editor } from '@tiptap/react';
@@ -170,7 +178,7 @@ function Composer() {
   );
 }`}
         />
-        <h3>2. Client preview</h3>
+        <h3>{tx('2. 客户端预览', '2. Client preview')}</h3>
         <Snippet
           code={`import { MarkdownPreview } from 'tiptap-markdown-react';
 <MarkdownPreview
@@ -178,7 +186,7 @@ function Composer() {
   sources={[{ index: '1', url: 'https://…', title: 'FY2025' }]}
 />`}
         />
-        <h3>3. Server reader (SEO)</h3>
+        <h3>{tx('3. 服务端阅读页（SEO）', '3. Server reader (SEO)')}</h3>
         <Snippet
           code={`import { renderReportHtml, ReportContent } from 'tiptap-markdown-react/server';
 
@@ -191,20 +199,23 @@ return <ReportContent html={html} />;`}
 }
 
 function ComponentsPage() {
+  const t = useT();
+  const tx = useTx();
   const tocItems = COMPONENT_NAV.flatMap((g) =>
     g.items.map((i) => ({ id: i.id, label: i.label })),
   );
   return (
     <DocsShell
       sidebar={<SideNav groups={COMPONENT_NAV} />}
-      toc={<PageToc items={tocItems} />}
+      toc={<PageToc page="components" items={tocItems} />}
     >
       <div className="docsPageHead">
-        <h1>Components</h1>
+        <h1>{tx('组件', 'Components')}</h1>
         <p>
-          Batteries-included React components for editing, reading, and
-          navigating Markdown content. Each ships with opinionated styles and
-          Radix-based UI — no Ant Design.
+          {tx(
+            '用于编辑、阅读与导航 Markdown 内容的全家桶 React 组件。每个组件都带自成体系的样式与基于 Radix 的 UI——不依赖 Ant Design。',
+            'Batteries-included React components for editing, reading, and navigating Markdown content. Each ships with opinionated styles and Radix-based UI — no Ant Design.',
+          )}
         </p>
       </div>
 
@@ -563,23 +574,27 @@ const { html, toc } = renderReportHtml(markdown, {
 }
 
 function DemosPage() {
+  const t = useT();
+  const tx = useTx();
   const tocItems = DEMO_NAV.flatMap((g) =>
     g.items.map((i) => ({ id: i.id, label: i.label })),
   );
   return (
     <DocsShell
       sidebar={<SideNav groups={DEMO_NAV} />}
-      toc={<PageToc items={tocItems} />}
+      toc={<PageToc page="demos" items={tocItems} />}
     >
       <div className="docsPageHead">
-        <h1>Demo</h1>
+        <h1>{tx('演示', 'Demo')}</h1>
         <p>
-          Interactive examples grouped by scenario. Each block is a live preview
-          you can edit and inspect.
+          {tx(
+            '按场景分组的交互示例。每个块都是可编辑、可检查的实时预览。',
+            'Interactive examples grouped by scenario. Each block is a live preview you can edit and inspect.',
+          )}
         </p>
       </div>
 
-      <h2 className="demoGroupTitle">Editing</h2>
+      <h2 className="demoGroupTitle">{t('Editing')}</h2>
 
       <DemoBlock
         anchor="demo-editor"
@@ -589,10 +604,11 @@ function DemosPage() {
         <EditorDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          <code>initialMarkdown</code> seeds content; <code>onEditorReady</code>{' '}
-          provides the Tiptap Editor for toolbar wiring.
+          <code>initialMarkdown</code>
+          {tx('注入初始内容；', ' seeds content; ')}<code>onEditorReady</code>{' '}
+          {tx('提供 Tiptap Editor 实例，供工具栏接线。', 'provides the Tiptap Editor for toolbar wiring.')}
         </p>
       </div>
 
@@ -604,15 +620,15 @@ function DemosPage() {
         <MarkdownIngestDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          Paste detection and file drop are on by default — opt out with{' '}
+          {tx('粘贴检测与文件拖放默认开启——用 ', 'On by default — opt out with ')}
           <code>markdownPaste={'{false}'}</code> /{' '}
-          <code>markdownFileDrop={'{false}'}</code>. Detection looks only at the
-          plain-text content, so copying markdown source from any app (Xcode,
-          VS Code, notes) converts, while real rich text (Word / web pages)
-          pastes normally. The Import dropdown is localized via{' '}
-          <code>labels.importDocument</code> / <code>labels.importDocumentHint</code>.
+          <code>markdownFileDrop={'{false}'}</code>
+          {tx(' 关闭。检测只看纯文本内容，所以从任何应用（Xcode、VS Code、备忘录）复制的 markdown 源码都会转换，而真正的富文本（Word / 网页）照常粘贴。导入下拉的文案经 ',
+            '. Detection looks only at the plain-text content, so copying markdown source from any app (Xcode, VS Code, notes) converts, while real rich text (Word / web pages) pastes normally. The Import dropdown is localized via ')}
+          <code>labels.importDocument</code> / <code>labels.importDocumentHint</code>
+          {tx(' 注入。', '.')}
         </p>
       </div>
 
@@ -624,10 +640,11 @@ function DemosPage() {
         <ToolbarDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          <code>onImageUpload</code> is required for the image button to appear.
-          Return a URL string (or data URL) to insert the image node.
+          {tx('图片按钮出现的前提是传了 ', 'Required for the image button: ')}
+          <code>onImageUpload</code>
+          {tx('。返回 URL 字符串（或 data URL）即可插入图片节点。', ' return a URL string (or data URL) to insert the image node.')}
         </p>
       </div>
 
@@ -638,11 +655,21 @@ function DemosPage() {
       >
         <CodeBlockDemo />
       </DemoBlock>
+
+      <DemoBlock
+        anchor="demo-shortcuts"
+        title="Shortcut panel"
+        description="Keyboard FAB bottom-right opens the Yuque-style drawer: Format / Shortcut / Markdown trigger, three columns. Every row is a real binding — verified against the installed Tiptap extensions."
+      >
+        <EditorDemo />
+      </DemoBlock>
+
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          Customize labels via <code>codeBlockLabels</code> on{' '}
-          <code>MarkdownWysiwygEditor</code>.
+          {tx('经 ', 'Customize labels via ')}<code>codeBlockLabels</code>
+          {tx(' 在 ', ' on ')}<code>MarkdownWysiwygEditor</code>
+          {tx(' 上定制。', '.')}
         </p>
       </div>
 
@@ -654,12 +681,14 @@ function DemosPage() {
         <MathDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          No extra editor props. Localize via <code>labels.inlineMath</code> /{' '}
+          {tx('无需额外 props。文案经 ', 'No extra editor props. Localize via ')}
+          <code>labels.inlineMath</code> /{' '}
           <code>labels.blockMath</code> / <code>labels.mathNewInline</code> /{' '}
-          <code>labels.mathPlaceholder</code>.
-          Commands: <code>insertInlineMath</code> / <code>insertBlockMath</code>.
+          <code>labels.mathPlaceholder</code>
+          {tx(' 注入。命令：', '. Commands: ')}
+          <code>insertInlineMath</code> / <code>insertBlockMath</code>.
         </p>
       </div>
 
@@ -677,7 +706,7 @@ function DemosPage() {
         <ChartStreamingDemo />
       </DemoBlock>
 
-      <h2 className="demoGroupTitle">Reading</h2>
+      <h2 className="demoGroupTitle">{t('Reading')}</h2>
 
       <DemoBlock
         anchor="demo-preview"
@@ -687,9 +716,10 @@ function DemosPage() {
         <PreviewDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          Pass any markdown string to <code>markdown</code>. Styles come from{' '}
+          {tx('给 ', 'Pass any markdown string to ')}<code>markdown</code>
+          {tx(' 传任意 markdown 字符串即可。样式来自 ', '. Styles come from ')}
           <code>tiptap-markdown-react/style.css</code>.
         </p>
       </div>
@@ -702,10 +732,11 @@ function DemosPage() {
         <MathSsrDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          Same markdown as the editor demo. Hosts already importing{' '}
-          <code>tiptap-markdown-react/style.css</code> get KaTeX fonts/styles.
+          {tx('与编辑器演示同一份 markdown。已引入 ', 'Same markdown as the editor demo. Hosts already importing ')}
+          <code>tiptap-markdown-react/style.css</code>
+          {tx(' 的宿主自带 KaTeX 字体与样式。', ' get KaTeX fonts/styles.')}
         </p>
       </div>
 
@@ -725,11 +756,15 @@ function DemosPage() {
         <CitationDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          Pass <code>renderCitation={'{({ index, defaultDom }) => …}'}</code> to
-          wrap each pill. Look up your own data by <code>index</code>. Optional{' '}
-          <code>sources</code> only attaches url/title onto nodes.
+          {tx('传 ', 'Pass ')}
+          <code>renderCitation={'{({ index, defaultDom }) => …}'}</code>
+          {tx(' 来包住每个圆标；按 ', ' to wrap each pill. Look up your own data by ')}
+          <code>index</code>
+          {tx(' 查自己的数据。可选的 ', '. Optional ')}
+          <code>sources</code>
+          {tx(' 只负责把 url/title 挂到节点上。', ' only attaches url/title onto nodes.')}
         </p>
       </div>
 
@@ -741,12 +776,15 @@ function DemosPage() {
         <CitationSsrDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          Use <code>ReportContentInteractive</code> or compose{' '}
-          <code>ReportContent</code> + <code>CitationInteractive</code>. Click only:{' '}
-          <code>onCitationEnter(ctx)</code> / <code>onCitationLeave()</code>. Render
-          your Popover outside the content tree.
+          {tx('用 ', 'Use ')}
+          <code>ReportContentInteractive</code>
+          {tx('，或组合 ', ' or compose ')}
+          <code>ReportContent</code> + <code>CitationInteractive</code>
+          {tx('。只有点击事件：', '. Click only: ')}
+          <code>onCitationEnter(ctx)</code> / <code>onCitationLeave()</code>
+          {tx('。Popover 请渲染在内容树之外。', '. Render your Popover outside the content tree.')}
         </p>
       </div>
 
@@ -758,14 +796,16 @@ function DemosPage() {
         <MarkdownOutputDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          Call <code>ref.getMarkdown()</code> or subscribe to editor{' '}
-          <code>update</code> events.
+          {tx('调用 ', 'Call ')}<code>ref.getMarkdown()</code>
+          {tx('，或订阅编辑器的 ', ' or subscribe to editor ')}
+          <code>update</code>
+          {tx(' 事件。', ' events.')}
         </p>
       </div>
 
-      <h2 className="demoGroupTitle">Navigation</h2>
+      <h2 className="demoGroupTitle">{t('Navigation')}</h2>
 
       <DemoBlock
         anchor="demo-toc"
@@ -775,14 +815,16 @@ function DemosPage() {
         <EditorTocDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          <code>TocPanel</code> takes <code>items</code>, <code>activeId</code>,{' '}
-          and <code>onItemClick</code>. Locked items are not clickable.
+          <code>TocPanel</code>
+          {tx(' 接收 ', ' takes ')}<code>items</code>、<code>activeId</code>
+          {tx(' 与 ', ' and ')}<code>onItemClick</code>
+          {tx('。锁定项不可点击。', '. Locked items are not clickable.')}
         </p>
       </div>
 
-      <h2 className="demoGroupTitle">Theming</h2>
+      <h2 className="demoGroupTitle">{t('Theming')}</h2>
 
       <DemoBlock
         anchor="demo-theme"
@@ -797,10 +839,9 @@ function DemosPage() {
         <ThemeDemo />
       </DemoBlock>
       <div className="propsNote">
-        <h4>Props 说明</h4>
+        <h4>{t('Props 说明')}</h4>
         <p>
-          Set CSS variables on a wrapper element. See the API page for the full
-          --tmr-* list.
+          {tx('在包裹元素上设置 CSS 变量即可。完整的 --tmr-* 清单见 API 页。', 'Set CSS variables on a wrapper element. See the API page for the full --tmr-* list.')}
         </p>
       </div>
     </DocsShell>
@@ -808,16 +849,18 @@ function DemosPage() {
 }
 
 function ApiPage() {
+  const t = useT();
+  const tx = useTx();
   const tocItems = [
-    { id: 'api-client', label: 'Client exports' },
-    { id: 'api-server', label: 'Server exports' },
-    { id: 'api-theme', label: 'CSS variables' },
+    { id: 'api-client', label: t('Client exports') },
+    { id: 'api-server', label: t('Server exports') },
+    { id: 'api-theme', label: t('CSS variables') },
   ];
   return (
-    <DocsShell toc={<PageToc items={tocItems} />}>
+    <DocsShell toc={<PageToc page="api" items={tocItems} />}>
       <div className="docsPageHead">
-        <h1>API</h1>
-        <p>Complete reference for props, ref methods, utility functions, and theming tokens.</p>
+        <h1>{tx('API 参考', 'API')}</h1>
+        <p>{tx('props、ref 方法、工具函数与主题变量的完整参考。', 'Complete reference for props, ref methods, utility functions, and theming tokens.')}</p>
       </div>
 
       <section id="api-client" className="apiSection">
@@ -825,17 +868,26 @@ function ApiPage() {
         <h3>MarkdownWysiwygEditor</h3>
         <ApiTable rows={EDITOR_API} />
         <p className="componentDesc">
-          Markdown ingestion is built in: <code>markdownPaste</code> converts
-          pasted markdown text (heuristic on the plain-text content;
-          Shift+paste and code blocks are left untouched),{' '}
-          <code>markdownFileDrop</code> accepts <code>.md</code> /{' '}
-          <code>.markdown</code> files via drag-drop or file paste, and{' '}
-          <code>EditorToolbar</code> ships an <em>Import</em> dropdown on the main
-          bar (<code>labels.importDocument</code> / <code>labels.importDocumentHint</code>) that reads <code>.md</code>{' '}
-          locally and hands any other file to <code>onImportDocument</code>. Pass{' '}
-          <code>importMenuItems</code> to split formats. The
-          underlying extensions <code>MarkdownPaste</code> /{' '}
-          <code>MarkdownFileDrop</code> are exported for custom pipelines.
+          {tx('Markdown 导入是内建的：', 'Markdown ingestion is built in: ')}
+          <code>markdownPaste</code>
+          {tx(' 转换粘贴的 markdown 文本（对纯文本内容做启发式判断；Shift+粘贴与代码块原样保留），',
+            ' converts pasted markdown text (heuristic on the plain-text content; Shift+paste and code blocks are left untouched), ')}
+          <code>markdownFileDrop</code>
+          {tx(' 经拖放或文件粘贴收 ', ' accepts ')}
+          <code>.md</code> / <code>.markdown</code>
+          {tx(' 文件，主栏 ', ' files via drag-drop or file paste, and ')}
+          <code>EditorToolbar</code>
+          {tx(' 自带 ', ' ships an ')}<em>{tx('导入', 'Import')}</em>
+          {tx('下拉（', ' dropdown on the main bar (')}
+          <code>labels.importDocument</code> / <code>labels.importDocumentHint</code>
+          {tx('），本地读取 ', '), which reads ')}<code>.md</code>
+          {tx(' 并把其他文件交给 ', ' and hands any other file to ')}
+          <code>onImportDocument</code>
+          {tx('。传 ', '. Pass ')}
+          <code>importMenuItems</code>
+          {tx(' 拆分格式。底层扩展 ', ' to split formats. The underlying extensions ')}
+          <code>MarkdownPaste</code> / <code>MarkdownFileDrop</code>
+          {tx(' 已导出，供自建管线使用。', ' are exported for custom pipelines.')}
         </p>
         <h4>Ref methods</h4>
         <ApiTable rows={EDITOR_REF_API} />
@@ -843,8 +895,8 @@ function ApiPage() {
         <h3>EditorToolbar</h3>
         <ApiTable rows={TOOLBAR_API} />
         <p className="componentDesc">
-          More menu includes <em>Inline equation</em> / <em>Block equation</em>.
-          Click a rendered formula to edit LaTeX in place. Labels:{' '}
+          {tx('更多菜单含 ', 'More menu includes ')}<em>{tx('行内公式', 'Inline equation')}</em> / <em>{tx('块级公式', 'Block equation')}</em>
+          {tx('。点击已渲染的公式可原位编辑 LaTeX。文案：', '. Click a rendered formula to edit LaTeX in place. Labels: ')}
           <code>inlineMath</code>, <code>blockMath</code>,{' '}
           <code>mathPlaceholder</code>, <code>mathDone</code>,{' '}
           <code>mathNewInline</code>, <code>mathNewBlock</code>.
@@ -853,9 +905,11 @@ function ApiPage() {
 
         <h3>Equations</h3>
         <p className="componentDesc">
-          Math lives in <code>baseExtensions</code> (editor, preview, and SSR).
-          Markdown uses <code>$$</code> only; a single <code>$</code> is always
-          a dollar sign. There is no typing shortcut.
+          {tx('公式内置于 ', 'Math lives in ')}<code>baseExtensions</code>
+          {tx('（编辑器、预览与 SSR 共用）。Markdown 只认 ', ' (editor, preview, and SSR). Markdown uses ')}
+          <code>$$</code>
+          {tx('；单个 ', '; a single ')}<code>$</code>
+          {tx(' 永远是美元符号，没有键入快捷方式。', ' is always a dollar sign. There is no typing shortcut.')}
         </p>
         <ApiTable rows={MATH_API} />
 
@@ -864,12 +918,15 @@ function ApiPage() {
 
         <h3>Citations</h3>
         <p className="componentDesc">
-          <code>[^n]</code> is parsed into a mid-line circular pill. Mount host UI
-          with <code>renderCitation</code> on the editor/preview (NodeView), or{' '}
-          <code>onCitationEnter</code> / <code>onCitationLeave</code> on SSR HTML
-          via <code>CitationInteractive</code>. Same <code>index</code> lookup;
-          reader open state is host-owned. The library does not define your source
-          schema.
+          <code>[^n]</code>
+          {tx(' 被解析成行内圆形圆标。编辑器 / 预览经 ', ' is parsed into a mid-line circular pill. Mount host UI with ')}
+          <code>renderCitation</code>
+          {tx('（NodeView）挂宿主 UI，SSR HTML 则经 ', ' on the editor/preview (NodeView), or ')}
+          <code>onCitationEnter</code> / <code>onCitationLeave</code>
+          {tx('（配合 ', ' on SSR HTML via ')}
+          <code>CitationInteractive</code>
+          {tx('）。同样按 ', '). Same ')}<code>index</code>
+          {tx(' 查数据；阅读页的开合状态归宿主。库不定义你的来源 schema。', ' lookup; reader open state is host-owned. The library does not define your source schema.')}
         </p>
         <ApiTable rows={CITATION_API} />
         <h4>CitationInteractive</h4>
@@ -886,26 +943,34 @@ function ApiPage() {
 
         <h3>Utilities</h3>
         <p className="componentDesc">
-          Tool functions you can import directly from <code>tiptap-markdown-react</code>.
-          Use them for custom scroll behavior, programmatic markdown insertion, and TOC anchor
-          generation.
+          {tx('可从 ', 'Tool functions you can import directly from ')}
+          <code>tiptap-markdown-react</code>
+          {tx(' 直接导入的工具函数：自定义滚动行为、程序化插入 markdown、生成目录锚点。',
+            '. Use them for custom scroll behavior, programmatic markdown insertion, and TOC anchor generation.')}
         </p>
 
         <h4>scrollToTocHeading</h4>
         <p className="componentDesc">
-          Smooth-scroll to a heading identified by its <code>data-toc-id</code> attribute.
-          Uses <code>requestAnimationFrame</code> + easeOutCubic instead of browser{' '}
-          <code>scrollIntoView()</code>, which silently fails inside flex + overflow nested
-          containers in Chrome. Respects <code>prefers-reduced-motion: reduce</code>.
+          {tx('平滑滚动到由 ', 'Smooth-scroll to a heading identified by its ')}
+          <code>data-toc-id</code>
+          {tx(' 属性标记的标题。用 ', ' attribute. Uses ')}
+          <code>requestAnimationFrame</code>
+          {tx(' + easeOutCubic，而非浏览器 ', ' + easeOutCubic instead of browser ')}
+          <code>scrollIntoView()</code>
+          {tx('——后者在 Chrome 的 flex + overflow 嵌套容器里会静默失效。尊重 ',
+            ', which silently fails inside flex + overflow nested containers in Chrome. Respects ')}
+          <code>prefers-reduced-motion: reduce</code>
+          {tx('。', '.')}
         </p>
         <ApiTable rows={SCROLL_TO_TOC_HEADING_API} />
 
         <h4>insertMarkdown</h4>
         <p className="componentDesc">
-          Programmatically insert a markdown string at the cursor position. Optional{' '}
-          <code>sources</code> enriches <code>[^n]</code> before insert. Equivalent to{' '}
-          <code>editor.chain().focus().insertContent(md, {'{'}contentType:'markdown'{'}'}).run()</code>{' '}
-          when sources are omitted.
+          {tx('在光标处程序化插入一段 markdown。可选的 ', 'Programmatically insert a markdown string at the cursor position. Optional ')}
+          <code>sources</code>
+          {tx(' 会在插入前富化 ', ' enriches ')}<code>[^n]</code>
+          {tx('。省略 sources 时等价于 ', ' before insert. Equivalent to ')}
+          <code>editor.chain().focus().insertContent(md, {'{'}contentType:'markdown'{'}'}).run()</code>。
         </p>
         <ApiTable rows={INSERT_MARKDOWN_API} />
 
@@ -938,10 +1003,11 @@ renderReportHtml(markdown, {
       </section>
 
       <section id="api-theme" className="apiSection">
-        <h2>CSS variables (--tmr-*)</h2>
+        <h2>{tx('CSS 变量 (--tmr-*)', 'CSS variables (--tmr-*)')}</h2>
         <p className="componentDesc">
-          Override on any ancestor of the editor or reader. Import{' '}
-          <code>tiptap-markdown-react/style.css</code> first.
+          {tx('在编辑器或阅读器的任意祖先上覆盖。先引入 ', 'Override on any ancestor of the editor or reader. Import ')}
+          <code>tiptap-markdown-react/style.css</code>
+          {tx('。', ' first.')}
         </p>
         <ApiTable rows={THEME_VARS} />
       </section>
@@ -950,10 +1016,25 @@ renderReportHtml(markdown, {
 }
 
 export function App() {
-  const page = useHashPage();
+  const { page, anchor } = useHashRoute();
+
+  // 页内锚点：等目标页面渲染完再滚动。不用 scrollIntoView——它在 flex + overflow
+  // 嵌套布局里会静默失效（正是 scrollToTocHeading 文档里写过的坑），这里显式算坐标。
+  useEffect(() => {
+    if (!anchor) return;
+    const el = document.getElementById(anchor);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 84;
+    window.scrollTo({ top, behavior: 'smooth' });
+  }, [page, anchor]);
+
+  // 切页且无锚点时回到页首
+  useEffect(() => {
+    if (!anchor) window.scrollTo(0, 0);
+  }, [page, anchor]);
 
   return (
-    <>
+    <LangProvider>
       <div className="aurora" aria-hidden />
       <div className="auroraGrain" aria-hidden />
       <div className="site">
@@ -966,6 +1047,6 @@ export function App() {
           <SiteFooter />
         </div>
       </div>
-    </>
+    </LangProvider>
   );
 }

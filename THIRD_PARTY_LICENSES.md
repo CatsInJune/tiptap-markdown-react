@@ -58,6 +58,7 @@ SOFTWARE.
 
 | 依赖 | 许可证 |
 | --- | --- |
+| `@floating-ui/dom`（`@tiptap/suggestion` 的 peer 依赖，弹层定位） | MIT |
 | `@radix-ui/react-dropdown-menu` | MIT |
 | `@radix-ui/react-popover` | MIT |
 | `@tiptap/core` | MIT |
@@ -78,6 +79,7 @@ SOFTWARE.
 | `@tiptap/react` | MIT |
 | `@tiptap/starter-kit` | MIT |
 | `@tiptap/static-renderer` | MIT |
+| `@tiptap/suggestion`（斜杠菜单状态机 / 定位） | MIT |
 | `lowlight` | MIT |
 | `re2js`（经 `@tiptap/extension-find-and-replace` 传递引入） | MIT |
 | `highlight.js`（经 `lowlight` 传递引入） | BSD-3-Clause |

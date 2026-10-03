@@ -382,3 +382,31 @@
     transform: rotate(360deg);
   }
 }
+
+/* 快捷键抽屉的悬浮入口：sticky-bottom——自然位置在编辑器底部，
+   内容滚动时保持悬浮在可视区右下；到内容末尾落位对齐右缘 */
+.shortcutFab {
+  position: sticky;
+  bottom: 20px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 16px 12px auto;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--tmr-toolbar-border, #ececec);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--tmr-text, #363737);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+  cursor: pointer;
+  transition: box-shadow 0.15s, color 0.15s;
+}
+
+.shortcutFab:hover {
+  color: var(--tmr-accent, #ff6719);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+}

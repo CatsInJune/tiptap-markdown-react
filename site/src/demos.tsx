@@ -757,6 +757,7 @@ export function I18nDemo() {
               initialMarkdown={markdown}
               codeBlockLabels={labels.codeBlock}
               findLabels={labels.find}
+              shortcutLabels={labels.shortcut}
               onTocChange={setToc}
               onEditorReady={setEditor}
             />

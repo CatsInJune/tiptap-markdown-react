@@ -20,6 +20,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -50,7 +51,11 @@ import type {
 import { baseExtensions, lowlight } from '../extensions';
 import { FindReplaceBar } from './FindReplaceBar';
 import { ImportPlaceholder } from '../importPlaceholder';
-import type { CodeBlockLabels, FindLabels } from '../labels';
+import type { CodeBlockLabels, FindLabels, ShortcutLabels, SlashMenuLabels } from '../labels';
+import { defaultShortcutLabels } from '../labels';
+import { SlashMenu } from '../slashMenu/SlashMenuExtension';
+import { ShortcutPanel } from '../shortcuts/ShortcutPanel';
+import { KeyboardIcon } from '../icons';
 import { MarkdownFileDrop } from '../markdownFileDrop';
 import {
   pendingAnchorExtension,
@@ -301,6 +306,21 @@ export interface MarkdownWysiwygEditorProps {
   findShortcut?: boolean;
   /** 查找替换浮动条的本地化文案。 */
   findLabels?: Partial<FindLabels>;
+  /**
+   * 启用快捷键抽屉：编辑器右下角出现键盘悬浮按钮，点开为
+   * 「格式 / 快捷键 / Markdown」三列对照抽屉（默认 true，只读态隐藏）。
+   */
+  shortcutPanel?: boolean;
+  /** 快捷键抽屉的本地化文案。 */
+  shortcutLabels?: Partial<ShortcutLabels>;
+  /**
+   * 启用斜杠菜单：键入 `/`（行首或空白后）唤起块级插入弹窗（默认 true）。
+   * 代码块内不触发，表格单元格内触发；只读态不激活。
+   * 追加自定义命令项请传 `extraExtensions` 注册 `SlashMenu.configure({ items })`。
+   */
+  slashMenu?: boolean;
+  /** 斜杠菜单的本地化文案。 */
+  slashMenuLabels?: Partial<SlashMenuLabels>;
 }
 
 /**
@@ -337,8 +357,12 @@ export const MarkdownWysiwygEditor = forwardRef<
     findBar = findReplace,
     findBarContainer,
     findBarOffset = DEFAULT_FIND_BAR_OFFSET,
-    findShortcut = true,
-    findLabels,
+  findShortcut = true,
+  findLabels,
+  slashMenu = true,
+  slashMenuLabels,
+  shortcutPanel = true,
+  shortcutLabels,
   },
   ref,
 ) {
@@ -347,6 +371,7 @@ export const MarkdownWysiwygEditor = forwardRef<
   );
 
   const [findOpen, setFindOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const findInputRef = useRef<HTMLInputElement | null>(null);
 
   const editor = useEditor({
@@ -384,6 +409,8 @@ export const MarkdownWysiwygEditor = forwardRef<
       }),
       ...(markdownPaste ? [MarkdownPaste] : []),
       ...(markdownFileDrop ? [MarkdownFileDrop] : []),
+      // 斜杠菜单（键入 / 唤起）：默认开，只读态由 suggestion 状态机自身短路
+      ...(slashMenu ? [SlashMenu.configure({ labels: slashMenuLabels })] : []),
       ...(extraExtensions ?? []),
     ],
     content: preparedInitial,
@@ -597,6 +624,11 @@ export const MarkdownWysiwygEditor = forwardRef<
       />
     ) : null;
 
+  const shortcutT: ShortcutLabels = useMemo(
+    () => ({ ...defaultShortcutLabels, ...shortcutLabels }),
+    [shortcutLabels],
+  );
+
   return (
     <div className={styles.editorHost}>
       {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
@@ -612,6 +644,26 @@ export const MarkdownWysiwygEditor = forwardRef<
           className ? `${styles.editorScroll} ${className}` : styles.editorScroll
         }
       />
+      {/* 快捷键抽屉入口：sticky-bottom 悬浮在可视区右下，只读态隐藏 */}
+      {shortcutPanel && editable ? (
+        <button
+          type="button"
+          className={styles.shortcutFab}
+          title={shortcutT.panelTitle}
+          aria-label={shortcutT.panelTitle}
+          aria-expanded={shortcutsOpen}
+          onClick={() => setShortcutsOpen((v) => !v)}
+        >
+          <KeyboardIcon size={18} />
+        </button>
+      ) : null}
+      {shortcutPanel && editable ? (
+        <ShortcutPanel
+          open={shortcutsOpen}
+          onClose={() => setShortcutsOpen(false)}
+          labels={shortcutLabels}
+        />
+      ) : null}
     </div>
   );
 });
