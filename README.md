@@ -28,6 +28,12 @@ Then import the stylesheet once (e.g. in your root layout / entry):
 import 'tiptap-markdown-react/style.css';
 ```
 
+That single import is all you need — it stays the same across versions. Since 0.17.0 the stylesheet no longer embeds the KaTeX math fonts as base64 (which made it ~940KB gzipped and render-blocking on every page). Instead `style.css` references `dist/fonts/*.woff2` via relative `url()`s, so:
+
+- Bundlers (Next.js / Vite / webpack) resolve the font files automatically and emit them as static assets — no configuration needed.
+- Browsers download a font file only when rendered glyphs actually use it. Pages without math formulas fetch zero font bytes; the blocking stylesheet itself is ~18KB gzipped.
+- If you consume the CSS without a bundler (raw `<link>` to a single file), use the self-contained variant instead: `import 'tiptap-markdown-react/style-inline.css'` (~1.4MB, fonts embedded, otherwise identical).
+
 ### Migrating from 0.1.x
 
 Remove all `@tiptap/*` and `lowlight` from your `package.json` if you added them only for this package. Upgrade to `^0.2.0` and import types from the package:

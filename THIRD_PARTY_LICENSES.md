@@ -80,6 +80,7 @@ SOFTWARE.
 | `@tiptap/starter-kit` | MIT |
 | `@tiptap/static-renderer` | MIT |
 | `@tiptap/suggestion`（斜杠菜单状态机 / 定位） | MIT |
+| `katex`（数学渲染；`dist/style.css` 的 KaTeX 样式段落与 `dist/fonts/*.woff2` 字体文件均取自该包再分发） | MIT |
 | `lowlight` | MIT |
 | `re2js`（经 `@tiptap/extension-find-and-replace` 传递引入） | MIT |
 | `highlight.js`（经 `lowlight` 传递引入） | BSD-3-Clause |
