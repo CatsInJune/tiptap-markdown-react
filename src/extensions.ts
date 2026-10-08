@@ -16,7 +16,13 @@ import {
 import type { AnyExtension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
-import type { JSONContent } from '@tiptap/core';
+import type {
+  JSONContent,
+  MarkdownParseHelpers,
+  MarkdownRendererHelpers,
+  MarkdownToken,
+  MarkdownTokenizer,
+} from '@tiptap/core';
 import { parseCodeTokenAsChartOrCodeBlock } from './chart/codeBlockChartParse';
 import { reportBlockMath, reportInlineMath } from './math';
 
@@ -85,6 +91,65 @@ const MarkdownTextStyle = TextStyle.extend({
 });
 
 /**
+ * 认领一组行内 HTML 标签对（`<sup>…</sup>` / `<sub>…</sub>`）的 marked 行内
+ * tokenizer。官方管线只把「没被扩展认领」的行内 HTML 交给 window.DOMParser，
+ * 而 server 端没有 window 会把它转义成字面文本（见 renderReportHtml 的已知边界）；
+ * 自己认领后 SSR / Node 同样还原成 mark，且内层 markdown（`<sup>**x**</sup>`）
+ * 照常解析。token 名与扩展名一致，序列化器按它查 parseMarkdown——同 CitationRef。
+ */
+function htmlTagTokenizer(tag: string, tokenType: string): MarkdownTokenizer {
+  const opening = new RegExp(`<${tag}(?:\\s[^>]*)?>`, 'i');
+  const pair = new RegExp(
+    `^<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}\\s*>`,
+    'i',
+  );
+  return {
+    name: tokenType,
+    level: 'inline',
+    start(src) {
+      const match = opening.exec(src);
+      return match ? match.index : -1;
+    },
+    tokenize(src, _tokens, lexer) {
+      const match = pair.exec(src);
+      if (!match) return undefined;
+      return {
+        type: tokenType,
+        raw: match[0],
+        tokens: lexer.inlineTokens(match[1]),
+      };
+    },
+  };
+}
+
+/**
+ * 上标 / 下标的 markdown 往返：markdown 无原生语法，序列化为行内 HTML
+ * `<sup>` / `<sub>`（GFM 同样支持这两个标签）。
+ *
+ * 不加这层，getMarkdown() 会把这两个 mark 静默丢掉——@tiptap/markdown 对
+ * 没有 renderMarkdown 的 mark 直接返回空串。renderMarkdown 同时被序列化器
+ * 用作 mark 的开闭语法（getMarkOpening / getMarkClosing 用占位符切分），
+ * 与 MarkdownTextStyle 的 span 是同一套机制。
+ */
+const MarkdownSuperscript = Superscript.extend({
+  renderMarkdown(node: JSONContent, helpers: MarkdownRendererHelpers) {
+    return `<sup>${helpers.renderChildren(node)}</sup>`;
+  },
+  markdownTokenizer: htmlTagTokenizer('sup', 'superscript'),
+  parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) =>
+    helpers.applyMark('superscript', helpers.parseInline(token.tokens ?? [])),
+});
+
+const MarkdownSubscript = Subscript.extend({
+  renderMarkdown(node: JSONContent, helpers: MarkdownRendererHelpers) {
+    return `<sub>${helpers.renderChildren(node)}</sub>`;
+  },
+  markdownTokenizer: htmlTagTokenizer('sub', 'subscript'),
+  parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) =>
+    helpers.applyMark('subscript', helpers.parseInline(token.tokens ?? [])),
+});
+
+/**
  * 纯版代码块（无 React 视图）：server / 预览用。
  * 顺带把 ```tmr-chart 围栏升级为 chart 节点（内置 code tokenizer 抢先时）。
  */
@@ -117,8 +182,8 @@ export const baseExtensions: AnyExtension[] = [
   // 的 <span> 上（如 style="font-size: 16px"），与 Color 同基座，三端共用。
   FontSize.configure({ types: [TextStyle.name] }),
   Highlight.configure({ multicolor: true }),
-  Superscript,
-  Subscript,
+  MarkdownSuperscript,
+  MarkdownSubscript,
   TableKit.configure({
     table: {
       resizable: true,

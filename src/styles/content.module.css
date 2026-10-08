@@ -49,8 +49,11 @@
   min-height: var(--tmr-min-height, 420px);
 }
 
-/* placeholder：空文档第一段显示占位符 */
-.editorContent :global(p.is-editor-empty:first-child)::before {
+/* placeholder：空文档的当前文本块显示占位符。
+   属性由官方 Placeholder 扩展（组件里按 placeholder prop 注册）以节点装饰
+   打在段落 / 标题本身上，故此处 attr(data-placeholder) 取得到值。
+   不限定 p：空文档首块是空标题（敲 / 选 H1 后删空）时同样显示。 */
+.editorContent :global(.is-editor-empty:first-child)::before {
   content: attr(data-placeholder);
   float: left;
   height: 0;
