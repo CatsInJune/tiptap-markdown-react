@@ -6,6 +6,7 @@ import CodeBlockLowlight, {
 import FindAndReplace from '@tiptap/extension-find-and-replace';
 import Image from '@tiptap/extension-image';
 import { TableOfContents } from '@tiptap/extension-table-of-contents';
+import { Placeholder } from '@tiptap/extensions';
 import { Markdown } from '@tiptap/markdown';
 import {
   EditorContent,
@@ -390,6 +391,12 @@ export const MarkdownWysiwygEditor = forwardRef<
       CodeBlock.configure({ lowlight, codeBlockLabels }),
       ImageWithConfirmDelete.configure({ inline: false }),
       ImportPlaceholder,
+      // 空文档占位符：官方 Placeholder 把 data-placeholder 属性与
+      // is-empty / is-editor-empty 类打在**空文本块节点**上——CSS
+      // （styles/content.module.css）正是在节点上 attr(data-placeholder)
+      // 取值。早先只把属性挂在根 div 上，选择器永远匹配不到，占位符从没显示过。
+      // showOnlyWhenEditable 默认 true，只读态自动不显示。
+      ...(placeholder ? [Placeholder.configure({ placeholder })] : []),
       createChart({ editable: false }),
       createCitationRef({ renderCitation }),
       CommentMark,
@@ -431,7 +438,6 @@ export const MarkdownWysiwygEditor = forwardRef<
     editorProps: {
       attributes: {
         class: styles.editorContent,
-        'data-placeholder': placeholder ?? '',
       },
     },
   });
