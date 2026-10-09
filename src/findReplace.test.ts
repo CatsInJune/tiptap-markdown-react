@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { pureChart } from './chart/ChartExtension';
 import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
 import { baseExtensions, pureCodeBlock } from './extensions';
-import { runFindCommand } from './findReplace';
+import { hasFindReplaceExtension, runFindCommand } from './findReplace';
 
 /**
  * 官方查找替换在本 schema 下的语义契约。
@@ -197,5 +197,26 @@ describe('查找替换（官方扩展语义）', () => {
 
     expect(search(editor, 'one').results).toHaveLength(2);
     editor.destroy();
+  });
+});
+
+describe('扩展探测（按注册名，不靠命令是否存在）', () => {
+  it('装了 → true；没装 / 已销毁 / 传空 → false', () => {
+    const withExtension = build('one');
+    const withoutExtension = new Editor({
+      extensions: [...baseExtensions, Markdown],
+      content: 'one',
+      contentType: 'markdown',
+    });
+
+    expect(hasFindReplaceExtension(withExtension)).toBe(true);
+    expect(hasFindReplaceExtension(withoutExtension)).toBe(false);
+    expect(hasFindReplaceExtension(null)).toBe(false);
+    expect(hasFindReplaceExtension(undefined)).toBe(false);
+
+    // 探命令存不存在会漏掉这一条：销毁后的实例上命令仍在，但已经不能用了
+    withoutExtension.destroy();
+    expect(hasFindReplaceExtension(withoutExtension)).toBe(false);
+    withExtension.destroy();
   });
 });

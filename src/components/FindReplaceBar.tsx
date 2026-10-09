@@ -16,7 +16,12 @@ import {
   type MouseEvent as ReactMouseEvent,
   type RefObject,
 } from 'react';
-import { FIND_DEBOUNCE_MS, runFindCommand } from '../findReplace';
+import {
+  FIND_DEBOUNCE_MS,
+  hasFindReplaceExtension,
+  isComposingKeyEvent,
+  runFindCommand,
+} from '../findReplace';
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -51,7 +56,25 @@ export interface FindReplaceBarProps {
  * 这里只做输入、计数、开关与键位。
  *
  * 打开即把查询推给编辑器，关闭时 `clearSearch()`——高亮是会话级的，不留残影。
+ *
+ * 给宿主的稳定选择器（内部 class 是 CSS Modules 哈希过的，宿主够不着）：根节点
+ * `data-find-bar`、两个输入框 `data-find-field="search|replace"`、计数 `data-find-counter`、
+ * 两个开关 `data-find-option="match-case|whole-words"`、按钮
+ * `data-find-action="previous|next|close|replace|replace-all"`。
  */
+
+/** 「扩展没注册」的警告只发一次（模块级）：同页多实例、或条子被反复开关时，重复同一句没有信息量。 */
+let warnedMissingExtension = false;
+function warnMissingExtensionOnce(): void {
+  if (warnedMissingExtension) return;
+  warnedMissingExtension = true;
+  console.warn(
+    '[tiptap-markdown-react] FindReplaceBar 需要官方 find 扩展：' +
+      '请让 <MarkdownWysiwygEditor findReplace> 保持开启（默认 true），' +
+      '否则 setSearchTerm / replaceAll 等命令不存在。',
+  );
+}
+
 export function FindReplaceBar({
   editor,
   onClose,
@@ -66,15 +89,9 @@ export function FindReplaceBar({
 
   // 宿主自己摆条子时可能把 findReplace 关了——那时扩展没注册，命令与插件 state 都不存在。
   // 不拦住的话下面每个 effect 都会 TypeError 把宿主的树带崩；这里退化为不渲染并留一句提示。
-  const hasExtension = typeof editor.commands.setSearchTerm === 'function';
+  const hasExtension = hasFindReplaceExtension(editor);
   useEffect(() => {
-    if (!hasExtension) {
-      console.warn(
-        '[tiptap-markdown-react] FindReplaceBar 需要官方 find 扩展：' +
-          '请让 <MarkdownWysiwygEditor findReplace> 保持开启（默认 true），' +
-          '否则 setSearchTerm / replaceAll 等命令不存在。',
-      );
-    }
+    if (!hasExtension) warnMissingExtensionOnce();
   }, [hasExtension]);
 
   const state = useEditorState({
@@ -154,14 +171,18 @@ export function FindReplaceBar({
     [term, state.useRegex, state.caseSensitive],
   );
 
-  const counter = t.counter(
-    state.total === 0 ? 0 : (state.currentIndex ?? 0) + 1,
-    state.total,
-  );
+  // currentIndex 为 null = 有结果、但还没定位到某一条（官方 `formatResultCount` 同款语义：
+  // 那一条分支返回 `0 / total`）。不这样判的话第 1 条会被冒充成「当前」。
+  const current =
+    state.total === 0 || state.currentIndex === null
+      ? 0
+      : state.currentIndex + 1;
+  const counter = t.counter(current, state.total);
 
   const keepFocus = (e: ReactMouseEvent) => e.preventDefault();
 
   const onFindKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (isComposingKeyEvent(e.nativeEvent)) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       runAction(() => {
@@ -172,6 +193,7 @@ export function FindReplaceBar({
   };
 
   const onReplaceKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (isComposingKeyEvent(e.nativeEvent)) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       runAction(() => editor.commands.replace());
@@ -194,13 +216,18 @@ export function FindReplaceBar({
     <div
       className={className ? `${styles.bar} ${className}` : styles.bar}
       style={style}
+      data-find-bar=""
       role="dialog"
       aria-label={t.find}
       onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          onClose();
-        }
+        // 输入法组合中的 Esc 是「取消候选词」，放行。其余吃到 Esc 就自己收掉并**消费掉**这次
+        // 按键（stopPropagation）——宿主按文档把条子放进自己的弹窗 / 抽屉时，那一层的 Esc
+        // 处理不该被同一次按键带着一起关。
+        if (isComposingKeyEvent(e.nativeEvent)) return;
+        if (e.key !== 'Escape') return;
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
       }}
     >
       <div className={styles.row}>
@@ -209,6 +236,7 @@ export function FindReplaceBar({
           <input
             ref={inputRef}
             className={styles.input}
+            data-find-field="search"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             onKeyDown={onFindKeyDown}
@@ -219,6 +247,7 @@ export function FindReplaceBar({
           />
           <span
             className={`${styles.counter}${invalidPattern ? ` ${styles.counterInvalid}` : ''}`}
+            data-find-counter=""
             aria-live="polite"
             title={invalidPattern ? t.invalidRegex : undefined}
           >
@@ -228,6 +257,7 @@ export function FindReplaceBar({
           <button
             type="button"
             className={toggleClass(state.caseSensitive)}
+            data-find-option="match-case"
             title={t.caseSensitive}
             aria-label={t.caseSensitive}
             aria-pressed={state.caseSensitive}
@@ -239,6 +269,7 @@ export function FindReplaceBar({
           <button
             type="button"
             className={toggleClass(state.wholeWord)}
+            data-find-option="whole-words"
             title={t.wholeWord}
             aria-label={t.wholeWord}
             aria-pressed={state.wholeWord}
@@ -253,6 +284,7 @@ export function FindReplaceBar({
           <button
             type="button"
             className={styles.btn}
+            data-find-action="previous"
             title={t.previous}
             aria-label={t.previous}
             disabled={state.total === 0}
@@ -264,6 +296,7 @@ export function FindReplaceBar({
           <button
             type="button"
             className={styles.btn}
+            data-find-action="next"
             title={t.next}
             aria-label={t.next}
             disabled={state.total === 0}
@@ -275,6 +308,7 @@ export function FindReplaceBar({
           <button
             type="button"
             className={styles.btn}
+            data-find-action="close"
             title={t.close}
             aria-label={t.close}
             onClick={onClose}
@@ -289,6 +323,7 @@ export function FindReplaceBar({
           <span className={styles.field}>
             <input
               className={styles.input}
+              data-find-field="replace"
               value={replaceTerm}
               onChange={(e) => setReplaceTerm(e.target.value)}
               onKeyDown={onReplaceKeyDown}
@@ -301,6 +336,7 @@ export function FindReplaceBar({
           <button
             type="button"
             className={styles.btn}
+            data-find-action="replace"
             title={t.replaceOne}
             aria-label={t.replaceOne}
             disabled={state.total === 0}
@@ -312,6 +348,7 @@ export function FindReplaceBar({
           <button
             type="button"
             className={styles.btn}
+            data-find-action="replace-all"
             title={t.replaceAll}
             aria-label={t.replaceAll}
             disabled={state.total === 0}

@@ -295,14 +295,34 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `findBarOffset` | `{ top?, right?, bottom?, left? } \| number = px` | Where the library-rendered bar sits inside its positioning context. Default `{ top: 4, right: 4 }` (top-right); pass e.g. `{ bottom: 8, left: 8 }` to dock it elsewhere. The context is the editor, or your `findBarContainer` element when you supply one — the library adds `position: relative` to that container if it is `static` (otherwise the bar would anchor to some unexpected ancestor). |
 | `findShortcut` | `boolean` | Take over <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> while the editor has focus (default `true`; bound only when the editor owns a bar). `false` keeps the browser's native find — wire your own entry with `handle.openFind()`. |
 | `findLabels` | `Partial<FindLabels>` | Localize the find & replace bar. |
+| `onFindOpenChange` | `(open: boolean) => void` | Fired when the bar actually shows or hides (Esc / × included). Use it to drive an external entry such as the toolbar magnifier. Fires only on a real change — never a `false` on mount — and stays `false` while `findBar={false}`, so a host-placed bar never lights up an entry you did not open. |
 | `className` | `string` | Class on the scroll container. |
 
 Ref handle (`MarkdownWysiwygEditorHandle`): `getMarkdown()`, `getHTML()`, `getJSON()`, `getEditor()`,
-`focusComment(id)`, `nextComment(dir?)`, `getCommentIds()`, `openFind()`, `closeFind()`.
+`focusComment(id)`, `nextComment(dir?)`, `getCommentIds()`, `openFind()`, `closeFind()`, `toggleFind()`.
+`openFind()` keeps the same "press again" feel as <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> — refocus the search field and
+select the query — while `toggleFind()` flips the bar and pairs with an entry that shows an active state
+(`onSearch={() => handle.current?.toggleFind()}`).
 
 #### Find & replace
 
-<kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (while focus is inside the editor) opens a floating bar: match counter inside the search field, wrap-around next/previous, match-case and whole-word toggles, replace and replace-all. `Esc` closes it, clears the highlights and returns focus to the editor. Read-only editors (`editable={false}`) can search but not replace.
+<kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (while focus is inside the editor) opens a floating bar: match counter inside the search field, wrap-around next/previous, match-case and whole-word toggles, replace and replace-all. Read-only editors (`editable={false}`) can search but not replace. <kbd>Enter</kbd> in the search field jumps to the next match — but an <kbd>Enter</kbd> that is committing an IME candidate (Chinese/Japanese input) is left alone, so confirming a word never jumps or replaces.
+
+**Closing it.** `Esc` closes the bar, clears the highlights and returns focus to the editor; it works from anywhere that belongs to the editor (focus inside the bar, inside the document, or on the page while this is the only editor), and the keystroke is consumed so a host popover or drawer wrapping the bar does not close along with it. Other ways out: the bar's ×, `handle.closeFind()`, `toggleFind()`, and unmounting the bar. Deliberately **not** closing on: clicking into the document or another input, an empty query, zero results, after replace-all, or switching to read-only (search stays available then — only the replace row goes away). If an editor is swapped out (remounted for a new document), the library reports `onFindOpenChange(false)` so an entry elsewhere never stays lit.
+
+`<EditorToolbar>` can carry an entry to the same bar. Pass `onSearch` (wired to the ref handle) and the magnifier appears just left of the More menu; omit it and the button does not render. Feed `searchActive` from `onFindOpenChange` and it lights up while the bar is open — pair it with `toggleFind()` so the lit button also turns the bar back off:
+
+```tsx
+const find = useRef<MarkdownWysiwygEditorHandle>(null)
+const [findOpen, setFindOpen] = useState(false)
+
+<EditorToolbar
+  editor={editor}
+  onSearch={() => find.current?.toggleFind()}
+  searchActive={findOpen}
+/>
+<MarkdownWysiwygEditor ref={find} onFindOpenChange={setFindOpen} />
+```
 
 Matching is done by the official extension, so the semantics are its semantics — worth knowing before you rely on them:
 
@@ -352,13 +372,15 @@ With `findBar={false}` the editor does not bind <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd>
 
 `FindReplaceBar` is exported if you'd rather place the bar yourself, `FindLabels` / `defaultFindLabels` for i18n, and `FindAndReplace` for hand-built pipelines. Two details to reuse when driving it yourself: keep `searchDebounceMs: 0` on the extension and debounce in your own UI, and route calls through `runFindCommand()` — it absorbs a Tiptap 3.31.3 transaction mismatch that fires on the first search when the document ends with a code block / table / chart (see the comment on `runFindCommand` for the mechanism).
 
+Styling the bar from the outside: its internals use hashed CSS-module classes, so the bar carries stable hooks instead — `[data-find-bar]` on the root, `[data-find-field="search|replace"]` on the inputs, `[data-find-counter]` on the counter, `[data-find-option="match-case|whole-words"]` on the toggles and `[data-find-action="previous|next|close|replace|replace-all"]` on the buttons. Colors stay on the theme variables (`--tmr-find-*` for the highlights, `--tmr-toolbar-*` / `--tmr-accent` for the bar chrome).
+
 #### i18n (labels)
 
 There is no global locale and no provider: every visible string comes from a `Partial<XLabels>` prop that is merged over built-in English defaults (`{ ...defaultToolbarLabels, ...labels }`). A host ships one object per language and passes it down; switching languages is picking a different object. Override only the keys you care about — everything else falls back to English.
 
 | Component | Prop | Type |
 | --- | --- | --- |
-| `<EditorToolbar>` | `labels` | `Partial<ToolbarLabels>` (also covers the Import menu and the equation popover) |
+| `<EditorToolbar>` | `labels` | `Partial<ToolbarLabels>` (also covers the Import menu, the equation popover and the link popover) |
 | `<MarkdownWysiwygEditor>` | `findLabels` | `Partial<FindLabels>` (replace / replace-all appear as icon buttons, so their labels are the tooltip + accessible name) |
 | `<MarkdownWysiwygEditor>` | `codeBlockLabels` | `Partial<CodeBlockLabels>` |
 | `<TocPanel>` | `labels` | `Partial<TocLabels>` |
@@ -386,6 +408,8 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 
 ### `<EditorToolbar>` (client)
 
+The row is centred and, when the controls no longer fit the container, **wraps onto a second line** rather than scrolling sideways — a hidden control is worse than a taller toolbar. The full set (search entry included) needs about 1045 px of container width; narrower containers get a wrapped line with 4 px of vertical breathing room. `onSearch` renders the magnifier just left of the More menu.
+
 | Prop | Type | Description |
 | --- | --- | --- |
 | `editor` | `Editor` | The instance from `onEditorReady`. |
@@ -396,9 +420,57 @@ The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLi
 | `importMenuItems` | `ImportMenuItem[]` | Import dropdown options (`label` + `accept`). Hosts that want Markdown / Word / PDF pass three items. |
 | `showImport` | `boolean` | Show the Import dropdown (default `true`). |
 | `labels` | `Partial<ToolbarLabels>` | i18n labels. |
+| `onSearch` | `() => void` | Search entry (magnifier) left of the More menu. Wire it to `handle.toggleFind()` (or `openFind()` if you'd rather it only ever open); omit it and no button renders. Worth passing only when the editor owns a bar (`findBar` on) — a host-placed bar has nothing for it to open. Search works read-only, so the button never greys out. |
+| `searchActive` | `boolean` | Whether the bar is open; drives `aria-pressed` and the active highlight of the search entry (default `false`). Feed it from the editor's `onFindOpenChange`. |
 | `extraToolbarItems` | `ExtraToolbarItem[]` | Custom items appended to the "More" menu. |
 | `labels.inlineMath` / `blockMath` | `string` | More-menu equation items. |
 | `labels.mathPlaceholder` / `mathDone` / `mathNewInline` / `mathNewBlock` | `string` | Equation editor (empty chip/hint, input, Done). |
+| `labels.tableRowMenu` / `tableColumnMenu` | `string` | Aria-labels of the table hover handles. |
+| `labels.linkPrompt` / `linkApply` / `linkOpen` / `linkRemove` / `linkInvalid` | `string` | Link popover: field placeholder, apply, open in new window, remove, rejected-address hint. |
+
+#### Table editing (hover handles)
+
+Hover any cell and four affordances appear: a `⋮` handle on the row's left edge, a `⋯` handle above the table aligned to the column, a `+` pill on the table's right edge (**append a column**) and a `+` pill below it (**append a row**). They are all sized to what they act on: the row handle spans the row's height, the column handle spans the column's width, and each `+` spans the table's edge it sits on. Clicking a handle selects that whole row / column and opens its menu: add before / after, delete, **Clear content**, **Reset cell styles**, plus **Delete table**. The handles ship with `<EditorToolbar>` (they are its table UI), reuse the same commands as the insert-table grid, and do not appear on read-only editors.
+
+Right-click is still wired for exactly one case: a **multi-cell selection** (drag across cells). A handle can only express one row or one column, so batch add/delete of a rectangle keeps the context menu.
+
+**Clear content** empties the selected cells but keeps them (a header row therefore never degrades into a data row), and **Reset cell styles** puts `colwidth` / `align` back to their schema defaults while leaving `colspan` / `rowspan` alone — those are structural, and the extension's `mergeCells` / `splitCell` are deliberately **not** exposed here: GFM has no `colspan`, so a merged cell exports as `| 1<br>2 |  |` and cannot be restored on reload. Column width is a *column* property managed by the resize plugin, so clearing it needs the whole column selected (from the row handle it is restored from the widest cell in that column, which is the plugin's normal behavior).
+
+Styling hooks (internals are hashed CSS-module classes): `[data-table-handle="row|col"]` on the handles, `[data-table-menu]` on the menu. Colors ride `--tmr-table-handle-bg` / `-fg` / `-border` (a light pill by default; hovering turns it into `--tmr-accent`).
+
+**Not included: dragging a handle to reorder rows or columns.** That is precisely the part the official `table-node` component implements inside its own source — which is a **paid** Start-plan component (the registry answers 401 for `table-node`, `toc-node`, `drag-context-menu` while free ones answer 200), so it cannot be vendored into this MIT package. The free `@tiptap/extension-table` ships the add/delete/header/merge commands used here but no move commands; reordering would be our own transaction code on top of `TableMap`.
+
+### `<LinkPopover>` (client)
+
+The toolbar's link button opens this popover — type an address, apply it, open it in a new window, or remove the link. With the caret inside a link it prefills that link's href, so editing a URL no longer means deleting and re-adding it (the old `window.prompt` also could not be edited, gave no feedback for a rejected address, and is unavailable in Electron and some WebViews).
+
+```tsx
+<LinkPopover
+  editor={editor}
+  labels={{ field: 'Paste a link…' }}
+  trigger={<button type="button" className="my-btn"><LinkIcon /></button>}
+/>
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `editor` | `Editor` | The editor to operate on. |
+| `trigger` | `ReactNode` | Your own trigger element. Radix's `asChild` takes over its click / ref / aria, so it must be a DOM element or a `forwardRef` component (the toolbar passes its `ToolbarButton`). |
+| `labels` | `Partial<LinkPopoverLabels>` | i18n labels (`defaultLinkPopoverLabels` is exported). |
+| `className` / `style` | `string` / `CSSProperties` | Extra class / inline style on the panel; placement stays with Radix. |
+
+Styling hooks (internals are hashed CSS-module classes): `[data-link-popover]` on the panel, `[data-link-field]` on the input, `[data-link-action="apply|open|remove"]` on the buttons, `[data-link-invalid]` on the input while the editor rejects the address. Colors come from the theme variables (`--tmr-accent`, `--tmr-toolbar-border`, `--tmr-toolbar-muted`, `--tmr-text`, `--tmr-danger`).
+
+The logic follows the official link-popover component (MIT) — ported, not vendored, so no Tailwind, no primitive design system and no extra runtime deps. It also fixes two flaws in that reference implementation, both caught by tests here: a rejected address used to leave the document modified (the insert-after-a-failed-`setLink` chain), and editing a link whose caret sits inside it replaced the link's text with the URL. What it does:
+
+- applies over `extendMarkRange('link')`, so changes hit the whole link;
+- inserts the address as its own text when the selection is empty and there is no link;
+- removes without letting the autolink plugin re-add the link (`preventAutolink`);
+- normalises bare domains and `host:port` with the extension's `defaultProtocol` (typing `example.com` stores `http://example.com`, matching what Tiptap's autolink does on paste — otherwise markdown would export a relative link);
+- opens through a protocol allowlist with `noopener,noreferrer`;
+- keeps its Enter IME-safe (the official panel's handler would apply the link while you commit a Chinese/Japanese candidate).
+
+The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLink`, `canSetLink`, `isLinkActive`, `readLinkHref`, `normalizeLinkHref`, `sanitizeLinkUrl`, `openLinkUrl`.
 
 ### `<MarkdownPreview>` (client)
 

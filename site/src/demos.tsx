@@ -44,16 +44,26 @@ function fileToDataUrl(file: File): Promise<string> {
 /** 完整编辑器 + 工具栏 */
 export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
   const onImageUpload = useCallback((file: File) => fileToDataUrl(file), []);
   return (
     <div className="editorDemo">
       {editor && (
-        <EditorToolbar editor={editor} onImageUpload={onImageUpload} />
+        <EditorToolbar
+          editor={editor}
+          onImageUpload={onImageUpload}
+          // 工具栏只开一道门：条子归编辑器，这里接上句柄；searchActive 用它上报的开合态
+          onSearch={() => editorRef.current?.toggleFind()}
+          searchActive={findOpen}
+        />
       )}
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor
+          ref={editorRef}
           initialMarkdown={initial}
           placeholder="Write something…"
+          onFindOpenChange={setFindOpen}
           onEditorReady={setEditor}
         />
       </div>
@@ -598,6 +608,8 @@ export function HeroDemo() {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [markdown, setMarkdown] = useState(DEMO_MD);
   const [tab, setTab] = useState<'editor' | 'markdown' | 'reader'>('editor');
+  const [findOpen, setFindOpen] = useState(false);
+  const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
   const onImageUpload = useCallback((file: File) => fileToDataUrl(file), []);
 
   useEffect(() => {
@@ -643,12 +655,19 @@ export function HeroDemo() {
       </div>
       <div style={{ display: tab === 'editor' ? 'block' : 'none' }}>
         {editor && (
-          <EditorToolbar editor={editor} onImageUpload={onImageUpload} />
+          <EditorToolbar
+            editor={editor}
+            onImageUpload={onImageUpload}
+            onSearch={() => editorRef.current?.toggleFind()}
+            searchActive={findOpen}
+          />
         )}
         <div className="demoBody">
           <MarkdownWysiwygEditor
+            ref={editorRef}
             initialMarkdown={DEMO_MD}
             placeholder="Write something…"
+            onFindOpenChange={setFindOpen}
             onEditorReady={setEditor}
           />
         </div>
@@ -715,6 +734,7 @@ export function I18nDemo() {
   const [markdown, setMarkdown] = useState(I18N_MD);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [toc, setToc] = useState<TocItem[]>([]);
+  const [findOpen, setFindOpen] = useState(false);
   const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
   const labels = LOCALES[locale];
 
@@ -722,6 +742,7 @@ export function I18nDemo() {
     if (next === locale) return;
     // initialMarkdown 是 init-only，重建前必须把当前内容取回来，否则未保存的编辑会丢
     setMarkdown(editorRef.current?.getMarkdown() ?? markdown);
+    // 条子随编辑器（key）一起卸载，库会补发一次 onFindOpenChange(false)，入口的高亮自己会灭
     setLocale(next);
   };
 
@@ -744,11 +765,19 @@ export function I18nDemo() {
         </button>
         <span>
           当前：{locale}。工具栏 / 目录实时切换；代码块文案要重建编辑器（用
-          getMarkdown 回灌内容）。Cmd/Ctrl+F 的查找条也随 findLabels 切换。
+          getMarkdown 回灌内容）。Cmd/Ctrl+F 的查找条也随 findLabels 切换，
+          工具栏右侧的放大镜同样。
         </span>
       </div>
       <div className="editorDemoBody">
-        {editor && <EditorToolbar editor={editor} labels={labels.toolbar} />}
+        {editor && (
+          <EditorToolbar
+            editor={editor}
+            labels={labels.toolbar}
+            onSearch={() => editorRef.current?.toggleFind()}
+            searchActive={findOpen}
+          />
+        )}
         <div className="editorTocDemo">
           <div className="editorTocDemoEditor">
             <MarkdownWysiwygEditor
@@ -758,6 +787,7 @@ export function I18nDemo() {
               codeBlockLabels={labels.codeBlock}
               findLabels={labels.find}
               shortcutLabels={labels.shortcut}
+              onFindOpenChange={setFindOpen}
               onTocChange={setToc}
               onEditorReady={setEditor}
             />

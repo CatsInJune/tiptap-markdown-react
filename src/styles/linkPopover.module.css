@@ -1,0 +1,101 @@
+/* 链接编辑浮层。配色走 --tmr-* 变量（与工具栏 / 查找条同一套），宿主可覆盖。
+
+   给宿主的稳定选择器（内部 class 是 CSS Modules 哈希过的）：根节点 [data-link-popover]、
+   输入框 [data-link-field]、按钮 [data-link-action="apply|open|remove"]；
+   地址被编辑器判为非法时输入框带 [data-link-invalid]。 */
+
+.panel {
+  --lp-text: var(--tmr-text, #363737);
+  --lp-muted: var(--tmr-toolbar-muted, #6b6b6b);
+  --lp-border: var(--tmr-toolbar-border, #ececec);
+  --lp-accent: var(--tmr-accent, #ff6719);
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--lp-border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 14%);
+  color: var(--lp-text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+/* 输入框：与查找条的 .field 同一套尺寸（30px 高、6px 圆角），两个浮层看起来是一家 */
+.field {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  width: 216px;
+  height: 30px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--lp-border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.field:focus-within {
+  border-color: var(--lp-accent);
+}
+
+/* 地址被 setLink 的 isAllowedUri 拒了：边框转成危险色，title 里给一句解释 */
+.fieldInvalid,
+.fieldInvalid:focus-within {
+  border-color: var(--tmr-danger, #d4380d);
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+/* 应用与其他两个动作之间的一道细线：前者是「落盘」，后者是「对已有链接动手」 */
+.divider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin: 0 2px;
+  background: var(--lp-border);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--lp-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  background: #f3f3f3;
+  color: var(--lp-text);
+}
+
+.btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 应用是这一层的主动作，单独给强调色（其余两个是次要动作） */
+.apply {
+  color: var(--lp-accent);
+}

@@ -1,0 +1,174 @@
+/* 表格悬停手柄（Notion 式）+ 它的操作菜单。配色走 --tmr-* 变量，宿主可覆盖。
+
+   给宿主的稳定选择器（内部 class 是 CSS Modules 哈希过的）：行手柄 [data-table-handle="row"]、
+   列手柄 [data-table-handle="col"]、菜单根 [data-table-menu]。 */
+
+/* ── 手柄 ──────────────────────────────────────────────────────────────
+   固定定位（视口坐标）：手柄要贴在单元格的行/列边缘，而它渲染在 body 上的 portal 里，
+   没法用绝对定位跟着表格走。滚动 / 缩放时由组件收起，等下一次移动重新贴。 */
+.handle {
+  position: fixed;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--tmr-table-handle-border, #e8e8ea);
+  background: var(--tmr-table-handle-bg, #f1f1f3);
+  color: var(--tmr-table-handle-fg, #7a7a7a);
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+/* 命中区补桥（行）：胶囊本体离表格留了 8px 视觉留白，那 8px 加一块看不见的命中区，
+   让「单元格 → 手柄」这段路上没有既非单元格也非手柄的空隙——否则指针走到一半手柄就收了。
+   伪元素也算宿主按钮的一部分，点它命中的是按钮本身。 */
+.handleRow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: 8px;
+}
+
+/* 命中区补桥（列）：同上，补在胶囊下方到表格上缘的 6px。 */
+.handleCol::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 6px;
+}
+
+/* 行手柄：贴在行左缘的竖胶囊。长度（height）由组件按行高给，这里只定粗细。 */
+.handleRow {
+  width: 18px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+/* 列手柄：贴在表格上方的横胶囊。长度（width）由组件按列宽给，这里只定高度。 */
+.handleCol {
+  height: 16px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.handle:hover {
+  background: var(--tmr-accent, #ff6719);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* 末尾追加行列的 `+` 手柄：贴在表格右缘 / 下缘，长度跟着表格尺寸走（见组件里的 style）。 */
+.extend {
+  position: fixed;
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--tmr-table-handle-border, #e8e8ea);
+  background: var(--tmr-table-handle-bg, #f1f1f3);
+  color: var(--tmr-table-handle-fg, #7a7a7a);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.extend:hover {
+  background: var(--tmr-accent, #ff6719);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* 命中区补桥：把命中区接到表格边缘（与行 / 列手柄同理，免得指针走过去时掉空档） */
+.extend[data-table-extend='col']::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 6px;
+}
+
+.extend[data-table-extend='row']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 6px;
+}
+
+/* ── 操作菜单（portal 到 body，拿不到 .toolbar 变量，故写死配色） ── */
+.tableBubble {
+  position: fixed;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 14%);
+}
+
+.tableMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #363737;
+  font-size: 14px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tableMenuItem:hover:not(:disabled) {
+  background: #f3f3f3;
+}
+
+.tableMenuItem:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.tableMenuItemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: #6b6b6b;
+}
+
+.tableMenuItemLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.tableMenuDivider {
+  height: 1px;
+  margin: 4px 8px;
+  background: #ececec;
+  flex-shrink: 0;
+}

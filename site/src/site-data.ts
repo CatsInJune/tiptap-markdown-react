@@ -114,6 +114,7 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'findBarOffset', desc: 'Where the library-rendered bar sits in its context (editor, or your container)', type: '{ top?; right?; bottom?; left? }', defaultVal: '{ top: 4, right: 4 }' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())', type: 'boolean', defaultVal: 'true' },
   { name: 'findLabels', desc: 'Find & replace bar labels', type: 'Partial<FindLabels>', defaultVal: '—' },
+  { name: 'onFindOpenChange', desc: 'Fired when the bar actually shows or hides — drives an external entry such as the toolbar magnifier', type: '(open: boolean) => void', defaultVal: '—' },
   { name: 'slashMenu', desc: 'Type / (line start or after whitespace) to open the block-insert menu. Table cells included, code blocks excluded; inert read-only', type: 'boolean', defaultVal: 'true' },
   { name: 'slashMenuLabels', desc: 'Slash menu labels (groups + item titles)', type: 'Partial<SlashMenuLabels>', defaultVal: '—' },
   { name: 'shortcutPanel', desc: 'Keyboard FAB bottom-right opens the shortcuts drawer (Format / Shortcut / Markdown). Hidden read-only', type: 'boolean', defaultVal: 'true' },
@@ -127,8 +128,9 @@ export const EDITOR_REF_API: ApiRow[] = [
   { name: 'getHTML()', desc: 'Export current content as HTML', type: '() => string' },
   { name: 'getJSON()', desc: 'Export Tiptap JSON document', type: '() => Record<string, unknown>' },
   { name: 'getEditor()', desc: 'Underlying Tiptap Editor instance', type: '() => Editor | null' },
-  { name: 'openFind()', desc: 'Open the find & replace bar', type: '() => void' },
+  { name: 'openFind()', desc: 'Open the bar; calling it while open refocuses and selects the query', type: '() => void' },
   { name: 'closeFind()', desc: 'Close the bar, clear highlights and refocus the editor', type: '() => void' },
+  { name: 'toggleFind()', desc: 'Flip the bar — open when closed, close when open (pair it with a toolbar entry that shows an active state)', type: '() => void' },
 ];
 
 export const TOOLBAR_API: ApiRow[] = [
@@ -140,8 +142,22 @@ export const TOOLBAR_API: ApiRow[] = [
   { name: 'importMenuItems', desc: 'Import dropdown options (label + accept). Hosts split Markdown / Word / PDF here', type: 'ImportMenuItem[]', defaultVal: '—' },
   { name: 'showImport', desc: 'Show the Import dropdown', type: 'boolean', defaultVal: 'true' },
   { name: 'labels', desc: 'Toolbar label overrides', type: 'Partial<ToolbarLabels>', defaultVal: '—' },
+  { name: 'onSearch', desc: 'Search entry (magnifier) left of the More menu; wire it to handle.toggleFind() — omit and no button renders', type: '() => void', defaultVal: '—' },
+  { name: 'searchActive', desc: 'Whether the bar is open; drives aria-pressed on the search entry', type: 'boolean', defaultVal: 'false' },
   { name: 'extraToolbarItems', desc: 'Custom items in More menu', type: 'ExtraToolbarItem[]', defaultVal: '—' },
   { name: 'className', desc: 'Extra root class', type: 'string', defaultVal: '—' },
+];
+
+export const LINK_API: ApiRow[] = [
+  { name: 'editor', desc: 'Tiptap Editor instance (required)', type: 'Editor' },
+  { name: 'trigger', desc: 'Your own trigger element — Radix asChild takes over its click / ref / aria', type: 'ReactNode' },
+  { name: 'labels', desc: 'Popover text: field placeholder, apply / open / remove, invalid hint', type: 'Partial<LinkPopoverLabels>', defaultVal: 'English defaults' },
+  { name: 'className / style', desc: 'Extra class / inline style on the panel (placement stays with Radix)', type: 'string / CSSProperties', defaultVal: '—' },
+  { name: 'applyLink(editor, raw)', desc: 'Normalise and apply an address over the whole link / selection. false = the editor rejected it', type: '(editor, raw: string) => boolean' },
+  { name: 'removeLink(editor)', desc: 'Strip the link from the whole range without letting autolink add it back', type: '(editor) => boolean' },
+  { name: 'normalizeLinkHref(editor, raw)', desc: 'Bare domains and host:port take the configured protocol; site-relative, #anchor and mailto: stay as typed', type: '(editor, raw) => string' },
+  { name: 'sanitizeLinkUrl(input, baseUrl)', desc: 'Absolute URL, or "#" when the protocol is not openable (javascript:, data:, …)', type: '(input, baseUrl) => string' },
+  { name: 'data-link-popover / -field / -action / -invalid', desc: 'Stable selectors for host CSS (internals are hashed CSS-module classes)', type: 'data attributes', defaultVal: '—' },
 ];
 
 export const PREVIEW_API: ApiRow[] = [
@@ -262,7 +278,7 @@ This panel is **tiptap-markdown-react** running live. Everything is stored and e
 - Inline \`code\`, [links](https://tiptap.dev), highlights and colors
 - Tables, blockquotes, dividers
 
-> Right-click inside a table to add or remove rows and columns.
+> Hover a cell: the row handle (left) and column handle (above) open the add / remove menus.
 
 Inline math: revenue is $$R = P \times Q$$. Block math:
 
@@ -427,6 +443,10 @@ export const FIND_API: ApiRow[] = [
   { name: 'findBarContainer', desc: 'Where the library-rendered bar mounts (open state + shortcut stay in the library)', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'in-editor bar' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus (only when the editor owns a bar)', type: 'boolean', defaultVal: 'true' },
   { name: 'findLabels', desc: 'Bar labels (FindLabels)', type: 'Partial<FindLabels>', defaultVal: '—' },
+  { name: 'onFindOpenChange', desc: 'Bar open/close notification (fires only when the bar actually shows or hides, plus once on unmount)', type: '(open: boolean) => void', defaultVal: '—' },
+  { name: 'Esc / × / toggleFind', desc: 'Ways out of the bar. Esc works from anywhere that belongs to the editor and is consumed; clicking into the document or another input deliberately does not close it', type: 'keyboard / handle', defaultVal: '—' },
+  { name: 'EditorToolbar onSearch / searchActive', desc: 'Toolbar magnifier entry: onSearch wires to handle.openFind(), searchActive drives its aria-pressed', type: '() => void / boolean', defaultVal: '—' },
+  { name: 'data-find-bar / -field / -counter / -option / -action', desc: 'Stable selectors for host CSS (the bar internals use hashed CSS-module classes)', type: 'data attributes', defaultVal: '—' },
   { name: 'FindReplaceBar', desc: 'The bar itself, if you place it yourself', type: 'Component', defaultVal: '—' },
   { name: 'FindAndReplace', desc: 'Re-exported official extension for hand-built pipelines', type: 'Extension', defaultVal: '—' },
   { name: 'runFindCommand', desc: 'Guard for the Tiptap 3.31.3 trailing-node transaction mismatch', type: '(run: () => void) => void', defaultVal: '—' },

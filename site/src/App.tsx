@@ -32,6 +32,7 @@ import {
   EDITOR_API,
   EDITOR_REF_API,
   FIND_API,
+  LINK_API,
   I18N_API,
   INSERT_MARKDOWN_API,
   MATH_API,
@@ -246,11 +247,16 @@ function ComponentsPage() {
         importName="MarkdownWysiwygEditor (findReplace), FindReplaceBar, FindLabels"
         features={[
           'Cmd/Ctrl+F opens; Esc closes and restores focus',
+          'Esc also closes with focus in the document, and is consumed (a host drawer wrapping the bar stays open)',
+          'Toolbar magnifier toggles the bar; openFind() keeps the refocus-and-select feel',
           'Counter with wrap-around next / previous',
           'Match case and whole word toggles; counter sits inside the search field',
+          'Enter that commits an IME candidate never jumps or replaces',
           'Regex (RE2, no lookarounds) stays available via setUseRegex, no button',
           'Replace and replace-all — replace-all is a single undo step',
           'Find-only on read-only editors; labels via findLabels',
+          'Toolbar magnifier entry: onSearch wires to handle.openFind(), searchActive drives its aria-pressed',
+          'Stable data-find-* selectors for host CSS (bar internals are hashed CSS-module classes)',
           'Headless: drive it with editor.commands.setSearchTerm / replaceAll',
         ]}
         demo={
@@ -307,6 +313,29 @@ function ComponentsPage() {
           </DemoBlock>
         }
         api={TOOLBAR_API}
+      />
+
+      <ComponentSection
+        id="link-popover"
+        title="LinkPopover"
+        description="The toolbar's link button opens a small popover: type an address, apply it, open it in a new window, or remove the link. Opening it with the caret inside a link prefills that link's href — editing a URL no longer means deleting and re-adding it. The logic follows the official link-popover component (MIT); the chrome is this library's own, themed with --tmr-*. It replaces window.prompt, which could not be edited, could tell you nothing about a rejected address, and is unavailable in Electron and some WebViews."
+        importName="LinkPopover, LinkPopoverLabels, applyLink, removeLink, sanitizeLinkUrl"
+        features={[
+          'Prefills the current href when the caret is inside a link',
+          'Changes apply to the whole link (extendMarkRange), not just the caret segment',
+          'Empty selection with no link: the address is inserted as its own text',
+          'A rejected address (javascript:, …) keeps the popover open and marks the field instead of failing silently',
+          'Bare domains and host:port take the configured protocol, so markdown exports an absolute link',
+          'Open in a new window goes through a protocol allowlist plus noopener,noreferrer',
+          'IME-safe Enter; stable data-link-* selectors for host CSS',
+          'Headless: applyLink / removeLink / normalizeLinkHref / sanitizeLinkUrl are exported',
+        ]}
+        demo={
+          <DemoBlock title="Link button in the toolbar" description="Put the caret inside a link and click the link icon — the address is prefilled and the whole link is retargeted.">
+            <ToolbarDemo />
+          </DemoBlock>
+        }
+        api={LINK_API}
       />
 
       <ComponentSection
