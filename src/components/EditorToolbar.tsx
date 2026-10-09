@@ -4,21 +4,19 @@ import * as Popover from '@radix-ui/react-popover';
 import { useEditorState, type Editor } from '@tiptap/react';
 import {
   createContext,
+  forwardRef,
   useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
+  type ButtonHTMLAttributes,
   type ReactNode,
 } from 'react';
-import { createPortal } from 'react-dom';
 import {
   BoldIcon,
   ChevronDownIcon,
   CodeIcon,
-  ColumnAfterIcon,
-  ColumnBeforeIcon,
-  ColumnDeleteIcon,
   ImageIcon,
   ItalicIcon,
   LinkIcon,
@@ -26,11 +24,8 @@ import {
   ListOrderedIcon,
   ListUnorderedIcon,
   RedoIcon,
-  RowAfterIcon,
-  RowBeforeIcon,
-  RowDeleteIcon,
+  SearchIcon,
   StrikethroughIcon,
-  TableDeleteIcon,
   UnderlineIcon,
   UndoIcon,
 } from '../icons';
@@ -43,18 +38,10 @@ import {
 import type { SourceRef } from '../citationUtils';
 import { insertMarkdown } from '../insertMarkdown';
 import { subscribeMathClick, type MathKind } from '../math';
-import {
-  addColumnsAfter,
-  addColumnsBefore,
-  addRowsAfter,
-  addRowsBefore,
-  deleteSelectedColumns,
-  deleteSelectedRows,
-  getTableSelectionInfo,
-  preserveTableSelectionOnContextMenu,
-} from '../tableSelection';
 import styles from '../styles/toolbar.module.css';
 import { ColorPalette } from './ColorPalette';
+import { LinkPopover } from './LinkPopover';
+import { TableHandles } from './TableHandles';
 import { MathEditorPopover } from './MathEditorPopover';
 
 /** `onImportDocument` 的成功返回。给字符串等价于 `{ markdown }`。 */
@@ -122,6 +109,17 @@ export interface EditorToolbarProps {
   /** 是否显示导入下拉，默认 `true`。卡片等场景可关掉。 */
   showImport?: boolean;
   labels?: Partial<ToolbarLabels>;
+  /**
+   * 工具栏最右端的搜索入口（放大镜）。**不传就不渲染**——条子本身归
+   * `<MarkdownWysiwygEditor>`，这里只给一个入口，宿主接上自己的编辑器句柄即可：
+   * `onSearch={() => handle.current?.openFind()}`。
+   *
+   * 条子归编辑器渲染（`findBar` 开）时才接；`findBar={false}` 的宿主自己摆条子，
+   * 这个入口点了也不会弹东西。只读态照样可查，所以不随 `editable` 灰显。
+   */
+  onSearch?: () => void;
+  /** 条子当前是否开着（驱动按钮的 aria-pressed / 高亮）。不传恒为未激活。 */
+  searchActive?: boolean;
   /** 追加到 More 菜单末尾的自定义项。 */
   extraToolbarItems?: ExtraToolbarItem[];
   className?: string;
@@ -129,31 +127,37 @@ export interface EditorToolbarProps {
 
 export type { ImportMenuItem };
 
-/** 单个工具栏按钮：激活态高亮，disabled 时灰显。 */
-function ToolbarButton({
-  title,
-  active,
-  disabled,
-  busy,
-  onClick,
-  children,
-}: {
-  title: string;
-  active?: boolean;
-  disabled?: boolean;
-  busy?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
+/**
+ * 单个工具栏按钮：激活态高亮，disabled 时灰显。
+ *
+ * forwardRef + 透传其余属性，是为了让它能当 Radix 的触发器（`<LinkPopover>` 的 `asChild`
+ * 要挂 ref，并把 `aria-expanded` / `data-state` 传下来）。
+ */
+const ToolbarButton = forwardRef<
+  HTMLButtonElement,
+  {
+    title: string;
+    active?: boolean;
+    disabled?: boolean;
+    busy?: boolean;
+    onClick?: () => void;
+    children: ReactNode;
+  } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title' | 'onClick' | 'children'>
+>(function ToolbarButton(
+  { title, active, disabled, busy, onClick, children, className, ...rest },
+  ref,
+) {
   return (
     <button
+      {...rest}
+      ref={ref}
       type="button"
       title={title}
       aria-label={title}
       aria-pressed={active}
       aria-busy={busy}
       disabled={disabled}
-      className={`${styles.btn} ${active ? styles.btnActive : ''}`}
+      className={`${styles.btn} ${active ? styles.btnActive : ''}${className ? ` ${className}` : ''}`}
       // mousedown + preventDefault 防止点击工具栏时编辑器失焦丢选区
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
@@ -161,41 +165,10 @@ function ToolbarButton({
       {children}
     </button>
   );
-}
+});
 
 function Divider() {
   return <span className={styles.divider} aria-hidden />;
-}
-
-function TableMenuItem({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      className={styles.tableMenuItem}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-    >
-      <span className={styles.tableMenuItemIcon} aria-hidden>
-        {children}
-      </span>
-      <span className={styles.tableMenuItemLabel}>{label}</span>
-    </button>
-  );
-}
-
-function TableMenuDivider() {
-  return <div className={styles.tableMenuDivider} aria-hidden />;
 }
 
 // 关闭当前菜单的回调（由 MenuPopover 注入，MenuItem 选中后调用以收起）。
@@ -427,6 +400,8 @@ export function EditorToolbar({
   importMenuItems,
   showImport = true,
   labels,
+  onSearch,
+  searchActive = false,
   extraToolbarItems,
   className,
 }: EditorToolbarProps) {
@@ -479,67 +454,6 @@ export function EditorToolbar({
   const chain = () => editor.chain().focus();
 
   // ── 表格工具条（右键召唤）：右键单元格时在鼠标处弹出，点别处/Esc 隐藏 ──
-  const [tableMenu, setTableMenu] = useState<{ x: number; y: number } | null>(
-    null,
-  );
-  const closeTableMenu = useCallback(() => setTableMenu(null), []);
-
-  useEffect(() => {
-    const dom = editor.view.dom;
-    const onContextMenu = (e: MouseEvent) => {
-      const coords = editor.view.posAtCoords({
-        left: e.clientX,
-        top: e.clientY,
-      });
-      if (!coords) return;
-      const $pos = editor.state.doc.resolve(coords.pos);
-      let inTable = false;
-      for (let d = $pos.depth; d > 0; d--) {
-        if ($pos.node(d).type.name === 'table') {
-          inTable = true;
-          break;
-        }
-      }
-      if (!inTable) return;
-      e.preventDefault();
-      // 多格选区内右键：保留 CellSelection；选区外才落到点击位
-      preserveTableSelectionOnContextMenu(editor, coords.pos);
-      setTableMenu({ x: e.clientX, y: e.clientY });
-    };
-    dom.addEventListener('contextmenu', onContextMenu);
-    return () => dom.removeEventListener('contextmenu', onContextMenu);
-  }, [editor]);
-
-  useEffect(() => {
-    if (!tableMenu) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeTableMenu();
-    };
-    document.addEventListener('mousedown', closeTableMenu);
-    document.addEventListener('keydown', onKey, true);
-    return () => {
-      document.removeEventListener('mousedown', closeTableMenu);
-      document.removeEventListener('keydown', onKey, true);
-    };
-  }, [tableMenu, closeTableMenu]);
-
-  const runTable = useCallback(
-    (fn: () => void) => {
-      fn();
-      closeTableMenu();
-    },
-    [closeTableMenu],
-  );
-
-  const tableSel = tableMenu ? getTableSelectionInfo(editor.state) : null;
-  const tableRowN = tableSel?.rowCount ?? 1;
-  const tableColN = tableSel?.colCount ?? 1;
-  const tableMulti = tableSel?.isMultiCell ?? false;
-  const disableAddRowBefore = !!tableSel?.includesHeaderRow;
-  const disableDeleteRow = !!tableSel?.includesHeaderRow;
-  const disableDeleteColumn =
-    !!tableSel?.coversAllCols && !tableSel?.coversAllRows;
-
   // ── 图片：选图 → onImageUpload → 插入返回的 URL ──
   const handlePickImage = () => fileInputRef.current?.click();
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -645,15 +559,6 @@ export function EditorToolbar({
   const applyHighlight = (color: string | null) => {
     if (color) chain().setHighlight({ color }).run();
     else chain().unsetHighlight().run();
-  };
-
-  const toggleLink = () => {
-    if (state.link) {
-      chain().unsetLink().run();
-      return;
-    }
-    const url = window.prompt(t.linkPrompt);
-    if (url) chain().setLink({ href: url }).run();
   };
 
   const setBlockStyle = (level: number) => {
@@ -980,10 +885,23 @@ export function EditorToolbar({
 
           <Divider />
 
-          {/* 插入媒体 */}
-          <ToolbarButton title={t.link} active={state.link} onClick={toggleLink}>
-            <LinkIcon />
-          </ToolbarButton>
+          {/* 插入媒体。链接走浮层：输入地址 + 应用 / 在新窗口打开 / 移除，
+              光标在链接里打开时预填它的 href（旧实现是 window.prompt，在链接里点一下就删）。 */}
+          <LinkPopover
+            editor={editor}
+            labels={{
+              field: t.linkPrompt,
+              apply: t.linkApply,
+              open: t.linkOpen,
+              remove: t.linkRemove,
+              invalid: t.linkInvalid,
+            }}
+            trigger={
+              <ToolbarButton title={t.link} active={state.link}>
+                <LinkIcon />
+              </ToolbarButton>
+            }
+          />
           {onImageUpload ? (
             <>
               <ToolbarButton title={t.image} onClick={handlePickImage}>
@@ -1064,6 +982,19 @@ export function EditorToolbar({
           </ToolbarButton>
 
           <Divider />
+
+          {/* 查找替换入口：条子归编辑器，这里只开一道门。宿主接 onSearch 时才出现。
+              位置在 More 左侧——More 是「其余都以它收口」的兜底菜单，惯例留在最右；
+              而且行内本来就排满，谁在最后谁就先被挤到下一行。 */}
+          {onSearch ? (
+            <ToolbarButton
+              title={t.search}
+              active={searchActive}
+              onClick={onSearch}
+            >
+              <SearchIcon />
+            </ToolbarButton>
+          ) : null}
 
           {/* More 下拉（代码块、分割线、表格 + 宿主注入项） */}
           <MenuPopover
@@ -1156,104 +1087,9 @@ export function EditorToolbar({
         />
       ) : null}
 
-      {/* 表格右键菜单：纵向，图标 + 文案，分组分隔 */}
-      {tableMenu &&
-        createPortal(
-          <div
-            className={styles.tableBubble}
-            style={{ position: 'fixed', left: tableMenu.x, top: tableMenu.y }}
-            role="menu"
-            onMouseDown={(e) => e.stopPropagation()}
-            onContextMenu={(e) => e.preventDefault()}
-          >
-            <TableMenuItem
-              label={
-                tableMulti
-                  ? t.tableAddColumnBeforeN(tableColN)
-                  : t.tableAddColumnBefore
-              }
-              onClick={() =>
-                runTable(() => addColumnsBefore(editor, tableColN))
-              }
-            >
-              <ColumnBeforeIcon />
-            </TableMenuItem>
-            <TableMenuItem
-              label={
-                tableMulti
-                  ? t.tableAddColumnAfterN(tableColN)
-                  : t.tableAddColumnAfter
-              }
-              onClick={() =>
-                runTable(() => addColumnsAfter(editor, tableColN))
-              }
-            >
-              <ColumnAfterIcon />
-            </TableMenuItem>
-            <TableMenuItem
-              label={
-                tableMulti
-                  ? t.tableDeleteColumnN(tableColN)
-                  : t.tableDeleteColumn
-              }
-              disabled={disableDeleteColumn}
-              onClick={() =>
-                runTable(() => {
-                  deleteSelectedColumns(editor);
-                })
-              }
-            >
-              <ColumnDeleteIcon />
-            </TableMenuItem>
-            <TableMenuDivider />
-            <TableMenuItem
-              label={
-                tableMulti
-                  ? t.tableAddRowBeforeN(tableRowN)
-                  : t.tableAddRowBefore
-              }
-              disabled={disableAddRowBefore}
-              onClick={() =>
-                runTable(() => addRowsBefore(editor, tableRowN))
-              }
-            >
-              <RowBeforeIcon />
-            </TableMenuItem>
-            <TableMenuItem
-              label={
-                tableMulti ? t.tableAddRowAfterN(tableRowN) : t.tableAddRowAfter
-              }
-              onClick={() => runTable(() => addRowsAfter(editor, tableRowN))}
-            >
-              <RowAfterIcon />
-            </TableMenuItem>
-            <TableMenuItem
-              label={
-                tableMulti ? t.tableDeleteRowN(tableRowN) : t.tableDeleteRow
-              }
-              disabled={disableDeleteRow}
-              onClick={() =>
-                runTable(() => {
-                  deleteSelectedRows(editor);
-                })
-              }
-            >
-              <RowDeleteIcon />
-            </TableMenuItem>
-            <TableMenuDivider />
-            <TableMenuItem
-              label={t.tableDeleteTable}
-              onClick={() =>
-                runTable(() => {
-                  editor.commands.deleteTable();
-                })
-              }
-            >
-              <TableDeleteIcon />
-            </TableMenuItem>
-          </div>,
-          document.body,
-        )}
+      {/* 表格悬停手柄（行左缘 ⋮ / 表格上方 ⋯）+ 它的操作菜单；
+          原来那套「表内右键出菜单」只剩多格选区的批量增删，由这个组件自己接管 */}
+      <TableHandles editor={editor} labels={t} />
     </>
   );
 }

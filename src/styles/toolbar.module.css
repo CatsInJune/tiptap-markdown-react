@@ -16,8 +16,14 @@
   display: flex;
   align-items: center;
   justify-content: safe center;
-  flex-wrap: nowrap;
-  gap: 2px;
+  /* 控件排满一行后换行而不是横向滚：`nowrap` + `overflow-x: auto` 会把行尾的控件
+     推到可视区外（宿主接上 onSearch 后就轮到了搜索入口），而工具栏横向滚动几乎没人会做。
+     宽容器里仍然只有一行，换行只在装不下时发生。 */
+  flex-wrap: wrap;
+  /* 横向不留间距：每个按钮自带 8px 内边距、分隔线自带 8px 外边距，视觉间距已经够了，
+     这 2px×二十来个控件是行内最后那点余量——省下来整行才装得下（列间距 0，换行后才留纵向
+     间距，免得两行贴在一起）。 */
+  gap: 4px 0;
   max-width: 1100px;
   margin: 0 auto;
   padding: 8px 16px;
@@ -60,66 +66,6 @@
 .btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
-}
-
-/* 表内右键菜单（portal 到 body，拿不到 .toolbar 变量，故写死配色） */
-.tableBubble {
-  display: flex;
-  flex-direction: column;
-  min-width: 220px;
-  padding: 6px;
-  background: #fff;
-  border: 1px solid #ececec;
-  border-radius: 10px;
-  box-shadow: 0 6px 24px rgb(0 0 0 / 14%);
-}
-
-.tableMenuItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 7px 10px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: #363737;
-  font-size: 14px;
-  line-height: 1.3;
-  text-align: left;
-  cursor: pointer;
-  user-select: none;
-}
-
-.tableMenuItem:hover:not(:disabled) {
-  background: #f3f3f3;
-}
-
-.tableMenuItem:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.tableMenuItemIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 20px;
-  height: 20px;
-  color: #6b6b6b;
-}
-
-.tableMenuItemLabel {
-  flex: 1;
-  min-width: 0;
-}
-
-.tableMenuDivider {
-  height: 1px;
-  margin: 4px 8px;
-  background: #ececec;
-  flex-shrink: 0;
 }
 
 /* 文字型图标（引用等） */

@@ -35,6 +35,19 @@ export {
   FindReplaceBar,
   type FindReplaceBarProps,
 } from './components/FindReplaceBar';
+export { LinkPopover, type LinkPopoverProps } from './components/LinkPopover';
+
+// ── 链接编辑（浮层背后的命令；宿主自绘 UI 或无头流程可直接用） ──
+export {
+  applyLink,
+  canSetLink,
+  isLinkActive,
+  normalizeLinkHref,
+  openLinkUrl,
+  readLinkHref,
+  removeLink,
+  sanitizeLinkUrl,
+} from './linkEditing';
 
 // ── 只读静态正文（阅读页请改从 ./reader 引入，避免与 ./server 重复注册 TableKit） ──
 export { ReportContent, type ReportContentProps } from './ReportContent';
@@ -108,6 +121,7 @@ export {
   defaultColorPaletteLabels,
   defaultCommentLabels,
   defaultFindLabels,
+  defaultLinkPopoverLabels,
   defaultShortcutLabels,
   defaultSlashMenuLabels,
   defaultTocLabels,
@@ -117,6 +131,7 @@ export {
   type ColorPaletteLabels,
   type CommentLabels,
   type FindLabels,
+  type LinkPopoverLabels,
   type ShortcutLabels,
   type SlashMenuLabels,
   type TocLabels,

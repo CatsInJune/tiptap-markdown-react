@@ -26,7 +26,18 @@ export interface ToolbarLabels {
   superscript: string;
   subscript: string;
   link: string;
+  /**
+   * 链接浮层输入框的占位与无障碍名（原 `window.prompt` 的提示语，现在落到输入框上）。
+   */
   linkPrompt: string;
+  /** 链接浮层「应用」按钮的 title / aria-label。 */
+  linkApply: string;
+  /** 链接浮层「在新窗口打开」按钮的 title / aria-label。 */
+  linkOpen: string;
+  /** 链接浮层「移除链接」按钮的 title / aria-label。 */
+  linkRemove: string;
+  /** 链接浮层：地址被编辑器拒绝时的提示（落在输入框 title 上）。 */
+  linkInvalid: string;
   image: string;
   imageUploadFailed: string;
   /** Markdown 文件导入失败（与图片上传共用 onError 回调时，便于宿主区分文案）。 */
@@ -50,11 +61,29 @@ export interface ToolbarLabels {
   orderedList: string;
   taskList: string;
   more: string;
+  /**
+   * 工具栏的搜索入口（放大镜按钮，落在 More 之后）：title 与 aria-label。
+   * 只在宿主传了 `onSearch` 时才渲染——它只是入口，条子本身归编辑器
+   * （`<MarkdownWysiwygEditor>`），点击后由宿主调 `handle.openFind()`。
+   */
+  search: string;
   codeBlock: string;
   hr: string;
   /** 导入下拉里的 Markdown 项。 */
   importMarkdown: string;
   tableInsert: string;
+  /** 行手柄的 title / aria-label（鼠标悬停单元格时出现在行的左缘）。 */
+  tableRowMenu: string;
+  /** 列手柄的 title / aria-label（悬停时出现在表格上方、对齐该列）。 */
+  tableColumnMenu: string;
+  /** 表格菜单：清空选中行 / 列 / 单元格矩形里的内容（保留单元格与表头）。 */
+  tableClearContent: string;
+  /** 表格菜单：把选中单元格的样式属性复位（列宽、对齐等；不动合并结构）。 */
+  tableResetCellStyles: string;
+  /** 表格底边 `+` 手柄（末尾追加一行）的 title / aria-label。 */
+  tableAppendRow: string;
+  /** 表格右边 `+` 手柄（末尾追加一列）的 title / aria-label。 */
+  tableAppendColumn: string;
   /** 网格选择器底部尺寸文案，如 "3 × 4"。参数顺序：列、行。 */
   tableSizeSelected: (cols: number, rows: number) => string;
   tableAddColumnBefore: string;
@@ -151,6 +180,10 @@ export const defaultToolbarLabels: ToolbarLabels = {
   subscript: 'Subscript',
   link: 'Link',
   linkPrompt: 'Enter URL',
+  linkApply: 'Apply link',
+  linkOpen: 'Open in new window',
+  linkRemove: 'Remove link',
+  linkInvalid: 'The editor rejected this address',
   image: 'Image',
   imageUploadFailed: 'Image upload failed',
   importMarkdownFailed: 'Markdown import failed',
@@ -166,10 +199,17 @@ export const defaultToolbarLabels: ToolbarLabels = {
   orderedList: 'Ordered list',
   taskList: 'Task list',
   more: 'More',
+  search: 'Find & replace',
   codeBlock: 'Code block',
   hr: 'Divider',
   importMarkdown: 'Markdown',
   tableInsert: 'Insert table',
+  tableRowMenu: 'Row actions',
+  tableColumnMenu: 'Column actions',
+  tableClearContent: 'Clear content',
+  tableResetCellStyles: 'Reset cell styles',
+  tableAppendRow: 'Add row',
+  tableAppendColumn: 'Add column',
   tableSizeSelected: (cols, rows) => `${cols} × ${rows}`,
   tableAddColumnBefore: 'Add column before',
   tableAddColumnAfter: 'Add column after',
@@ -274,6 +314,25 @@ export const defaultShortcutLabels: ShortcutLabels = {
   findReplace: 'Find & replace',
 };
 
+/** 链接编辑浮层（`<LinkPopover>`）文案。 */
+export interface LinkPopoverLabels {
+  /** 输入框占位与无障碍名，也是浮层的 aria-label。 */
+  field: string;
+  apply: string;
+  open: string;
+  remove: string;
+  /** 地址被编辑器拒绝时的提示（落在输入框 title 上）。 */
+  invalid: string;
+}
+
+export const defaultLinkPopoverLabels: LinkPopoverLabels = {
+  field: 'Enter URL',
+  apply: 'Apply link',
+  open: 'Open in new window',
+  remove: 'Remove link',
+  invalid: 'The editor rejected this address',
+};
+
 export interface ColorPaletteLabels {
   none: string;
   theme: string;
@@ -348,7 +407,7 @@ export interface FindLabels {
   caseSensitive: string;
   wholeWord: string;
   useRegex: string;
-  /** 计数文案。无结果时 current 传 0。 */
+  /** 计数文案。无结果时 current 传 0；有结果但还没定位到某一条（currentIndex 为 null）时也是 0。 */
   counter: (current: number, total: number) => string;
   /** 正则模式下模式非法（RE2 不支持 lookaround / backreference 等，见官方扩展）。 */
   invalidRegex: string;

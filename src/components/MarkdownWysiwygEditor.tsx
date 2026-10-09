@@ -51,6 +51,7 @@ import type {
   CommentRef,
 } from '../commentAnchor/commentTypes';
 import { baseExtensions, lowlight } from '../extensions';
+import { isComposingKeyEvent } from '../findReplace';
 import { FindReplaceBar } from './FindReplaceBar';
 import { ImportPlaceholder } from '../importPlaceholder';
 import type { CodeBlockLabels, FindLabels, ShortcutLabels, SlashMenuLabels } from '../labels';
@@ -175,6 +176,20 @@ function findBarOffsetStyle(offset: FindBarOffset): CSSProperties {
   };
 }
 
+/**
+ * 这次按键归本编辑器管吗。Cmd/Ctrl+F 与 Esc 共用同一套边界：
+ *   - 焦点在本编辑器内 → 管
+ *   - 焦点不在任何输入控件里（body）且页面上只有本编辑器 → 也管（单编辑器页面点完工具栏能直接按）
+ *   - 其余一律不管：同页多编辑器不会一起抢键，宿主的输入框与其它浮层也不会被夺走按键。
+ */
+function editorOwnsKeyboard(editor: Editor): boolean {
+  const active = document.activeElement;
+  const inEditor = !!active && editor.view.dom.contains(active);
+  if (inEditor || editor.isFocused) return true;
+  const nothingFocused = active === null || active === document.body;
+  return nothingFocused && document.querySelectorAll('.ProseMirror').length <= 1;
+}
+
 export interface MarkdownWysiwygEditorHandle {
   /** 取当前正文的 markdown 字符串。 */
   getMarkdown: () => string;
@@ -194,6 +209,11 @@ export interface MarkdownWysiwygEditorHandle {
   openFind: () => void;
   /** 收起自带浮动条，清空高亮并把焦点还给编辑器。findBar={false} 时不生效。 */
   closeFind: () => void;
+  /**
+   * 反转自带浮动条：关着就开、开着就关。工具栏那个带 active 态的放大镜接它
+   * （`onSearch={() => handle.current?.toggleFind()}`）。findBar={false} 时不生效。
+   */
+  toggleFind: () => void;
 }
 
 export interface MarkdownWysiwygEditorProps {
@@ -309,6 +329,13 @@ export interface MarkdownWysiwygEditorProps {
   /** 查找替换浮动条的本地化文案。 */
   findLabels?: Partial<FindLabels>;
   /**
+   * 浮动条开合状态变化的通知（条子开着时 `handle.openFind()`、Esc / × 关掉都会触发）。
+   * 典型用法是驱动别处的入口按钮：`<EditorToolbar onSearch={open} searchActive={isOpen} />`。
+   * 只在真正变化时回调，挂载时不会先报一次 `false`；报的是「条子真的在屏幕上」——
+   * `findBar={false}`（宿主自己摆条子）时恒为 `false`，不会因为 `openFind()` 空转就亮起入口。
+   */
+  onFindOpenChange?: (open: boolean) => void;
+  /**
    * 启用快捷键抽屉：编辑器右下角出现键盘悬浮按钮，点开为
    * 「格式 / 快捷键 / Markdown」三列对照抽屉（默认 true，只读态隐藏）。
    */
@@ -369,6 +396,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     findBarOffset = DEFAULT_FIND_BAR_OFFSET,
   findShortcut = true,
   findLabels,
+  onFindOpenChange,
   slashMenu = true,
   slashMenuLabels,
   shortcutPanel = true,
@@ -452,6 +480,15 @@ export const MarkdownWysiwygEditor = forwardRef<
     editor?.setEditable(editable);
   }, [editor, editable]);
 
+  /**
+   * 打开查找条。带着「再按一次」的语义：已经开着时聚焦并全选当前查询（首次打开由条子自己的
+   * autoFocus 负责，此时查询多半是空串，`select()` 是空操作）。
+   */
+  const openFind = useCallback(() => {
+    setFindOpen(true);
+    requestAnimationFrame(() => findInputRef.current?.select());
+  }, []);
+
   const closeFind = useCallback(() => {
     setFindOpen(false);
     // 焦点归还：Tiptap 的 focus 命令内部就是 requestAnimationFrame 延后执行的
@@ -459,11 +496,43 @@ export const MarkdownWysiwygEditor = forwardRef<
     editor?.commands.focus();
   }, [editor]);
 
-  // Cmd/Ctrl+F → 打开查找条。接管条件必须收得比「焦点在编辑器内」松、比「谁都能接管」紧：
-  //   - 焦点在本编辑器内：接管 ✓
-  //   - 焦点不在任何输入控件里（body）且页面上只有本编辑器：接管 ✓（单编辑器页面点完工具栏按钮能直接按）
-  //   - 其余情况一律不接管：同页多编辑器时不会一起弹条（文档站就是这样），宿主的其它输入框
-  //     也不会被夺走原生查找。多编辑器页面上宿主可自己调 handle.openFind()。
+  /**
+   * 反转查找条：关着就开、开着就关。工具栏那个放大镜接的是它——带 active 态的按钮点一下得能灭。
+   * `openFind()` 保持「已开着时重聚焦并全选查询」的语义，和 Cmd/Ctrl+F（同一个手势）一致。
+   */
+  const toggleFind = useCallback(() => {
+    if (findOpen) closeFind();
+    else openFind();
+  }, [findOpen, closeFind, openFind]);
+
+  // 开合状态上报宿主（回调走 ref 防 stale）。报的是「条子真的在屏幕上」——`findBar={false}`
+  // 时宿主自己摆条子，`findOpen` 翻起来也不该点亮别处的入口。只在真正变化时回调，
+  // 挂载时不先报一次 false。
+  const findBarOpen = findOpen && findBar && findReplace;
+  const onFindOpenChangeRef = useRef(onFindOpenChange);
+  onFindOpenChangeRef.current = onFindOpenChange;
+  // 初值取 `false`（`findOpen` 的初值）：挂载那次比较相等，不会回调一次「本来就是 false」。
+  const notifiedFindOpenRef = useRef(false);
+  useEffect(() => {
+    if (notifiedFindOpenRef.current === findBarOpen) return;
+    notifiedFindOpenRef.current = findBarOpen;
+    onFindOpenChangeRef.current?.(findBarOpen);
+  }, [findBarOpen]);
+
+  // 条子随本实例一起消失时（换 key、换文档、切路由），宿主的入口不该继续亮着——新实例的
+  // `notifiedFindOpenRef` 初值是 false、`findBarOpen` 也是 false，两者相等就不会回调，于是
+  // 上一实例报过的那个 `true` 没人撤销。所以卸载时补发一次。StrictMode 的模拟卸载不会误报
+  // （那时条子并没开着，值就是 false）。
+  const findBarOpenRef = useRef(findBarOpen);
+  findBarOpenRef.current = findBarOpen;
+  useEffect(
+    () => () => {
+      if (findBarOpenRef.current) onFindOpenChangeRef.current?.(false);
+    },
+    [],
+  );
+
+  // Cmd/Ctrl+F → 打开查找条。接管边界见 editorOwnsKeyboard()。
   // 只有容器里真有那条浮动条（findBar）时才绑：否则会白抢浏览器原生查找，却什么都不弹。
   useEffect(() => {
     if (!editor || !findReplace || !findBar || !findShortcut) return;
@@ -472,21 +541,37 @@ export const MarkdownWysiwygEditor = forwardRef<
         return;
       }
       if (event.key !== 'f' && event.key !== 'F') return;
-      const active = document.activeElement;
-      const inEditor = !!active && editor.view.dom.contains(active);
-      const nothingFocused = active === null || active === document.body;
-      const soleEditor = document.querySelectorAll('.ProseMirror').length <= 1;
-      if (!inEditor && !editor.isFocused && !(nothingFocused && soleEditor)) {
-        return;
-      }
+      if (!editorOwnsKeyboard(editor)) return;
       event.preventDefault();
-      setFindOpen(true);
-      // 已打开时再按一次：聚焦并全选当前查询（首次打开由浮动条的 autoFocus 负责）
-      requestAnimationFrame(() => findInputRef.current?.select());
+      openFind();
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [editor, findReplace, findBar, findShortcut]);
+  }, [editor, findReplace, findBar, findShortcut, openFind]);
+
+  // Esc → 关掉查找条。条子自己那份 onKeyDown 只在焦点位于条子内时才收得到，用户点回正文继续
+  // 编辑后想收条子就只能去点 ×；这里按同一套边界（editorOwnsKeyboard）补上「焦点在正文 /
+  // 页面只有本编辑器且焦点在 body」的情况。消费掉这次 Esc（preventDefault + stopPropagation），
+  // 免得宿主的浮动层跟着一起关；输入法组合中的 Esc 是「取消候选词」，放行。
+  //
+  // 注意**不要**用 `event.defaultPrevented` 判断「内层已经处理过、让给它」：实测在真实编辑器里
+  // Escape 一定已被 preventDefault——prosemirror-view 的 keydown 一旦有 handleKeyDown 返回 true
+  // 就 preventDefault（`node_modules/prosemirror-view/src/input.ts:136`），斜杠菜单等就在这条路上。
+  // 那样写这条分支永远不会走。边界交给 editorOwnsKeyboard：焦点在别的浮层 / 宿主的输入框里时
+  // 它本来就是 false，不会去抢。
+  useEffect(() => {
+    if (!editor || !findBarOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (isComposingKeyEvent(event)) return;
+      if (!editorOwnsKeyboard(editor)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeFind();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [editor, findBarOpen, closeFind]);
 
   // 评论列表 → 铺 mark。用 commentId 签名做防抖：宿主每次渲染传新数组引用时
   // 不会反复清/铺（清空再重铺会丢掉 mark 随编辑移动后的位置）。
@@ -607,10 +692,11 @@ export const MarkdownWysiwygEditor = forwardRef<
       nextComment: (dir?: 'next' | 'prev') =>
         editor ? nextComment(editor, dir ?? 'next') : null,
       getCommentIds: () => (editor ? collectCommentIds(editor) : []),
-      openFind: () => setFindOpen(true),
+      openFind: () => openFind(),
       closeFind,
+      toggleFind: () => toggleFind(),
     }),
-    [editor, closeFind],
+    [editor, closeFind, openFind, toggleFind],
   );
 
   // 宿主指定了容器就把条子 portal 进去；解析不到则回落到编辑器内的粘性锚点。

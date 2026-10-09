@@ -77,6 +77,32 @@ export const LinkIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** 橡皮擦：表格菜单的「清空内容」。 */
+export const EraserIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+    <path d="M22 21H7" />
+    <path d="m5 11 9 9" />
+  </Svg>
+);
+
+/** 逆时针回转：表格菜单的「重置单元格样式」。 */
+export const RotateCcwIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+  </Svg>
+);
+
+/** 在新窗口打开（链接浮层的「打开」按钮）。 */
+export const ExternalLinkIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M15 3h6v6" />
+    <path d="M10 14 21 3" />
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+  </Svg>
+);
+
 export const ImageIcon = (p: IconProps) => (
   <Svg {...p}>
     <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />

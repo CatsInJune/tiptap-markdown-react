@@ -6,6 +6,44 @@
  * 这个文件只收拾 Tiptap 3.31.3 上的一个坑，以及库内的默认防抖。
  */
 
+import type { Editor } from '@tiptap/react';
+
+/** 官方扩展在 `extensionManager` 里的注册名（与官方 UI Components 同款判据）。 */
+export const FIND_EXTENSION_NAME = 'findAndReplace';
+
+/**
+ * 输入法组合中的这次按键要不要放行。
+ *
+ * 中文 / 日文输入法里 Enter 是「提交候选词」、Escape 是「取消候选」，都不是「执行」：不拦的话，
+ * 每次确认候选词都会触发一次跳转（替换框则直接替换一处），而按 Esc 想取消候选反而把浮动条关掉。
+ * 判据取两路——`isComposing` 覆盖常规路径，`keyCode === 229` 兜住 Safari 在组合收尾时的 keydown
+ * （与 slashMenu/SlashMenuExtension.ts 的 isComposing() 同一套；那边还多一路 ProseMirror 的
+ * `view.composing`，React 事件里拿不到，调用方传 `event.nativeEvent` 即可）。
+ */
+export function isComposingKeyEvent(
+  event: Pick<KeyboardEvent, 'isComposing' | 'keyCode'>,
+): boolean {
+  return event.isComposing || event.keyCode === 229;
+}
+
+/**
+ * 查找替换扩展是否已注册。
+ *
+ * 按 `extensionManager.extensions` 里的注册名查，而不是探 `editor.commands.setSearchTerm`
+ * 在不在——命令探测分不清「扩展根本没装」和「命令被别的同名扩展覆盖」，也判不出已销毁的实例。
+ * 官方 UI Components 的 `isFindAndReplaceAvailable` 用的是同一条判据。
+ */
+export function hasFindReplaceExtension(
+  editor: Editor | null | undefined,
+): boolean {
+  if (!editor || editor.isDestroyed) return false;
+  return (
+    editor.extensionManager?.extensions.some(
+      (extension) => extension.name === FIND_EXTENSION_NAME,
+    ) ?? false
+  );
+}
+
 /**
  * 输入防抖（毫秒）。
  *
