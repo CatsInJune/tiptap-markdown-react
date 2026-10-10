@@ -111,6 +111,101 @@ export const ImageIcon = (p: IconProps) => (
   </Svg>
 );
 
+/**
+ * 段落排版图标（对齐四件 / 缩进两件 / 行高）：块状 fill 风格，自绘。
+ * 细线条（stroke 2）在 14px 下会发虚——这组统一用带圆角的实心块。
+ */
+const BlockSvg = ({ size = '1em', children, ...rest }: IconProps & { children: React.ReactNode }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+    aria-hidden="true"
+    focusable="false"
+    {...rest}
+  >
+    {children}
+  </svg>
+);
+
+export const AlignLeftIcon = (p: IconProps) => (
+  <BlockSvg {...p}>
+    <rect x="3" y="3.4" width="18" height="2.4" rx="1.2" />
+    <rect x="3" y="8.6" width="12" height="2.4" rx="1.2" />
+    <rect x="3" y="13.8" width="18" height="2.4" rx="1.2" />
+    <rect x="3" y="19" width="12" height="2.4" rx="1.2" />
+  </BlockSvg>
+);
+
+export const AlignCenterIcon = (p: IconProps) => (
+  <BlockSvg {...p}>
+    <rect x="3" y="3.4" width="18" height="2.4" rx="1.2" />
+    <rect x="6" y="8.6" width="12" height="2.4" rx="1.2" />
+    <rect x="3" y="13.8" width="18" height="2.4" rx="1.2" />
+    <rect x="6" y="19" width="12" height="2.4" rx="1.2" />
+  </BlockSvg>
+);
+
+export const AlignRightIcon = (p: IconProps) => (
+  <BlockSvg {...p}>
+    <rect x="3" y="3.4" width="18" height="2.4" rx="1.2" />
+    <rect x="9" y="8.6" width="12" height="2.4" rx="1.2" />
+    <rect x="3" y="13.8" width="18" height="2.4" rx="1.2" />
+    <rect x="9" y="19" width="12" height="2.4" rx="1.2" />
+  </BlockSvg>
+);
+
+export const AlignJustifyIcon = (p: IconProps) => (
+  <BlockSvg {...p}>
+    <rect x="3" y="3.4" width="18" height="2.4" rx="1.2" />
+    <rect x="3" y="8.6" width="18" height="2.4" rx="1.2" />
+    <rect x="3" y="13.8" width="18" height="2.4" rx="1.2" />
+    <rect x="3" y="19" width="18" height="2.4" rx="1.2" />
+  </BlockSvg>
+);
+
+export const IndentIncreaseIcon = (p: IconProps) => (
+  <BlockSvg {...p}>
+    <path d="M3 6.6 8.5 10.8 3 15 Z" />
+    <rect x="10.5" y="3.6" width="10.5" height="2.4" rx="1.2" />
+    <rect x="10.5" y="10.8" width="10.5" height="2.4" rx="1.2" />
+    <rect x="10.5" y="18" width="10.5" height="2.4" rx="1.2" />
+  </BlockSvg>
+);
+
+export const IndentDecreaseIcon = (p: IconProps) => (
+  <BlockSvg {...p}>
+    <path d="M8.5 6.6 3 10.8 8.5 15 Z" />
+    <rect x="10.5" y="3.6" width="10.5" height="2.4" rx="1.2" />
+    <rect x="10.5" y="10.8" width="10.5" height="2.4" rx="1.2" />
+    <rect x="10.5" y="18" width="10.5" height="2.4" rx="1.2" />
+  </BlockSvg>
+);
+
+/** 行高：左侧轴 + 双向块三角，右侧两条块线。 */
+export const LineHeightIcon = (p: IconProps) => (
+  <BlockSvg {...p}>
+    <rect x="1.8" y="4.4" width="2.4" height="15.2" rx="1.2" />
+    <path d="M3 2.4 5.4 5.8 H0.6 Z" />
+    <path d="M3 21.6 0.6 18.2 H5.4 Z" />
+    <rect x="9" y="5.6" width="12" height="2.4" rx="1.2" />
+    <rect x="9" y="16" width="12" height="2.4" rx="1.2" />
+  </BlockSvg>
+);
+
+export const CaptionsIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <rect width="18" height="14" x="3" y="5" rx="2" ry="2" />
+    <path d="M7 15h4" />
+    <path d="M15 15h2" />
+    <path d="M7 11h2" />
+    <path d="M13 11h4" />
+  </Svg>
+);
+
 export const ImportIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 3v12" />

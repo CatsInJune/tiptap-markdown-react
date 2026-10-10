@@ -10,6 +10,7 @@ import './styles/chart.css';
 export {
   MarkdownWysiwygEditor,
   type FindBarOffset,
+  type ImageResizeOptions,
   type MarkdownWysiwygEditorHandle,
   type MarkdownWysiwygEditorProps,
 } from './components/MarkdownWysiwygEditor';
@@ -36,6 +37,10 @@ export {
   type FindReplaceBarProps,
 } from './components/FindReplaceBar';
 export { LinkPopover, type LinkPopoverProps } from './components/LinkPopover';
+export {
+  ImageAlignTools,
+  type ImageAlignToolsProps,
+} from './components/ImageAlignTools';
 
 // ── 链接编辑（浮层背后的命令；宿主自绘 UI 或无头流程可直接用） ──
 export {
@@ -86,6 +91,13 @@ export {
 } from './components/ReportContentWithCharts';
 export { CitationRef } from './CitationRef';
 export { ImportPlaceholder } from './importPlaceholder';
+export {
+  ImageUploadNode,
+  hasImageUpload,
+  type ImageUploadConfig,
+  type ImageUploadFn,
+  type ImageUploadOptions,
+} from './imageUpload';
 export { createCitationRef } from './createCitationRef';
 export type {
   RenderCitation,
@@ -106,6 +118,22 @@ export {
   type SourceRef,
 } from './citationUtils';
 export { stabilizeMarkdown } from './stabilizeMarkdown';
+export { resetImageSize } from './resetImageSize';
+export {
+  isImageAlignActive,
+  setImageAlign,
+  setImageAlignAt,
+} from './imageAlign';
+export { setImageCaption, setImageCaptionAtPos } from './imageCaption';
+export {
+  imageMarkdownTokenizer,
+  imageParseMarkdown,
+  imageRenderMarkdown,
+  normalizeImageAlign,
+  normalizeImageCaption,
+  type ImageAlign,
+  type ImageSizeAttrs,
+} from './imageMarkdown';
 export { MarkdownPaste, looksLikeMarkdown } from './markdownPaste';
 export { MarkdownFileDrop } from './markdownFileDrop';
 
@@ -121,6 +149,7 @@ export {
   defaultColorPaletteLabels,
   defaultCommentLabels,
   defaultFindLabels,
+  defaultImageUploadLabels,
   defaultLinkPopoverLabels,
   defaultShortcutLabels,
   defaultSlashMenuLabels,
@@ -131,6 +160,7 @@ export {
   type ColorPaletteLabels,
   type CommentLabels,
   type FindLabels,
+  type ImageUploadLabels,
   type LinkPopoverLabels,
   type ShortcutLabels,
   type SlashMenuLabels,
@@ -193,6 +223,7 @@ export {
   PENDING_ANCHOR_CLASS,
   type PendingAnchor,
 } from './pendingAnchor';
+export { ParagraphStyles, type ParagraphStylesOptions } from './paragraphStyles';
 export { replaceRangeWithMarkdown, type ReplaceRangeOptions } from './replaceRange';
 export { FIND_DEBOUNCE_MS, runFindCommand } from './findReplace';
 export { selectionKind, type SelectionKind } from './selectionKind';

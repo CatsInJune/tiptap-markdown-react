@@ -15,19 +15,21 @@
 .inner {
   display: flex;
   align-items: center;
+  /* 溢出时 `safe` 让居中回退为起点对齐——否则两端内容会被裁掉且滚不到头 */
   justify-content: safe center;
-  /* 控件排满一行后换行而不是横向滚：`nowrap` + `overflow-x: auto` 会把行尾的控件
-     推到可视区外（宿主接上 onSearch 后就轮到了搜索入口），而工具栏横向滚动几乎没人会做。
-     宽容器里仍然只有一行，换行只在装不下时发生。 */
-  flex-wrap: wrap;
-  /* 横向不留间距：每个按钮自带 8px 内边距、分隔线自带 8px 外边距，视觉间距已经够了，
-     这 2px×二十来个控件是行内最后那点余量——省下来整行才装得下（列间距 0，换行后才留纵向
-     间距，免得两行贴在一起）。 */
-  gap: 4px 0;
+  /* 控件排满一行后横向滚动（2026-10-10 按用户要求从「换行」改为滚动）：
+     单行、不换行；macOS 的 overlay 滚动条平时隐藏，触控板 / Shift+滚轮 / 细滚动条可横向滚。 */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
   max-width: 1100px;
   margin: 0 auto;
   padding: 8px 16px;
-  overflow-x: auto;
+}
+
+/* 单行 + 溢出滚动时不允许把控件压扁（各控件本来就该保持自身宽度） */
+.inner > * {
+  flex-shrink: 0;
 }
 
 .btn {
@@ -177,6 +179,15 @@
   flex: none;
 }
 
+/* 图标型触发器（对齐 / 缩进 / 行高，与 .styleTrigger 合用）：Style / FontSize 那套是给
+   「文字 + 箭头」的——固定 76px 宽 + space-between，套在图标上会把图标与箭头撑到两端。 */
+.iconTrigger {
+  width: auto;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 6px;
+}
+
 /* 下拉项：图标 + 文字 */
 .styleItem {
   display: inline-flex;
@@ -205,7 +216,7 @@
   font-size: 0.7em;
 }
 
-/* ── Radix 下拉菜单面板（替代 antd .ant-dropdown-menu） ── */
+/* ── Radix 下拉菜单面板 ── */
 .menu {
   min-width: 200px;
   padding: 6px;

@@ -41,18 +41,35 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+/**
+ * 站点演示没有后端：读成 data URL 当上传。进度条用分段延迟模拟，
+ * 好让「上传中」这条状态看得见（真实宿主换成自己的上传 API 即可）。
+ */
+async function demoImageUpload(
+  file: File,
+  onProgress?: (event: { progress: number }) => void,
+  signal?: AbortSignal,
+): Promise<string> {
+  for (let progress = 0; progress <= 90; progress += 15) {
+    if (signal?.aborted) throw new DOMException('Upload aborted', 'AbortError');
+    await new Promise((resolve) => window.setTimeout(resolve, 100));
+    onProgress?.({ progress });
+  }
+  const url = await fileToDataUrl(file);
+  onProgress?.({ progress: 100 });
+  return url;
+}
+
 /** 完整编辑器 + 工具栏 */
 export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
-  const onImageUpload = useCallback((file: File) => fileToDataUrl(file), []);
   return (
     <div className="editorDemo">
       {editor && (
         <EditorToolbar
           editor={editor}
-          onImageUpload={onImageUpload}
           // 工具栏只开一道门：条子归编辑器，这里接上句柄；searchActive 用它上报的开合态
           onSearch={() => editorRef.current?.toggleFind()}
           searchActive={findOpen}
@@ -63,6 +80,9 @@ export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
           ref={editorRef}
           initialMarkdown={initial}
           placeholder="Write something…"
+          // 图片上传配置挂在编辑器上（官方 ImageUploadNode 同款交互）：工具栏图片按钮
+          // → 文档里出现拖拽 / 点选占位块 → 进度就地显示 → 成功就地换图
+          imageUpload={{ upload: demoImageUpload }}
           onFindOpenChange={setFindOpen}
           onEditorReady={setEditor}
         />
@@ -86,19 +106,18 @@ export function EditorOnlyDemo() {
 /** 工具栏 + 编辑器，强调图片上传 */
 export function ToolbarDemo() {
   const [editor, setEditor] = useState<Editor | null>(null);
-  const onImageUpload = useCallback((file: File) => fileToDataUrl(file), []);
   return (
     <div className="editorDemo">
       {editor && (
         <EditorToolbar
           editor={editor}
-          onImageUpload={onImageUpload}
           labels={{ image: 'Upload image (data URL demo)' }}
         />
       )}
       <div className="editorDemoBody compact">
         <MarkdownWysiwygEditor
-          initialMarkdown="# Toolbar demo\n\nClick the image button to upload — files become data URLs in this demo."
+          initialMarkdown="# Toolbar demo\n\nClick the image button to insert an upload block — drop or pick a file; it becomes a data URL in this demo."
+          imageUpload={{ upload: demoImageUpload }}
           onEditorReady={setEditor}
         />
       </div>
@@ -610,7 +629,6 @@ export function HeroDemo() {
   const [tab, setTab] = useState<'editor' | 'markdown' | 'reader'>('editor');
   const [findOpen, setFindOpen] = useState(false);
   const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
-  const onImageUpload = useCallback((file: File) => fileToDataUrl(file), []);
 
   useEffect(() => {
     if (!editor) return;
@@ -657,7 +675,6 @@ export function HeroDemo() {
         {editor && (
           <EditorToolbar
             editor={editor}
-            onImageUpload={onImageUpload}
             onSearch={() => editorRef.current?.toggleFind()}
             searchActive={findOpen}
           />
@@ -667,6 +684,9 @@ export function HeroDemo() {
             ref={editorRef}
             initialMarkdown={DEMO_MD}
             placeholder="Write something…"
+            // 图片上传挂在编辑器上（官方 ImageUploadNode 同款）：工具栏按钮 → 拖拽/点选
+            // 占位块 → 进度就地显示 → 成功就地换图；占位块不进 Markdown 产物
+            imageUpload={{ upload: demoImageUpload }}
             onFindOpenChange={setFindOpen}
             onEditorReady={setEditor}
           />
@@ -838,7 +858,7 @@ export function HostPlacedFindDemo() {
   );
 }
 
-/** getPopupContainer 式：库仍管开合与 Cmd/Ctrl+F，只把条子挂进宿主指定的容器 */
+/** popup container 模式：库仍管开合与 Cmd/Ctrl+F，只把条子挂进宿主指定的容器 */
 const CONTAINER_FIND_MD = `# 条子挂到宿主容器
 
 这个编辑器传了 **findBarContainer**：条子不再浮在正文右上角，而是挂进上面那个虚线框里。

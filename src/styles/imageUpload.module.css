@@ -1,0 +1,260 @@
+/* 图片上传占位块（ImageUploadNode 的 NodeView）。配色走 --tmr-* 变量（与工具栏 / 查找条同一套），
+   宿主可覆盖。
+
+   给宿主的稳定选择器（内部 class 是 CSS Modules 哈希过的）：根节点 [data-image-upload]、
+   拖拽区 [data-image-upload-dropzone]、文件行 [data-image-upload-item]、移除按钮
+   [data-image-upload-remove]。 */
+
+.wrap {
+  --iu-border: var(--tmr-toolbar-border, #ececec);
+  --iu-border-hover: var(--tmr-toolbar-muted, #6b6b6b);
+  --iu-muted: var(--tmr-toolbar-muted, #6b6b6b);
+  --iu-text: var(--tmr-text, #363737);
+  --iu-accent: var(--tmr-accent, #ff6719);
+
+  margin: 0.8em 0;
+}
+
+.wrap:focus-visible {
+  outline: none;
+}
+
+/* ── 空态：点击 / 拖拽区 ── */
+
+.dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 2rem 1.5rem;
+  border: 1.5px dashed var(--iu-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.dropzone:hover {
+  border-color: var(--iu-border-hover);
+}
+
+.wrap:focus-visible .dropzone,
+.dragActive {
+  border-color: var(--iu-accent);
+}
+
+.dragActive {
+  background-color: rgb(0 0 0 / 3%);
+}
+
+.dragOver {
+  background-color: rgb(0 0 0 / 6%);
+}
+
+/* 文档形状：主体 + 折角 + 右下角的上传角标 */
+.fileShape {
+  position: relative;
+  display: inline-flex;
+  width: 43px;
+  height: 57px;
+  flex: none;
+  color: var(--iu-border);
+}
+
+.fileShapeDoc {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.fileShapeCorner {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  color: var(--iu-border-hover);
+}
+
+.fileBadge {
+  position: absolute;
+  right: -6px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: var(--iu-accent);
+  color: #fff;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+  user-select: none;
+}
+
+.textMain {
+  color: var(--iu-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: normal;
+}
+
+.textEm {
+  font-style: normal;
+  text-decoration: underline;
+}
+
+.subtext {
+  color: var(--iu-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: normal;
+}
+
+/* ── 排队态：文件行列表 ── */
+
+.previews {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--iu-border);
+  color: var(--iu-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  user-select: none;
+}
+
+.clearAll {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--iu-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.clearAll:hover {
+  color: var(--iu-text);
+}
+
+.preview {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 进度层：绝对定位铺底的浅色带，宽度由内联 style 给 */
+.progress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--iu-accent);
+  opacity: 0.12;
+  transition: width 0.3s ease-out;
+}
+
+.previewContent {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--iu-border);
+  border-radius: 8px;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.fileIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--iu-accent);
+  color: #fff;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fileName {
+  overflow: hidden;
+  color: var(--iu-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+}
+
+.progressText {
+  color: var(--iu-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--iu-muted);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: rgb(0 0 0 / 5%);
+  color: var(--iu-text);
+}
+
+@media (max-width: 480px) {
+  .dropzone {
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+  }
+
+  .text {
+    text-align: center;
+  }
+
+  .previewContent {
+    padding: 0.75rem;
+  }
+}

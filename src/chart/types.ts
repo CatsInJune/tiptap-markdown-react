@@ -1,4 +1,4 @@
-/** MVP chart types aligned with agentic-ui (subset). */
+/** MVP chart types (subset). */
 export const MVP_CHART_TYPES = [
   'line',
   'bar',

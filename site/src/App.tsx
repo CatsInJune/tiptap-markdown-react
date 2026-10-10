@@ -97,16 +97,12 @@ function HomePage() {
           </span>
           <span className="badge">Tiptap v3</span>
           <span className="badge">MIT</span>
-          <span className="badge">{tx('零 Ant Design', 'zero Ant Design')}</span>
+          <span className="badge">{tx('零 UI 框架', 'zero UI framework')}</span>
         </div>
-        <h1>
-          {tx('Markdown 编辑，', 'Markdown editing, ')}
-          <span className="accent">{tx('优雅至上', 'done beautifully')}</span>
-        </h1>
         <p className="lede">
           {tx(
-            '基于 Tiptap v3 的全家桶所见即所得编辑器与阅读器。Markdown 进出、自带样式的工具栏、目录、实时预览、服务端渲染——可主题化，零 Ant Design。',
-            'A batteries-included WYSIWYG editor and reader on Tiptap\u00A0v3. Markdown in/out, styled toolbar, table of contents, live preview, and server-side rendering — themeable and Ant\u00A0Design-free.',
+            '基于 Tiptap v3 的全家桶所见即所得编辑器与阅读器。Markdown 进出、自带样式的工具栏、目录、实时预览、服务端渲染——可主题化。',
+            'A batteries-included WYSIWYG editor and reader on Tiptap\u00A0v3. Markdown in/out, styled toolbar, table of contents, live preview, and server-side rendering — themeable.',
           )}
         </p>
         <div className="heroActions">
@@ -214,8 +210,8 @@ function ComponentsPage() {
         <h1>{tx('组件', 'Components')}</h1>
         <p>
           {tx(
-            '用于编辑、阅读与导航 Markdown 内容的全家桶 React 组件。每个组件都带自成体系的样式与基于 Radix 的 UI——不依赖 Ant Design。',
-            'Batteries-included React components for editing, reading, and navigating Markdown content. Each ships with opinionated styles and Radix-based UI — no Ant Design.',
+            '用于编辑、阅读与导航 Markdown 内容的全家桶 React 组件。每个组件都带自成体系的样式与基于 Radix 的 UI——不依赖任何 UI 框架。',
+            'Batteries-included React components for editing, reading, and navigating Markdown content. Each ships with opinionated styles and Radix-based UI — no UI framework.',
           )}
         </p>
       </div>
@@ -230,6 +226,8 @@ function ComponentsPage() {
           'Ref API: getMarkdown(), getHTML(), getJSON(), getEditor()',
           'onTocChange for live table-of-contents sync',
           'extraExtensions hook for custom Tiptap nodes',
+          'Image resize, alignment & captions — round-trip as HTML in Markdown',
+          'Paragraph alignment, indent & line height — round-trip as <p style> in Markdown',
         ]}
         demo={
           <DemoBlock title="Basic editor" description="Toolbar optional — wire EditorToolbar separately.">
@@ -264,7 +262,7 @@ function ComponentsPage() {
             <DemoBlock title="Floating find bar" description="Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.">
               <FindReplaceDemo />
             </DemoBlock>
-            <DemoBlock title="Bar in a host container" description="findBarContainer: the library keeps the shortcut and open state, the bar mounts into a container you own (the getPopupContainer idea) — positioning is your CSS.">
+            <DemoBlock title="Bar in a host container" description="findBarContainer: the library keeps the shortcut and open state, the bar mounts into a container you own (the popup-container pattern) — positioning is your CSS.">
               <FindBarContainerDemo />
             </DemoBlock>
             <DemoBlock title="Host-placed bar" description="findBar={false}: the editor keeps the extension but renders no bar — placement, stacking and looks belong to the host.">
@@ -298,10 +296,11 @@ function ComponentsPage() {
       <ComponentSection
         id="toolbar"
         title="EditorToolbar"
-        description="Styled formatting toolbar. Image upload button appears only when onImageUpload is provided."
+        description="Styled formatting toolbar. The image button appears when the editor has imageUpload configured (or a legacy onImageUpload is passed)."
         importName="EditorToolbar"
         features={[
           'Headings, lists, tables, links, colors, alignment',
+          'Image button: upload placeholder block (drop / click, progress in place)',
           'More menu: code block, equations, table, import markdown',
           'Radix Popover / DropdownMenu — no native selects',
           'extraToolbarItems for custom More-menu entries',
@@ -380,7 +379,7 @@ editor.commands.insertBlockMath({ latex: '\\\\sum x' })
       <ComponentSection
         id="charts"
         title="Charts"
-        description="Data charts aligned with the agentic-ui contract: HTML comment JSON + GFM table. Chart.js renders in the editor, preview, and reading page (SSR placeholder → client hydrate). Click a chart to edit config JSON and table source."
+        description="Data charts: HTML comment JSON + GFM table. Chart.js renders in the editor, preview, and reading page (SSR placeholder → client hydrate). Click a chart to edit config JSON and table source."
         importName="MarkdownWysiwygEditor, ReportContentWithCharts, renderReportHtml"
         features={[
           'Author form: <!-- {"chartType":"line","x":"...","y":"..."} --> + table',
@@ -501,7 +500,7 @@ const { html } = renderReportHtml(markdown);
         demo={
           <DemoBlock
             title="Citation pills + host Popover"
-            description="Click a pill — Popover is Radix in this demo; invret can use antd the same way."
+            description="Click a pill — the popover here is built on Radix; swap in your own implementation the same way."
           >
             <CitationDemo />
           </DemoBlock>
@@ -664,16 +663,21 @@ function DemosPage() {
       <DemoBlock
         anchor="demo-toolbar"
         title="Toolbar + Image Upload"
-        description="onImageUpload converts files to data URLs in this demo (no backend)."
+        description="The image button inserts an upload block — drop a file on it or click to pick; this demo reads files as data URLs and fakes progress (no backend)."
       >
         <ToolbarDemo />
       </DemoBlock>
       <div className="propsNote">
         <h4>{t('Props 说明')}</h4>
         <p>
-          {tx('图片按钮出现的前提是传了 ', 'Required for the image button: ')}
+          {tx('图片上传配置挂在编辑器上（', 'Image upload is configured on the editor (')}
+          <code>imageUpload={'{ upload }'}</code>
+          {tx(
+            '，对齐官方 ImageUploadNode）：工具栏图片按钮 → 文档里出现拖拽 / 点选占位块 → 进度就地显示 → 全部成功后就地换图。旧的 ',
+            ', official ImageUploadNode style): toolbar button → a drop/click block appears in the document → progress in place → replaced by the image when done. The legacy ',
+          )}
           <code>onImageUpload</code>
-          {tx('。返回 URL 字符串（或 data URL）即可插入图片节点。', ' return a URL string (or data URL) to insert the image node.')}
+          {tx('（工具栏直传）在编辑器未注册该扩展时仍可用。', ' toolbar path still works while the extension is not registered.')}
         </p>
       </div>
 

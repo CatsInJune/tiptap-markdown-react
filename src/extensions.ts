@@ -1,12 +1,15 @@
 import Code from '@tiptap/extension-code';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Heading from '@tiptap/extension-heading';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
+import Paragraph from '@tiptap/extension-paragraph';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import { TableKit } from '@tiptap/extension-table';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
+import TextAlign from '@tiptap/extension-text-align';
 import {
   Color,
   FontSize,
@@ -14,6 +17,7 @@ import {
 } from '@tiptap/extension-text-style';
 // AnyExtension 从 @tiptap/react 取（它 re-export 自 core），避免新增 @tiptap/core 直接依赖
 import type { AnyExtension } from '@tiptap/react';
+import { mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
 import type {
@@ -24,7 +28,23 @@ import type {
   MarkdownTokenizer,
 } from '@tiptap/core';
 import { parseCodeTokenAsChartOrCodeBlock } from './chart/codeBlockChartParse';
+import {
+  imageAlignAttribute,
+  imageCaptionAttribute,
+  imageFigureParseRule,
+  imageMarkdownTokenizer,
+  imageNodeHtml,
+  imageParseMarkdown,
+  imageRenderMarkdown,
+} from './imageMarkdown';
 import { reportBlockMath, reportInlineMath } from './math';
+import {
+  headingRenderMarkdown,
+  paragraphMarkdownTokenizer,
+  paragraphParseMarkdown,
+  paragraphRenderMarkdown,
+} from './paragraphMarkdown';
+import { ParagraphStyles } from './paragraphStyles';
 
 /**
  * StarterKit 默认 Code 的 excludes:'_' 禁止与任何其他 mark 共存。
@@ -162,10 +182,61 @@ export const pureCodeBlock = CodeBlockLowlight.extend({
  * 纯版块级图片（无删除快捷键）：server / 预览用。
  * inline:false（官方默认）——研报里图片均为大图独占一行，块级图片可直接作为 doc
  * 顶层子节点，避免「inline image 裸挂 doc 顶层」被 generateTocIds 严格校验判非法。
+ *
+ * markdown 往返接 imageMarkdown：带尺寸 / 对齐 / 描述（图注）的图序列化为
+ * `<img …>` / `<figure>…</figure>`、解析时自建 tokenizer 认领——官方解析内联 HTML
+ * 依赖 window.DOMParser，server 端没有 window，不认领会把它转义成字面文本
+ * （见 imageMarkdown.ts 头注）。
  */
-export const pureImage = Image.configure({ inline: false });
+export const pureImage = Image.extend({
+  addAttributes() {
+    return {
+      ...(Image.config.addAttributes?.call(this) ?? {}),
+      align: imageAlignAttribute,
+      caption: imageCaptionAttribute,
+    };
+  },
+  parseHTML() {
+    // figure 规则要排在 img 前面：带描述的图整体归 figure
+    return [
+      imageFigureParseRule(),
+      {
+        tag: this.options.allowBase64
+          ? 'img[src]'
+          : 'img[src]:not([src^="data:"])',
+      },
+    ];
+  },
+  renderHTML({ node, HTMLAttributes }) {
+    return imageNodeHtml({
+      attrs: node.attrs,
+      htmlAttributes: mergeAttributes(
+        this.options.HTMLAttributes,
+        HTMLAttributes,
+      ),
+    });
+  },
+  renderMarkdown: imageRenderMarkdown,
+  parseMarkdown: imageParseMarkdown,
+  markdownTokenizer: imageMarkdownTokenizer,
+}).configure({ inline: false });
 
 export { pureChart, reportChart } from './chart/ChartExtension';
+
+/**
+ * 段落 / 标题的 markdown 版本：带段落级样式（对齐 / 缩进 / 行高）时序列化为
+ * `<p style="…">` / `<hN style="…">`，无样式保持原生形式（见 paragraphMarkdown.ts）。
+ * StarterKit 里这两个节点要关掉，改用下面这份（同 CodeBlock / Image 的分层做法）。
+ */
+export const MarkdownParagraph = Paragraph.extend({
+  renderMarkdown: paragraphRenderMarkdown,
+  markdownTokenizer: paragraphMarkdownTokenizer,
+  parseMarkdown: paragraphParseMarkdown,
+});
+
+export const MarkdownHeading = Heading.extend({
+  renderMarkdown: headingRenderMarkdown,
+});
 
 /**
  * 三处共用的纯 schema 扩展——**不含 CodeBlock / Image / CitationRef / Chart**（见上方边界说明）。
@@ -173,8 +244,22 @@ export { pureChart, reportChart } from './chart/ChartExtension';
  * server/预览：`[...baseExtensions, pureCodeBlock, pureImage, CitationRef, pureChart, …]`
  */
 export const baseExtensions: AnyExtension[] = [
-  // 禁用 StarterKit 内置 codeBlock / code，统一改用 lowlight 代码块 + 可共存的 InlineCode
-  StarterKit.configure({ codeBlock: false, code: false }),
+  // 禁用 StarterKit 内置 codeBlock / code（改用 lowlight 代码块 + 可共存的 InlineCode）
+  // 与 paragraph / heading（改用带 markdown 样式往返的版本，见上）
+  StarterKit.configure({
+    codeBlock: false,
+    code: false,
+    paragraph: false,
+    heading: false,
+  }),
+  MarkdownParagraph,
+  MarkdownHeading,
+  // 段落级样式：文字对齐用官方扩展（免费）；缩进 / 行高自研（官方无此扩展）。
+  // 三者都往节点 style 上写片段，tiptap 的 mergeAttributes 对 style 做拼接合并。
+  TextAlign.configure({ types: [MarkdownParagraph.name, MarkdownHeading.name] }),
+  ParagraphStyles.configure({
+    types: [MarkdownParagraph.name, MarkdownHeading.name],
+  }),
   InlineCode,
   MarkdownTextStyle,
   Color.configure({ types: [TextStyle.name] }),

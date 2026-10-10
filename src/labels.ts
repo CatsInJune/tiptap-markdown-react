@@ -26,6 +26,19 @@ export interface ToolbarLabels {
   superscript: string;
   subscript: string;
   link: string;
+  /** 段落对齐下拉：触发器 title / aria-label。 */
+  align: string;
+  alignLeft: string;
+  alignCenter: string;
+  alignRight: string;
+  alignJustify: string;
+  /** 缩进下拉：触发器 + 增加 / 减少两项。 */
+  indent: string;
+  indentIncrease: string;
+  indentDecrease: string;
+  /** 行高下拉：触发器 + 「默认」项（其余按数字直显）。 */
+  lineHeight: string;
+  lineHeightDefault: string;
   /**
    * 链接浮层输入框的占位与无障碍名（原 `window.prompt` 的提示语，现在落到输入框上）。
    */
@@ -40,6 +53,18 @@ export interface ToolbarLabels {
   linkInvalid: string;
   image: string;
   imageUploadFailed: string;
+  /** 图片对齐工具条（悬停图片时浮现）的 aria-label。 */
+  imageAlign: string;
+  /** 左对齐按钮的 title / aria-label。 */
+  imageAlignLeft: string;
+  /** 居中对齐按钮的 title / aria-label。 */
+  imageAlignCenter: string;
+  /** 右对齐按钮的 title / aria-label。 */
+  imageAlignRight: string;
+  /** 图片描述（图注）按钮的 title / aria-label。 */
+  imageCaption: string;
+  /** 描述输入框的占位与无障碍名。 */
+  imageCaptionPlaceholder: string;
   /** Markdown 文件导入失败（与图片上传共用 onError 回调时，便于宿主区分文案）。 */
   importMarkdownFailed: string;
   /** 主栏导入下拉触发器上的短文案（对齐 style / fontSize）。 */
@@ -179,6 +204,16 @@ export const defaultToolbarLabels: ToolbarLabels = {
   superscript: 'Superscript',
   subscript: 'Subscript',
   link: 'Link',
+  align: 'Alignment',
+  alignLeft: 'Align left',
+  alignCenter: 'Align center',
+  alignRight: 'Align right',
+  alignJustify: 'Justify',
+  indent: 'Indent',
+  indentIncrease: 'Increase indent',
+  indentDecrease: 'Decrease indent',
+  lineHeight: 'Line height',
+  lineHeightDefault: 'Default',
   linkPrompt: 'Enter URL',
   linkApply: 'Apply link',
   linkOpen: 'Open in new window',
@@ -186,6 +221,12 @@ export const defaultToolbarLabels: ToolbarLabels = {
   linkInvalid: 'The editor rejected this address',
   image: 'Image',
   imageUploadFailed: 'Image upload failed',
+  imageAlign: 'Image alignment',
+  imageAlignLeft: 'Align left',
+  imageAlignCenter: 'Align center',
+  imageAlignRight: 'Align right',
+  imageCaption: 'Caption',
+  imageCaptionPlaceholder: 'Add a caption…',
   importMarkdownFailed: 'Markdown import failed',
   importDocument: 'Import',
   importDocumentHint: 'Import a file',
@@ -283,6 +324,13 @@ export interface ShortcutLabels {
   redo: string;
   hardBreak: string;
   findReplace: string;
+  /** 段落对齐四条（官方 TextAlign 的默认键位）。 */
+  alignLeft: string;
+  alignCenter: string;
+  alignRight: string;
+  alignJustify: string;
+  /** 图片上传占位块（Mod+Shift+I）。 */
+  imageUpload: string;
 }
 
 export const defaultShortcutLabels: ShortcutLabels = {
@@ -312,6 +360,11 @@ export const defaultShortcutLabels: ShortcutLabels = {
   redo: 'Redo',
   hardBreak: 'Hard break',
   findReplace: 'Find & replace',
+  alignLeft: 'Align left',
+  alignCenter: 'Align center',
+  alignRight: 'Align right',
+  alignJustify: 'Justify',
+  imageUpload: 'Upload image',
 };
 
 /** 链接编辑浮层（`<LinkPopover>`）文案。 */
@@ -429,4 +482,38 @@ export const defaultFindLabels: FindLabels = {
   counter: (current, total) => `${current} / ${total}`,
   invalidRegex: 'Invalid pattern',
   readOnly: 'Read-only',
+};
+
+/** 图片上传占位块（`<MarkdownWysiwygEditor imageUpload={{…}}>`）文案。 */
+export interface ImageUploadLabels {
+  /** 空态主文案前半（下划线强调，对齐官方的 "Click to upload"），如 `Click to upload`。 */
+  dropzoneClick: string;
+  /** 空态主文案后半，如 ` or drag and drop`（中文可写成「，或拖拽到此处」）。 */
+  dropzoneRest: string;
+  /** 空态副文案：数量与单文件体积上限；`maxSizeMb` 为 null 表示未设上限。 */
+  dropzoneLimits: (limit: number, maxSizeMb: number | null) => string;
+  /** 多文件排队时的标题，参数为文件数。 */
+  uploadingCount: (count: number) => string;
+  /** 清空全部排队文件的按钮。 */
+  clearAll: string;
+  /** 单个文件行的移除按钮（title / aria-label）。 */
+  remove: string;
+  /** 文件行上传失败时的状态文字（替掉体积位置）。 */
+  failed: string;
+  /** 上传成功后写入图片 alt / title 的兜底（文件名去扩展名后为空时）。 */
+  fallbackAlt: string;
+}
+
+export const defaultImageUploadLabels: ImageUploadLabels = {
+  dropzoneClick: 'Click to upload',
+  dropzoneRest: ' or drag and drop',
+  dropzoneLimits: (limit, maxSizeMb) => {
+    const count = `Maximum ${limit} file${limit === 1 ? '' : 's'}`;
+    return maxSizeMb == null ? `${count}.` : `${count}, ${maxSizeMb}MB each.`;
+  },
+  uploadingCount: (count) => `Uploading ${count} files`,
+  clearAll: 'Clear all',
+  remove: 'Remove',
+  failed: 'Upload failed',
+  fallbackAlt: 'image',
 };

@@ -324,7 +324,7 @@ a {
 
 /* ── hero ── */
 .hero {
-  padding: 96px 0 52px;
+  padding: 84px 0 52px;
   text-align: center;
 }
 
@@ -351,26 +351,6 @@ a {
 .badge b {
   color: var(--accent);
   font-weight: 600;
-}
-
-.hero h1 {
-  font-family: var(--display);
-  font-optical-sizing: auto;
-  font-weight: 500;
-  font-size: clamp(40px, 7.2vw, 78px);
-  line-height: 1.02;
-  letter-spacing: -0.025em;
-  margin: 0 auto 24px;
-  max-width: 15ch;
-  animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.06s both;
-}
-
-.hero h1 .accent {
-  font-style: italic;
-  background: linear-gradient(100deg, var(--accent), var(--accent-deep));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 .lede {
@@ -726,7 +706,7 @@ a {
   border-radius: 5px;
 }
 
-/* ── docs shell (Agentic-style 3-column) ── */
+/* ── docs shell (3-column) ── */
 .docsShell {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr) 180px;
@@ -1022,7 +1002,7 @@ a {
   line-height: 1.55;
 }
 
-/* ── API table (Ant Design style) ── */
+/* ── API table ── */
 .apiTableWrap {
   overflow-x: auto;
   margin-bottom: 24px;

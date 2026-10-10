@@ -45,7 +45,7 @@ describe('parseGfmTable', () => {
 });
 
 describe('comment + table chart', () => {
-  it('parses invret-style line chart', () => {
+  it('parses LLM-style line chart', () => {
     const md = `<!-- {"chartType": "line", "x": "date","title":"历史价格走势", "y": "close", "colorLegend": "Acme(AAA)向前复权调整价格"} -->
 | date | open | high | low | close | volume |
 |------|------|------|------|-------|--------|

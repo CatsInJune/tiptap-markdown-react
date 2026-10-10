@@ -168,9 +168,188 @@
   display: block;
 }
 
-/* 选中的图片高亮 */
-.editorContent :global(img.ProseMirror-selectednode) {
+/* 选中的图片高亮。开缩放后图片被 NodeView 包着、选中类落在容器上；关缩放时类落在 img 上 */
+.editorContent :global(img.ProseMirror-selectednode),
+.editorContent :global([data-resize-container].ProseMirror-selectednode img) {
   outline: 2px solid var(--tmr-accent, #ff6719);
+}
+
+/* 图片对齐（data-align 由图片扩展渲染；属性名对齐官方 image-align-button 的约定）。
+   只读 / 预览里 img 是块级直系子元素，margin auto 推左右；编辑态 img 被缩放的 wrapper
+   包着、自身 margin 缩不动，改为对齐容器（flex）的 justify-content。 */
+.editorContent :global(img[data-align='left']) {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.editorContent :global(img[data-align='center']) {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.editorContent :global(img[data-align='right']) {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.editorContent :global([data-resize-container]:has(img[data-align='left'])) {
+  justify-content: flex-start;
+}
+
+.editorContent :global([data-resize-container]:has(img[data-align='center'])) {
+  justify-content: center;
+}
+
+.editorContent :global([data-resize-container]:has(img[data-align='right'])) {
+  justify-content: flex-end;
+}
+
+/* 编辑态（缩放 wrapper 内）的对齐完全交给上面的 justify-content：img 自己的
+   margin 在「wrapper 宽度收缩到图片宽」的布局里没有可分配空间，auto 值在不同
+   浏览器/布局下的固有尺寸计算还可能造出额外宽度——统一清零，防患于未然。 */
+.editorContent :global([data-resize-wrapper] img[data-align]) {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* 编辑态：图片的上下 margin 挪到容器上（wrapper 内清零）。margin 若留在 img 上，
+   会与 wrapper 折叠——wrapper 的顶被推上去，手柄 top（相对 wrapper）的定位基准就偏了
+   （--tmr-image-h 的公式假设「wrapper 顶 = 图片顶」）。 */
+.editorContent :global([data-resize-container]) {
+  margin: 0.8em 0;
+}
+
+.editorContent :global([data-resize-wrapper] img) {
+  margin: 0;
+}
+
+/* 图注（图片描述）：**始终在图片底部居中**（不跟图片对齐方向走）。编辑态由 NodeView
+   的 wrapper 承载（宽度 = 图片宽）；只读 / 预览 / SSR 走 renderHTML 的
+   <figure><figcaption>（figure 是 fit-content 的 column flex，figcaption 与图片同宽）。 */
+.editorContent :global(.tmr-image-caption) {
+  margin-top: 0.4em;
+  color: var(--tmr-muted, #6b6b6b);
+  font-size: 0.875em;
+  line-height: 1.5;
+  text-align: center;
+  user-select: text;
+}
+
+/* 预览 / SSR / 无缩放的编辑态：figure > img + figcaption 结构 */
+.editorContent :global(figure.tmr-image-figure) {
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0.8em 0;
+}
+
+.editorContent :global(figure.tmr-image-figure > img) {
+  margin: 0;
+}
+
+.editorContent :global(figure.tmr-image-figure:has(img[data-align='center'])) {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.editorContent :global(figure.tmr-image-figure:has(img[data-align='right'])) {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* 图片缩放手柄。官方 ResizableNodeView 只给手柄内联定位（top/left/bottom/right），
+   没有视觉样式——尺寸与配色在这里定；拖动逻辑归 JS（mousedown→mousemove→commit）。
+   显示时机：仅鼠标悬浮图片时出现（拖拽中保持），移开即隐。 */
+.editorContent :global([data-resize-handle]) {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  box-sizing: border-box;
+  background: var(--tmr-accent, #ff6719);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  touch-action: none;
+}
+
+.editorContent :global([data-resize-container]:hover [data-resize-handle]),
+.editorContent :global([data-resize-container][data-resize-state='true'] [data-resize-handle]) {
+  opacity: 1;
+}
+
+/* 默认四角手柄：中心压在图片角上（官方内联定位是贴角，用 transform 外移一半） */
+.editorContent :global([data-resize-handle='top-left']) {
+  transform: translate(-50%, -50%);
+  cursor: nwse-resize;
+}
+
+.editorContent :global([data-resize-handle='top-right']) {
+  transform: translate(50%, -50%);
+  cursor: nesw-resize;
+}
+
+.editorContent :global([data-resize-handle='bottom-left']) {
+  transform: translate(-50%, 50%);
+  cursor: nesw-resize;
+}
+
+.editorContent :global([data-resize-handle='bottom-right']) {
+  transform: translate(50%, 50%);
+  cursor: nwse-resize;
+}
+
+/* 左右手柄（本库默认方向）：居中的圆角竖条、贴边内缩，对齐官方 demo 的形态。
+   官方内联定位把这些手柄撑满整条边（top:0;bottom:0），改回垂直居中需要 !important。 */
+.editorContent :global([data-resize-handle='left']),
+.editorContent :global([data-resize-handle='right']) {
+  top: 50% !important;
+  /* 有图注时 wrapper 会变高（图注在图片下方），手柄要相对**图片**垂直居中——
+     NodeView 包装把图片的真实高度写在 --tmr-image-h 上；变量缺失（图片未加载 /
+     无布局环境）时上一条 50% 生效（calc 引用未定义变量整条声明无效）。 */
+  top: calc(var(--tmr-image-h) / 2) !important;
+  bottom: auto !important;
+  width: 12px;
+  height: min(84px, 24%);
+  border: none;
+  border-radius: 999px;
+  cursor: ew-resize;
+}
+
+/* 拖拽中 wrapper 高度实时变（图片尺寸在变），--tmr-image-h 还是拖前的旧值——
+   继续用它手柄会「掉」到图片下方（拖小图时实测偏出 100px+，松手 update 后才复原）。
+   拖拽期间落回 50% 近似定位：无图注时即图片正中；有图注时偏半个图注高，可忽略。 */
+.editorContent :global([data-resize-container][data-resize-state='true'] [data-resize-handle='left']),
+.editorContent :global([data-resize-container][data-resize-state='true'] [data-resize-handle='right']) {
+  top: 50% !important;
+}
+
+.editorContent :global([data-resize-handle='left']) {
+  transform: translate(8px, -50%);
+}
+
+.editorContent :global([data-resize-handle='right']) {
+  transform: translate(-8px, -50%);
+}
+
+/* 上下边手柄（宿主显式开启 top/bottom 时）：同样的短条，横向 */
+.editorContent :global([data-resize-handle='top']),
+.editorContent :global([data-resize-handle='bottom']) {
+  left: 50% !important;
+  right: auto !important;
+  width: min(84px, 24%);
+  height: 12px;
+  border: none;
+  border-radius: 999px;
+  cursor: ns-resize;
+}
+
+.editorContent :global([data-resize-handle='top']) {
+  transform: translate(-50%, 8px);
+}
+
+.editorContent :global([data-resize-handle='bottom']) {
+  transform: translate(-50%, -8px);
 }
 
 /* 表格：细边框、表头浅灰；外包 .tableWrapper（编辑器 NodeView + SSR renderWrapper）

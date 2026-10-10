@@ -1,13 +1,13 @@
 # tiptap-markdown-react
 
-A batteries-included, self-styled **Markdown WYSIWYG editor + reader** suite built on [Tiptap v3](https://tiptap.dev). Markdown in, markdown out — plus a table of contents, a client preview, and a server-side (RSC/SSR) renderer for SEO-friendly reading pages. No Ant Design, no icon library; themeable via CSS variables.
+A batteries-included, self-styled **Markdown WYSIWYG editor + reader** suite built on [Tiptap v3](https://tiptap.dev). Markdown in, markdown out — plus a table of contents, a client preview, and a server-side (RSC/SSR) renderer for SEO-friendly reading pages. No UI framework dependency, no icon library; themeable via CSS variables.
 
 **[Live demo →](https://catsinjune.github.io/tiptap-markdown-react/)** — the docs site with runnable editor demos (source in [`site/`](./site)). Auto-deployed from `main`.
 
 - **Markdown-first**: content goes in and comes out as markdown (`getMarkdown()`), with `getHTML()` / `getJSON()` also exposed.
 - **Equations**: toolbar inserts inline / block math (KaTeX). Markdown round-trip uses `$$…$$` (inline) and newline-wrapped `$$` (block). Typing `$` / `$$` stays as text so dollar amounts are safe.
-- **Charts**: agentic-ui-compatible data charts (`<!-- {"chartType":…} -->` + GFM table). Chart.js renders in editor / preview / reader (SSR placeholder → client hydrate). MVP: line, bar, column, pie, donut, area.
-- **Own opinionated UI**: toolbar, color palette, code block, and table of contents ship styled out of the box. Zero `antd`. Dropdowns/popovers use [Radix](https://www.radix-ui.com/) primitives; icons are inline SVG.
+- **Charts**: LLM-friendly data charts (`<!-- {"chartType":…} -->` + GFM table). Chart.js renders in editor / preview / reader (SSR placeholder → client hydrate). MVP: line, bar, column, pie, donut, area.
+- **Own opinionated UI**: toolbar, color palette, code block, and table of contents ship styled out of the box. Dropdowns/popovers use [Radix](https://www.radix-ui.com/) primitives; icons are inline SVG.
 - **Editor + Preview + Static reader**: edit, live client-side preview, and a pure `renderReportHtml()` for server rendering (Next.js Server Components / ISR). Reading pages that only hydrate footnotes should import `tiptap-markdown-react/reader` so they do not load `TableKit`.
 - **Table of contents**: stable, shareable slug anchors that match between the editor preview and the published reading page.
 - **Themeable**: colors and fonts are exposed as `--tmr-*` CSS variables.
@@ -66,19 +66,21 @@ export function Composer() {
   return (
     <div>
       {editor && (
-        <EditorToolbar
-          editor={editor}
-          onImageUpload={async (file) => {
-            const url = await uploadToYourStorage(file); // return a public URL
-            return url;
-          }}
-          onError={(err) => console.error(err)}
-        />
+        <EditorToolbar editor={editor} onError={(err) => console.error(err)} />
       )}
       <MarkdownWysiwygEditor
         ref={ref}
         initialMarkdown={'# Hello\n\nStart writing…'}
         placeholder="Write something…"
+        // The toolbar's image button now inserts a drop/click upload block
+        // (official ImageUploadNode interaction); it swaps itself for the
+        // image when the upload finishes — see "Image upload" below.
+        imageUpload={{
+          upload: async (file, onProgress, signal) => {
+            return uploadToYourStorage(file, onProgress, signal); // public URL
+          },
+          maxSize: 5 * 1024 * 1024,
+        }}
         onEditorReady={setEditor}
       />
       <button onClick={() => console.log(ref.current?.getMarkdown())}>
@@ -161,7 +163,7 @@ Do not also import `tiptap-markdown-react` (the editor entry) from that same cli
 
 ### 3b. Charts (comment + table)
 
-Author / LLM form (matches agentic-ui / invret backend):
+Author / LLM form:
 
 ```markdown
 <!-- {"chartType": "line", "x": "date", "y": "close", "title": "Price"} -->
@@ -287,11 +289,13 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `onTocChange` | `(items: TocItem[]) => void` | Fires when headings change. |
 | `markdownPaste` | `boolean` | Auto-detect markdown in plain-text paste and convert it (Shift+paste keeps plain text). Default `true`. Init-only. |
 | `markdownFileDrop` | `boolean` | Drop or paste `.md` / `.markdown` files into the editor to insert their parsed content. Default `true`. Init-only. |
+| `imageUpload` | `ImageUploadConfig` | Official `ImageUploadNode`-style upload (see [Image upload](#image-upload)). The toolbar's image button inserts a placeholder block you can drop a file on or click to pick; progress shows in place and the block is swapped for the image when every file finishes. `upload(file, onProgress?, signal?) => Promise<url>` is required; `accept` (`image/*`), `limit` (1), `maxSize` (0 = unlimited), `onError`, `onSuccess`, `labels` are optional. The block never reaches the saved markdown. Init-only. |
+| `imageResize` | `boolean \| ImageResizeOptions` | Resizable images (default `true`, see [Image resize](#image-resize)). Drag a corner handle to resize; the size lands in the `width`/`height` node attributes and round-trips through markdown as `<img …>` (untouched images stay `![alt](url)`; `resetImageSize(editor)` clears a size). `false` disables; an object passes through to the official `resize` config (`directions`, `minWidth`, `minHeight`, `alwaysPreserveAspectRatio`). Init-only. |
 | `extraExtensions` | `AnyExtension[]` | Extra Tiptap extensions to register. |
 | `codeBlockLabels` | `Partial<CodeBlockLabels>` | Localize the code block UI. |
 | `findReplace` | `boolean` | Enable find & replace (default `true`): registers the official `@tiptap/extension-find-and-replace` and renders the floating bar. |
 | `findBar` | `boolean` | Render the floating bar inside the editor (default: same as `findReplace`). `false` hands **placement to the host** — the extension stays registered, the editor renders no bar, and you render `<FindReplaceBar editor={editor} />` wherever you want; `findShortcut` and `handle.openFind/closeFind` go quiet with it. |
-| `findBarContainer` | `HTMLElement \| (() => HTMLElement \| null)` | Mount the editor's bar into a container you own (the `getPopupContainer` idea): the library keeps open state and the shortcut, only the mount point changes. Use it when an `overflow: hidden` ancestor would clip the bar, or to park it in your own header / sidebar. Positioning is then yours (no absolute positioning is added), and if the container sits outside your themed subtree, bring `--tmr-*` along. Falls back to the in-editor bar when it resolves to `null`. |
+| `findBarContainer` | `HTMLElement \| (() => HTMLElement \| null)` | Mount the editor's bar into a container you own (the popup-container pattern): the library keeps open state and the shortcut, only the mount point changes. Use it when an `overflow: hidden` ancestor would clip the bar, or to park it in your own header / sidebar. Positioning is then yours (no absolute positioning is added), and if the container sits outside your themed subtree, bring `--tmr-*` along. Falls back to the in-editor bar when it resolves to `null`. |
 | `findBarOffset` | `{ top?, right?, bottom?, left? } \| number = px` | Where the library-rendered bar sits inside its positioning context. Default `{ top: 4, right: 4 }` (top-right); pass e.g. `{ bottom: 8, left: 8 }` to dock it elsewhere. The context is the editor, or your `findBarContainer` element when you supply one — the library adds `position: relative` to that container if it is `static` (otherwise the bar would anchor to some unexpected ancestor). |
 | `findShortcut` | `boolean` | Take over <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> while the editor has focus (default `true`; bound only when the editor owns a bar). `false` keeps the browser's native find — wire your own entry with `handle.openFind()`. |
 | `findLabels` | `Partial<FindLabels>` | Localize the find & replace bar. |
@@ -406,14 +410,87 @@ Three ways to get markdown into the editor, all built in:
 
 The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLikeMarkdown` heuristic) are exported for custom pipelines.
 
+#### Image upload
+
+Configure `imageUpload` on the editor and the toolbar's image button stops opening the file picker directly. Instead it **inserts a placeholder block** in the document — the same interaction as the official `ImageUploadNode` UI component: drop a file on the block or click to pick one, the block lists each file with its size and a live progress bar, and once every queued file finishes it replaces itself with the matching image node(s) at the same position.
+
+```tsx
+<MarkdownWysiwygEditor
+  imageUpload={{
+    upload: async (file, onProgress, signal) => {
+      return yourApi.upload(file, { onProgress, signal }); // public URL (or data URL)
+    },
+    accept: 'image/*',        // default
+    limit: 3,                 // queue up to 3 per block; default 1
+    maxSize: 5 * 1024 * 1024, // per-file cap in bytes; 0 = unlimited (default 0)
+    onError: (err) => console.error(err),
+  }}
+/>
+```
+
+- **Markdown stays clean** — the block is an atom node whose `renderMarkdown` returns `''`, so an in-flight upload can never leak into `getMarkdown()` / autosave; images appear only after the swap. On success `alt` / `title` are set to the file name (extension stripped).
+- **Errors** — over-size / over-limit / failed uploads call `onError(error)`; the failed row stays in the block. Remove it (or Clear all) and try again.
+- **Abort** — the `upload` callback receives an `AbortSignal` that fires when a row is removed, the queue is cleared, the block is deleted, or the editor unmounts. Hand it to `fetch` so abandoned uploads stop.
+- **Keyboard** — <kbd>Cmd/Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> inserts a block (on Windows that combo also opens DevTools — the browser wins, same as the official component); <kbd>Enter</kbd> on a selected block opens the picker.
+- The block's text comes from the `imageUpload.labels` (`ImageUploadLabels`); the `ImageUploadNode` extension and `hasImageUpload(editor)` are exported for hand-built pipelines.
+- The legacy toolbar prop `onImageUpload` still works when the extension is not registered — see the `<EditorToolbar>` table.
+
+#### Paragraph styles: alignment, indent, line height
+
+Three dropdowns sit next to the font-size control: **alignment** (left / center / right / justify — the free official `@tiptap/extension-text-align`), **indent** (increase / decrease, one 2em step per level, max 8) and **line height** (default / 1 / 1.15 / 1.5 / 2 / 2.5 / 3). They apply to paragraphs and headings; commands are `setTextAlign` (official) plus `setIndent` / `increaseIndent` / `decreaseIndent` / `setLineHeight` from the exported `ParagraphStyles` extension.
+
+Markdown has no paragraph-style syntax, so a styled paragraph serializes to inline HTML — the same bus as resized images, with the same "only when used" rule:
+
+```html
+<p style="text-align: center; margin-left: 2em; line-height: 1.5">…</p>
+<h2 style="text-align: right">…</h2>
+```
+
+Untouched paragraphs stay native markdown. The editor, preview and server renderer share one tokenizer (it only claims `<p>` / `<hN>` carrying styles this library knows), so styles round-trip everywhere — including SSR. On other renderers (GitHub etc.) the `style` is sanitized away while the text renders normally: a decoration is lost, not content.
+
+#### Image resize
+
+Images are resizable out of the box (the official `@tiptap/extension-image` `resize` capability): hover an image — the handles appear on hover only — and drag a side handle. The size is committed as integer-pixel node attributes (`width` / `height`) — not inline styles — so it survives save and reload.
+
+CommonMark has no size syntax, so **a resized image serializes to inline HTML**: `<img src="…" alt="…" width="440" height="330">`, while untouched images keep the standard `![alt](url)` form. The editor, the preview and the server renderer all parse that tag back through one shared tokenizer (it claims `<img …>` before the `window.DOMParser` path can run), so sizes round-trip in every pipeline — including SSR, where raw inline HTML would otherwise be escaped to literal text. Dragging writes `width`/`height`; export `resetImageSize(editor)` clears them and returns the image to the clean `![alt](url)` syntax (wire it to your own button — the library renders no UI for it).
+
+```tsx
+<MarkdownWysiwygEditor
+  imageResize={{ minWidth: 80, minHeight: 80 }} // default: true
+/>
+```
+
+Defaults: two side handles (`left` / `right`, matching the official demo, shown on hover only), aspect ratio always locked (`alwaysPreserveAspectRatio: true`), a **minimum of 80×80 px**, and a **maximum that follows the editor's content width** — images cannot be dragged past the layout; the bound is re-measured before every drag, so window resizes are picked up. Pin your own bounds with `minWidth` / `minHeight` / `maxWidth` / `maxHeight` (the library injects the max into the official `ResizableNodeView`, which has no max option of its own). Locking keeps the committed size consistent with how read-only rendering scales the image (CSS `height: auto`), so non-uniformly stretched images cannot "snap back" in previews; pass `alwaysPreserveAspectRatio: false` to allow free stretching anyway. Read-only editors never show handles, and `imageResize={false}` disables the feature entirely.
+
+#### Image alignment
+
+Hover an image and a small toolbar appears above it — left / center / right, the same hover-handle interaction as the table row/column handles. Alignment is stored as the `align` node attribute and rendered as **`data-align`** — the attribute name the official `image-align-button` uses — so existing `img[data-align="center"]` styles keep working. Keyboard shortcuts match the official component: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> / <kbd>E</kbd> / <kbd>R</kbd> with an image selected (or the cursor right next to it).
+
+Like size, alignment has no markdown syntax, so an aligned image serializes to `<img … data-align="center">` (untouched images stay `![alt](url)`) and the same tokenizer parses it back — editor, preview and server renderer all agree. For custom UIs the library exports `setImageAlign(editor, align)` / `isImageAlignActive(editor, align)` (selection-based) and `setImageAlignAt(editor, element, align)` (DOM-based); the hover toolbar's text comes from `labels.imageAlign*`.
+
+#### Image caption
+
+Hover an image, click the caption button in the hover toolbar and an input opens right there — <kbd>Enter</kbd> commits, <kbd>Esc</kbd> cancels, clicking away commits too. The caption renders under the image (small muted text, aligned with the image) and is stored as the `caption` node attribute.
+
+In markdown a captioned image serializes to a `<figure>` block (standard HTML semantics — GitHub renders it the same way):
+
+```html
+<figure>
+<img src="…" alt="…">
+<figcaption>Figure 1: something</figcaption>
+</figure>
+```
+
+Images without a caption keep the plain `![alt](url)` form. Editor, preview and server renderer share the same tokenizer, so captions round-trip everywhere — including SSR. Tooling for custom UIs: `setImageCaption(editor, text)` / `setImageCaptionAtPos(editor, pos, text)`; hover-toolbar labels via `labels.imageCaption` / `imageCaptionPlaceholder`. The official side has nothing for this (`@tiptap/extension-figure` does not exist on npm), so the whole path is native to this library.
+
 ### `<EditorToolbar>` (client)
 
-The row is centred and, when the controls no longer fit the container, **wraps onto a second line** rather than scrolling sideways — a hidden control is worse than a taller toolbar. The full set (search entry included) needs about 1045 px of container width; narrower containers get a wrapped line with 4 px of vertical breathing room. `onSearch` renders the magnifier just left of the More menu.
+The row stays centred and **scrolls horizontally** when the controls no longer fit — a single line, never wrapped (`justify-content: safe center` keeps both ends reachable once it overflows). The full set (search entry included) needs about 1045 px of container width; narrower containers scroll. `onSearch` renders the magnifier just left of the More menu.
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `editor` | `Editor` | The instance from `onEditorReady`. |
-| `onImageUpload` | `(file: File) => Promise<string>` | Upload handler returning a URL. Omit to hide the image button. |
+| `onImageUpload` | `(file: File) => Promise<string>` | **Legacy** direct-upload path: picking a file inserts the returned URL. Ignored when the editor registers the `imageUpload` extension (configure that on `<MarkdownWysiwygEditor>` instead); omit both and no image button renders. |
 | `onError` | `(err, source?: 'image' \| 'markdown' \| 'import') => void` | Side-effect error callback (e.g. failed upload). |
 | `onImportDocument` | `(file, ctx) => Promise<ImportDocumentResult \| string>` | Converts a non-Markdown file to Markdown. `ctx.signal` aborts on cancel/unmount; `ctx.onProgress` reports upload/convert progress back. Omit and Import only takes `.md`. |
 | `importAccept` | `string` | Extra `accept` used by the default Document menu item when `importMenuItems` is omitted. |
@@ -427,6 +504,7 @@ The row is centred and, when the controls no longer fit the container, **wraps o
 | `labels.mathPlaceholder` / `mathDone` / `mathNewInline` / `mathNewBlock` | `string` | Equation editor (empty chip/hint, input, Done). |
 | `labels.tableRowMenu` / `tableColumnMenu` | `string` | Aria-labels of the table hover handles. |
 | `labels.linkPrompt` / `linkApply` / `linkOpen` / `linkRemove` / `linkInvalid` | `string` | Link popover: field placeholder, apply, open in new window, remove, rejected-address hint. |
+| `labels.imageAlign` / `imageAlignLeft` / `imageAlignCenter` / `imageAlignRight` | `string` | Hover alignment toolbar (rendered by the toolbar, appears over the hovered image): toolbar aria-label and the three button labels. |
 
 #### Table editing (hover handles)
 
@@ -511,3 +589,7 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 ## License
 
 MIT © CatsInJune
+
+Third-party content used or adapted by this project — Lucide icons, Tiptap UI Components
+(ported component logic and icons), KaTeX styles/fonts, and the npm dependency licenses —
+is credited in [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md).

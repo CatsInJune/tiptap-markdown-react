@@ -1,5 +1,5 @@
 /**
- * Loose header ↔ config field matching (ported from agentic-ui columnMatching).
+ * Loose header ↔ config field matching for chart data tables.
  * Zero runtime deps beyond string/regex.
  */
 

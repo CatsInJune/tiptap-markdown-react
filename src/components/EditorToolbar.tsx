@@ -14,11 +14,18 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  AlignCenterIcon,
+  AlignJustifyIcon,
+  AlignLeftIcon,
+  AlignRightIcon,
   BoldIcon,
   ChevronDownIcon,
   CodeIcon,
   ImageIcon,
+  IndentDecreaseIcon,
+  IndentIncreaseIcon,
   ItalicIcon,
+  LineHeightIcon,
   LinkIcon,
   ListChecksIcon,
   ListOrderedIcon,
@@ -36,10 +43,12 @@ import {
   type ImportMenuItem,
 } from '../importMenu';
 import type { SourceRef } from '../citationUtils';
+import { hasImageUpload } from '../imageUpload';
 import { insertMarkdown } from '../insertMarkdown';
 import { subscribeMathClick, type MathKind } from '../math';
 import styles from '../styles/toolbar.module.css';
 import { ColorPalette } from './ColorPalette';
+import { ImageAlignTools } from './ImageAlignTools';
 import { LinkPopover } from './LinkPopover';
 import { TableHandles } from './TableHandles';
 import { MathEditorPopover } from './MathEditorPopover';
@@ -171,13 +180,24 @@ function Divider() {
   return <span className={styles.divider} aria-hidden />;
 }
 
+/** 行高下拉的档位（对齐语雀 / Notion 的习惯值；不含"默认"）。 */
+const LINE_HEIGHTS = ['1', '1.15', '1.5', '2', '2.5', '3'] as const;
+
+/** 段落级样式读自段落或标题（光标所在处）——对齐 / 缩进 / 行高共用。 */
+function readParaAttr<T>(editor: Editor, name: string): T | null {
+  return (
+    ((editor.getAttributes('paragraph')[name] ??
+      editor.getAttributes('heading')[name]) as T | undefined) ?? null
+  );
+}
+
 // 关闭当前菜单的回调（由 MenuPopover 注入，MenuItem 选中后调用以收起）。
 const MenuCloseCtx = createContext<() => void>(() => {});
 
 /**
  * 菜单气泡：用 Radix Popover 而非 DropdownMenu——后者会强制抢焦点（menu 语义），
  * 打开即让编辑器 blur、丢选区；Popover 可 onOpenAutoFocus preventDefault 保持编辑器焦点。
- * 菜单项为普通 button（onMouseDown preventDefault 不夺焦），行为与原 antd 一致。
+ * 菜单项为普通 button（onMouseDown preventDefault 不夺焦），行为与原生菜单一致。
  */
 function MenuPopover({
   trigger,
@@ -388,7 +408,7 @@ const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '30px'] as const;
 
 /**
- * 顶部操作栏（antd-free，Radix Popover 菜单 + 内联 SVG 图标）。位置由父级控制，
+ * 顶部操作栏（零 UI 框架依赖，Radix Popover 菜单 + 内联 SVG 图标）。位置由父级控制，
  * 这里只渲染按钮 + 反映 editor 激活态。不含业务耦合，扩展项经 extraToolbarItems 注入。
  */
 export function EditorToolbar({
@@ -430,6 +450,9 @@ export function EditorToolbar({
         (e.getAttributes('highlight').color as string) || undefined,
       superscript: e.isActive('superscript'),
       subscript: e.isActive('subscript'),
+      textAlign: readParaAttr<string>(e, 'textAlign'),
+      indent: readParaAttr<number>(e, 'indent'),
+      lineHeight: readParaAttr<number>(e, 'lineHeight'),
       inTable: e.isActive('table'),
       canUndo: e.can().undo(),
       canRedo: e.can().redo(),
@@ -454,8 +477,16 @@ export function EditorToolbar({
   const chain = () => editor.chain().focus();
 
   // ── 表格工具条（右键召唤）：右键单元格时在鼠标处弹出，点别处/Esc 隐藏 ──
-  // ── 图片：选图 → onImageUpload → 插入返回的 URL ──
-  const handlePickImage = () => fileInputRef.current?.click();
+  // ── 图片：编辑器注册了 imageUpload 扩展就插上传占位块（块内拖拽/点选 → 进度 → 换图，
+  //    配置见 <MarkdownWysiwygEditor imageUpload>）；否则退回旧的直传路径 ──
+  const imageUploadEnabled = hasImageUpload(editor);
+  const handlePickImage = () => {
+    if (imageUploadEnabled) {
+      chain().setImageUploadNode().run();
+      return;
+    }
+    fileInputRef.current?.click();
+  };
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -902,18 +933,20 @@ export function EditorToolbar({
               </ToolbarButton>
             }
           />
-          {onImageUpload ? (
+          {imageUploadEnabled || onImageUpload ? (
             <>
               <ToolbarButton title={t.image} onClick={handlePickImage}>
                 <ImageIcon />
               </ToolbarButton>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={handleImageChange}
-              />
+              {!imageUploadEnabled && (
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleImageChange}
+                />
+              )}
             </>
           ) : null}
           {showImport ? (
@@ -955,6 +988,123 @@ export function EditorToolbar({
           >
             <span className={styles.txtIcon}>❝</span>
           </ToolbarButton>
+
+          <Divider />
+
+          {/* 段落排版：对齐 / 缩进 / 行高（三组下拉） */}
+          <MenuPopover
+            trigger={
+              <button
+                type="button"
+                className={`${styles.styleTrigger} ${styles.iconTrigger}`}
+                title={t.align}
+                aria-label={t.align}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                {state.textAlign === 'center' ? (
+                  <AlignCenterIcon />
+                ) : state.textAlign === 'right' ? (
+                  <AlignRightIcon />
+                ) : state.textAlign === 'justify' ? (
+                  <AlignJustifyIcon />
+                ) : (
+                  <AlignLeftIcon />
+                )}
+                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
+              </button>
+            }
+          >
+            {(
+              [
+                { value: 'left', label: t.alignLeft, Icon: AlignLeftIcon },
+                { value: 'center', label: t.alignCenter, Icon: AlignCenterIcon },
+                { value: 'right', label: t.alignRight, Icon: AlignRightIcon },
+                { value: 'justify', label: t.alignJustify, Icon: AlignJustifyIcon },
+              ] as const
+            ).map(({ value, label, Icon }) => (
+              <MenuItem
+                key={value}
+                selected={state.textAlign === value}
+                onSelect={() => chain().setTextAlign(value).run()}
+              >
+                <span className={styles.styleItem}>
+                  <span className={styles.styleIcon}>
+                    <Icon size={14} />
+                  </span>
+                  {label}
+                </span>
+              </MenuItem>
+            ))}
+          </MenuPopover>
+
+          <MenuPopover
+            trigger={
+              <button
+                type="button"
+                className={`${styles.styleTrigger} ${styles.iconTrigger}`}
+                title={t.indent}
+                aria-label={t.indent}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                <IndentIncreaseIcon />
+                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
+              </button>
+            }
+          >
+            <MenuItem onSelect={() => chain().increaseIndent().run()}>
+              <span className={styles.styleItem}>
+                <span className={styles.styleIcon}>
+                  <IndentIncreaseIcon size={14} />
+                </span>
+                {t.indentIncrease}
+              </span>
+            </MenuItem>
+            <MenuItem onSelect={() => chain().decreaseIndent().run()}>
+              <span className={styles.styleItem}>
+                <span className={styles.styleIcon}>
+                  <IndentDecreaseIcon size={14} />
+                </span>
+                {t.indentDecrease}
+              </span>
+            </MenuItem>
+          </MenuPopover>
+
+          <MenuPopover
+            trigger={
+              <button
+                type="button"
+                className={`${styles.styleTrigger} ${styles.iconTrigger}`}
+                title={t.lineHeight}
+                aria-label={t.lineHeight}
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                <LineHeightIcon />
+                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
+              </button>
+            }
+          >
+            <MenuItem
+              selected={!state.lineHeight}
+              onSelect={() => chain().setLineHeight(null).run()}
+            >
+              <span className={styles.styleItem}>
+                <span className={styles.styleIcon}>—</span>
+                {t.lineHeightDefault}
+              </span>
+            </MenuItem>
+            {LINE_HEIGHTS.map((value) => (
+              <MenuItem
+                key={value}
+                selected={state.lineHeight === Number(value)}
+                onSelect={() => chain().setLineHeight(Number(value)).run()}
+              >
+                <span className={styles.styleItem}>
+                  <span className={styles.styleIcon}>≡</span>
+                  {value}
+                </span>
+              </MenuItem>
+            ))}
+          </MenuPopover>
 
           <Divider />
 
@@ -1090,6 +1240,8 @@ export function EditorToolbar({
       {/* 表格悬停手柄（行左缘 ⋮ / 表格上方 ⋯）+ 它的操作菜单；
           原来那套「表内右键出菜单」只剩多格选区的批量增删，由这个组件自己接管 */}
       <TableHandles editor={editor} labels={t} />
+      {/* 图片对齐工具条（悬停图片时浮出；与表格手柄同一套就地交互） */}
+      <ImageAlignTools editor={editor} labels={t} />
     </>
   );
 }

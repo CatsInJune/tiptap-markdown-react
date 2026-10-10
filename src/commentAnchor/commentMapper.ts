@@ -110,7 +110,7 @@ function blockBounds(doc: Node): Array<{ start: number; end: number }> {
   return bounds;
 }
 
-/** djb2 哈希（捕获端与消费端必须用同一个实现；invret 接入时对齐）。 */
+/** djb2 哈希（捕获端与消费端必须用同一个实现；接入时对齐）。 */
 export function blockTextHash(text: string): string {
   const normalized = text.replace(/\s+/g, '');
   let hash = 5381;
