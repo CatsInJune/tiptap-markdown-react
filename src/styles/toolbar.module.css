@@ -140,11 +140,16 @@
 .styleTrigger {
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  width: 76px;
+  /* 紧凑口径：宽随文案、文字与箭头只隔 4px。旧版固定 76px + space-between 会把二者
+     拉开到 ~17px，且四枚固定宽把工具栏内层（max-width: 1100px）恒定撑出 40px 溢出，
+     末端「更多」的箭头被裁在滚动容器可视区外（2026-10-10 用户反馈）。
+     max-width 兜住长文案：最宽不超过旧的固定宽。 */
+  justify-content: flex-start;
+  gap: 4px;
+  width: auto;
+  max-width: 76px;
   height: 34px;
-  padding: 0 10px;
+  padding: 0 6px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -167,7 +172,8 @@
 }
 
 .styleTriggerLabel {
-  flex: 1;
+  /* 不吃满空档：文字与箭头的间距完全由 gap 决定（flex: 1 会把空档塞在两者之间） */
+  flex: 0 1 auto;
   text-align: left;
   overflow: hidden;
   white-space: nowrap;
@@ -179,8 +185,8 @@
   flex: none;
 }
 
-/* 图标型触发器（对齐 / 缩进 / 行高，与 .styleTrigger 合用）：Style / FontSize 那套是给
-   「文字 + 箭头」的——固定 76px 宽 + space-between，套在图标上会把图标与箭头撑到两端。 */
+/* 图标型触发器（对齐 / 缩进 / 行高，与 .styleTrigger 合用）：基础类是给「文字 + 箭头」的，
+   图标型只需「图标 + 箭头」贴紧并居中——宽度随内容、间距再收一档。 */
 .iconTrigger {
   width: auto;
   justify-content: center;
