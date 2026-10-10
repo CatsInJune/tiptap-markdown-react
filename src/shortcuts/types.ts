@@ -44,6 +44,10 @@ export function buildShortcutGroups(labels: ShortcutLabels): ShortcutGroup[] {
         { id: 'underline', label: labels.underline, keys: ['Mod', 'u'] },
         { id: 'inline-code', label: labels.inlineCode, keys: ['Mod', 'e'], markdown: { marker: '`x`' } },
         { id: 'highlight', label: labels.highlight, keys: ['Mod', 'Shift', 'h'], markdown: { marker: '==x==' } },
+        { id: 'align-left', label: labels.alignLeft, keys: ['Mod', 'Shift', 'l'] },
+        { id: 'align-center', label: labels.alignCenter, keys: ['Mod', 'Shift', 'e'] },
+        { id: 'align-right', label: labels.alignRight, keys: ['Mod', 'Shift', 'r'] },
+        { id: 'align-justify', label: labels.alignJustify, keys: ['Mod', 'Shift', 'j'] },
         ...([1, 2, 3, 4, 5, 6] as const).map((level): ShortcutEntry => ({
           id: `heading-${level}`,
           label: labels.headingLabel(level),
@@ -57,6 +61,7 @@ export function buildShortcutGroups(labels: ShortcutLabels): ShortcutGroup[] {
       id: 'insert',
       title: labels.insertGroup,
       entries: [
+        { id: 'image-upload', label: labels.imageUpload, keys: ['Mod', 'Shift', 'i'] },
         { id: 'blockquote', label: labels.blockquote, keys: ['Mod', 'Shift', 'b'], markdown: { marker: '>', terminator: 'Space' } },
         { id: 'bullet-list', label: labels.bulletList, keys: ['Mod', 'Shift', '8'], markdown: { marker: '-', terminator: 'Space' } },
         { id: 'ordered-list', label: labels.orderedList, keys: ['Mod', 'Shift', '7'], markdown: { marker: '1.', terminator: 'Space' } },

@@ -1,5 +1,5 @@
 /**
- * RSC / SSR 安全入口——纯函数与静态渲染，无任何客户端组件、无 antd、无浏览器 API
+ * RSC / SSR 安全入口——纯函数与静态渲染，无任何客户端组件、无 UI 框架依赖、无浏览器 API
  * 硬依赖（可在 Server Component / ISR 内直接 import）。
  */
 export {

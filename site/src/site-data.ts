@@ -106,11 +106,13 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'onTocChange', desc: 'TOC updates when headings change', type: '(items: TocItem[]) => void', defaultVal: '—' },
   { name: 'markdownPaste', desc: 'Auto-convert pasted markdown text (Shift+paste keeps plain text). Init-only', type: 'boolean', defaultVal: 'true' },
   { name: 'markdownFileDrop', desc: 'Drop / paste .md files to insert parsed content. Init-only', type: 'boolean', defaultVal: 'true' },
+  { name: 'imageUpload', desc: 'Official ImageUploadNode-style upload: the toolbar image button inserts a drop/click placeholder block; progress shows in place and the block is replaced by the image when done. upload is required. Init-only', type: 'ImageUploadConfig', defaultVal: '—' },
+  { name: 'imageResize', desc: 'Resizable images (official extension-image resize): hover the image, drag a side handle (80px min; max follows the content width by default). Size lands in width/height attrs and round-trips as <img …> in markdown. false disables; object passes official config. Init-only', type: 'boolean | ImageResizeOptions', defaultVal: 'true' },
   { name: 'extraExtensions', desc: 'Additional Tiptap extensions', type: 'AnyExtension[]', defaultVal: '—' },
   { name: 'codeBlockLabels', desc: 'Code block NodeView labels', type: 'Partial<CodeBlockLabels>', defaultVal: '—' },
   { name: 'findReplace', desc: 'Find & replace: registers @tiptap/extension-find-and-replace and renders the floating bar', type: 'boolean', defaultVal: 'true' },
   { name: 'findBar', desc: 'Render the bar inside the editor; false hands placement to the host (render <FindReplaceBar> yourself)', type: 'boolean', defaultVal: '= findReplace' },
-  { name: 'findBarContainer', desc: 'Mount the bar into a container you own (getPopupContainer style); null falls back to the in-editor bar', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: '—' },
+  { name: 'findBarContainer', desc: 'Mount the bar into a container you own (popup-container pattern); null falls back to the in-editor bar', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: '—' },
   { name: 'findBarOffset', desc: 'Where the library-rendered bar sits in its context (editor, or your container)', type: '{ top?; right?; bottom?; left? }', defaultVal: '{ top: 4, right: 4 }' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())', type: 'boolean', defaultVal: 'true' },
   { name: 'findLabels', desc: 'Find & replace bar labels', type: 'Partial<FindLabels>', defaultVal: '—' },
@@ -118,7 +120,7 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'slashMenu', desc: 'Type / (line start or after whitespace) to open the block-insert menu. Table cells included, code blocks excluded; inert read-only', type: 'boolean', defaultVal: 'true' },
   { name: 'slashMenuLabels', desc: 'Slash menu labels (groups + item titles)', type: 'Partial<SlashMenuLabels>', defaultVal: '—' },
   { name: 'shortcutPanel', desc: 'Keyboard FAB bottom-right opens the shortcuts drawer (Format / Shortcut / Markdown). Hidden read-only', type: 'boolean', defaultVal: 'true' },
-  { name: 'shortcutFabContainer', desc: 'Mount the keyboard FAB into a container you own (getPopupContainer style); positioning becomes yours — e.g. stack it above a back-to-top button. null falls back to the in-editor FAB', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'in-editor FAB' },
+  { name: 'shortcutFabContainer', desc: 'Mount the keyboard FAB into a container you own (popup-container pattern); positioning becomes yours — e.g. stack it above a back-to-top button. null falls back to the in-editor FAB', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'in-editor FAB' },
   { name: 'shortcutLabels', desc: 'Shortcuts drawer labels', type: 'Partial<ShortcutLabels>', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
 ];
@@ -135,7 +137,7 @@ export const EDITOR_REF_API: ApiRow[] = [
 
 export const TOOLBAR_API: ApiRow[] = [
   { name: 'editor', desc: 'Tiptap Editor instance (required)', type: 'Editor' },
-  { name: 'onImageUpload', desc: 'Upload handler; hides image button if omitted', type: '(file: File) => Promise<string>', defaultVal: '—' },
+  { name: 'onImageUpload', desc: 'Legacy direct-upload path: picking a file inserts the returned URL. Ignored when the editor registers the imageUpload extension', type: '(file: File) => Promise<string>', defaultVal: '—' },
   { name: 'onError', desc: 'Side-effect error callback', type: "(err: unknown, source?: 'image' | 'markdown' | 'import') => void", defaultVal: '—' },
   { name: 'onImportDocument', desc: 'Convert a non-Markdown file to Markdown. Omit and Import only takes .md', type: '(file: File, ctx: ImportDocumentContext) => Promise<ImportDocumentResult | string>', defaultVal: '—' },
   { name: 'importAccept', desc: 'Extra accept for the default Document menu item when importMenuItems is omitted', type: 'string', defaultVal: '—' },
@@ -259,13 +261,13 @@ export const MATH_LABELS_API: ApiRow[] = [
 
 export const PACKAGE_FEATURES = [
   { icon: '📝', title: 'Markdown in/out', body: 'Author and export as Markdown. getHTML() and getJSON() available too.' },
-  { icon: '🎨', title: 'Opinionated UI', body: 'Toolbar, color palette, code blocks, TOC — styled out of the box, zero Ant Design.' },
+  { icon: '🎨', title: 'Opinionated UI', body: 'Toolbar, color palette, code blocks, TOC — styled out of the box, zero UI framework.' },
   { icon: '👁', title: 'Editor + Preview + SSR', body: 'Client editor, live preview, and server-side renderReportHtml for SEO pages.' },
   { icon: '🔗', title: 'Stable TOC anchors', body: 'Shared slug logic between editor, preview, and published reader.' },
   { icon: '🎯', title: 'Themeable', body: 'All colors and fonts exposed as --tmr-* CSS variables.' },
   { icon: '📎', title: 'Citation pills', body: 'Parse [^n] into mid-line circular markers; hosts supply sources + optional Popover.' },
   { icon: '∑', title: 'KaTeX equations', body: 'Toolbar insert; click to edit in place. Markdown uses $$; single $ is always a dollar sign.' },
-  { icon: '📊', title: 'Charts', body: 'Chart.js via HTML comment + GFM table (agentic-ui contract). SSR placeholder + client hydrate.' },
+  { icon: '📊', title: 'Charts', body: 'Chart.js via HTML comment + GFM table. SSR placeholder + client hydrate.' },
 ];
 
 export const DEMO_MD = `# Meet the editor
@@ -348,7 +350,7 @@ Typing \`$24.4B\` or even \`$24.4B$\` never becomes math. Importing markdown tha
 
 export const CHART_MD = `## Charts
 
-LLM / backend style: HTML comment config + GFM table (agentic-ui contract). Click a chart to edit JSON + table.
+LLM / backend style: HTML comment config + GFM table. Click a chart to edit JSON + table.
 
 <!-- {"chartType": "line", "x": "date", "y": "close", "title": "历史价格走势", "dataTime": "2024-01-02"} -->
 | date | close |

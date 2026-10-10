@@ -15,6 +15,11 @@ import {
   type AnyExtension,
   type Editor,
 } from '@tiptap/react';
+import type {
+  NodeViewRendererProps,
+  ResizableNodeViewDirection,
+} from '@tiptap/core';
+import { mergeAttributes } from '@tiptap/core';
 import { createPortal } from 'react-dom';
 import {
   forwardRef,
@@ -54,6 +59,18 @@ import { baseExtensions, lowlight } from '../extensions';
 import { isComposingKeyEvent } from '../findReplace';
 import { FindReplaceBar } from './FindReplaceBar';
 import { ImportPlaceholder } from '../importPlaceholder';
+import { ImageUploadNode, type ImageUploadConfig } from '../imageUpload';
+import {
+  imageAlignAttribute,
+  imageCaptionAttribute,
+  imageFigureParseRule,
+  imageMarkdownTokenizer,
+  imageNodeHtml,
+  imageParseMarkdown,
+  imageRenderMarkdown,
+  normalizeImageCaption,
+} from '../imageMarkdown';
+import { setImageAlign } from '../imageAlign';
 import type { CodeBlockLabels, FindLabels, ShortcutLabels, SlashMenuLabels } from '../labels';
 import { defaultShortcutLabels } from '../labels';
 import { SlashMenu } from '../slashMenu/SlashMenuExtension';
@@ -132,8 +149,43 @@ const CodeBlock = CodeBlockLowlight.extend<CodeBlockOptions>({
   },
 });
 
-// 块级图片：Backspace 二次确认删除（与代码块一致）。
-const ImageWithConfirmDelete = Image.extend({
+// 块级图片：Backspace 二次确认删除（与代码块一致）+ 可缩放（官方 ResizableNodeView）
+// + 尺寸保真的 markdown 往返（见 imageMarkdown.ts）。导出供测试与自建管线使用。
+export const ImageWithConfirmDelete = Image.extend({
+  addAttributes() {
+    return {
+      ...(Image.config.addAttributes?.call(this) ?? {}),
+      align: imageAlignAttribute,
+      caption: imageCaptionAttribute,
+    };
+  },
+
+  parseHTML() {
+    // figure 规则要排在 img 前面：带描述（图注）的图整体归 figure
+    return [
+      imageFigureParseRule(),
+      {
+        tag: this.options.allowBase64
+          ? 'img[src]'
+          : 'img[src]:not([src^="data:"])',
+      },
+    ];
+  },
+
+  renderHTML({ node, HTMLAttributes }) {
+    return imageNodeHtml({
+      attrs: node.attrs,
+      htmlAttributes: mergeAttributes(
+        this.options.HTMLAttributes,
+        HTMLAttributes,
+      ),
+    });
+  },
+
+  renderMarkdown: imageRenderMarkdown,
+  parseMarkdown: imageParseMarkdown,
+  markdownTokenizer: imageMarkdownTokenizer,
+
   addKeyboardShortcuts() {
     return {
       Backspace: () => {
@@ -150,6 +202,120 @@ const ImageWithConfirmDelete = Image.extend({
         }
         return false;
       },
+      // 图片对齐：键位对齐官方 image-align-button（L 左 / E 中 / R 右），
+      // 选中图片或光标紧邻图片时生效。工具函数见 imageAlign.ts。
+      'Alt-Shift-l': () => setImageAlign(this.editor, 'left'),
+      'Alt-Shift-e': () => setImageAlign(this.editor, 'center'),
+      'Alt-Shift-r': () => setImageAlign(this.editor, 'right'),
+    };
+  },
+
+  addNodeView() {
+    // 官方实现：resize 未启用 / SSR（无 document）时返回 null，落到默认 DOM 渲染
+    const createView = Image.config.addNodeView?.call(this);
+    if (!createView) return null;
+
+    // 本库扩展的缩放上限：官方 `Image` 的 resize 配置只有 min、没有 max 入口，但
+    // ResizableNodeView 有公开的 maxSize 字段（applyConstraints 每次拖拽都会读）。
+    // maxWidth / maxHeight 由 <MarkdownWysiwygEditor> 展开进 resize 对象传到这里。
+    const resizeOptions = this.options.resize as
+      | { maxWidth?: number; maxHeight?: number }
+      | false
+      | undefined;
+    const explicitMaxWidth =
+      resizeOptions && typeof resizeOptions === 'object'
+        ? resizeOptions.maxWidth
+        : undefined;
+    const explicitMaxHeight =
+      resizeOptions && typeof resizeOptions === 'object'
+        ? resizeOptions.maxHeight
+        : undefined;
+
+    return (props: NodeViewRendererProps) => {
+      const nodeView = createView(props);
+      if (!nodeView) return nodeView;
+
+      // removeHandles / element / maxSize 是 ResizableNodeView 的成员——官方升级若动
+      // 它们，「只读无手柄 / 程序化改尺寸视觉同步 / 缩放上下限」测试会先炸。
+      const resizable = nodeView as unknown as {
+        element?: HTMLElement;
+        maxSize?: { width?: number; height?: number };
+        removeHandles?: () => void;
+      };
+
+      // 「打开就是只读」的文档：官方只在收到第一个 update 事件后才同步 editable（摘手柄），
+      // 等不到事件的手柄会一直露着、还能拖出残影（只读态拖了不提交，样式却改了）。
+      // 创建时补摘一次；之后切回编辑态，官方自己的 update 监听会把手柄挂回来。
+      if (!props.editor.isEditable) resizable.removeHandles?.();
+
+      // 缩放上限：显式配置优先；没配则跟随内容区宽度（图片拖不出布局）。
+      // 注意两点：其一，NodeView 是在 editor.view 构造**过程中**创建的，此刻
+      // `editor.view` 还不可访问（tiptap 会抛 "view is not available"）——所以初始
+      // 只设显式上限，动态上限推迟到 mousedown；其二，监听挂在容器上、capture 阶段，
+      // 先于官方的手柄 mousedown 处理跑，每次拖拽开始前刷新，窗口变化后也能跟上。
+      const applyMaxSize = () => {
+        resizable.maxSize =
+          explicitMaxWidth || explicitMaxHeight
+            ? { width: explicitMaxWidth, height: explicitMaxHeight }
+            : { width: props.editor.view.dom.clientWidth || undefined };
+      };
+      if (explicitMaxWidth || explicitMaxHeight) applyMaxSize();
+
+      // 图注（描述）：挂进 wrapper（宽度 = 图片宽）→ text-align:center 就是
+      // 「图片底部中间」。wrapper 因此变高，而 left/right 手柄的 top:50% 是相对
+      // wrapper 的（会偏到描述上）——把图片的真实高度写进 --tmr-image-h，
+      // CSS 那边用 calc 的降级写法取它（见 content.module.css）。
+      let syncCaption: ((attrs: Record<string, unknown>) => void) | null = null;
+      if (nodeView.dom instanceof HTMLElement && resizable.element) {
+        const { element } = resizable;
+        const container = nodeView.dom;
+        const captionEl = document.createElement('div');
+        captionEl.className = 'tmr-image-caption';
+        captionEl.dataset.imageCaption = '';
+        (element.parentElement ?? container).appendChild(captionEl);
+
+        const syncHandleTop = () => {
+          const height = element.offsetHeight;
+          if (height > 0) {
+            container.style.setProperty('--tmr-image-h', `${height}px`);
+          } else {
+            // 高度拿不到（图片未加载 / 无布局环境）→ 撤掉变量，CSS 落回 50%
+            container.style.removeProperty('--tmr-image-h');
+          }
+        };
+        syncCaption = (attrs) => {
+          const caption = normalizeImageCaption(attrs.caption) ?? '';
+          captionEl.textContent = caption;
+          captionEl.hidden = caption === '';
+          syncHandleTop();
+        };
+        syncCaption(props.node.attrs);
+        element.addEventListener('load', syncHandleTop);
+        container.addEventListener('mousedown', applyMaxSize, true);
+      }
+
+      // 官方 onUpdate 把 width/height 划进「拖拽自己管」的集合直接跳过，于是程序化改
+      // 尺寸（resetImageSize 清掉、宿主 updateAttributes）后数据变了、视觉不动。
+      // 这里在 update 后把 style 对齐 attrs（图注文案也顺带同步）；拖拽路径不经过
+      // update，互不干扰。
+      if (resizable.element) {
+        const { element } = resizable;
+        const originalUpdate = nodeView.update?.bind(nodeView);
+        if (originalUpdate) {
+          nodeView.update = (...args) => {
+            const ok = originalUpdate(...args);
+            if (ok) {
+              const attrs = (args[0] as { attrs: Record<string, unknown> }).attrs;
+              element.style.width = attrs.width ? `${attrs.width}px` : '';
+              element.style.height = attrs.height ? `${attrs.height}px` : '';
+              syncCaption?.(attrs);
+            }
+            return ok;
+          };
+        }
+      }
+
+      return nodeView;
     };
   },
 });
@@ -214,6 +380,33 @@ export interface MarkdownWysiwygEditorHandle {
    * （`onSearch={() => handle.current?.toggleFind()}`）。findBar={false} 时不生效。
    */
   toggleFind: () => void;
+}
+
+/** 图片缩放的透传选项（官方 `@tiptap/extension-image` 的 resize 配置）。 */
+export interface ImageResizeOptions {
+  /**
+   * 手柄方向，默认左右两条竖条（对齐官方 image-upload-node demo 的形态）。
+   * 例：`['top-right', 'bottom-right']` 只留右侧两角；八个方向全给则四角 + 四边。
+   */
+  directions?: ResizableNodeViewDirection[];
+  /** 最小宽（px），默认 80。 */
+  minWidth?: number;
+  /** 最小高（px），默认 80。 */
+  minHeight?: number;
+  /**
+   * 最大宽（px）。**默认跟随编辑器内容区宽度**（拖不出布局，窗口变化时在下次拖拽前刷新
+   * 上限）；显式传值则以此为准。官方 `Image` 的 resize 没有 max 入口，由本库注入
+   * `ResizableNodeView.maxSize`（该字段官方是公开的，拖拽约束每次都会读）。
+   */
+  maxWidth?: number;
+  /** 最大高（px）。默认不单独限制（等比缩放时高度随宽度走）。 */
+  maxHeight?: number;
+  /**
+   * 是否始终锁定宽高比，默认 true（本库默认）。等比下"编辑态精确尺寸"与只读渲染的
+   * 按比例自适应（CSS `height: auto`）数学等价；显式关掉后，非等比拖出的图在只读
+   * 渲染里会按原图比例回弹——markdown 里存的仍是精确值。
+   */
+  alwaysPreserveAspectRatio?: boolean;
 }
 
 export interface MarkdownWysiwygEditorProps {
@@ -307,7 +500,7 @@ export interface MarkdownWysiwygEditorProps {
    */
   findBar?: boolean;
   /**
-   * 把自带的浮动条挂到宿主的容器里（antd `getPopupContainer` 那一套）：给元素或返回元素的函数
+   * 把自带的浮动条挂到宿主的容器里（popup container 模式）：给元素或返回元素的函数
    * 即可，开合状态与 Cmd/Ctrl+F 仍归库——只换挂载点。适合条子被 `overflow: hidden` 祖先裁掉、
    * 或想让它落在自己的头部 / 侧栏里。挂进去后**定位由宿主负责**（库不再加绝对定位），
    * 且容器若在主题子树之外，记得把 `--tmr-*` 变量也带到那里。
@@ -358,6 +551,23 @@ export interface MarkdownWysiwygEditorProps {
   slashMenu?: boolean;
   /** 斜杠菜单的本地化文案。 */
   slashMenuLabels?: Partial<SlashMenuLabels>;
+  /**
+   * 图片上传（对齐官方 ImageUploadNode 的交互）：配置后工具栏的图片按钮变成
+   * 「插入上传块」——文档里出现拖拽 / 点击的占位块，上传进度就地显示，全部成功后就地
+   * 替换为图片。`upload` 是唯一必填项（网络 I/O 归宿主），签名 `(file, onProgress,
+   * signal) => Promise<url>`；收 `signal` 后宿主应在移除 / 清空 / 占位块被删时中断请求。
+   *
+   * 挂在这里而不是工具栏的 `onImageUpload`：按钮的行为由「编辑器里有没有注册
+   * imageUpload 扩展」决定，两处都传会以本配置为准。未配置时工具栏走旧的直传路径
+   * （点按钮直接开文件框 → 上传 → 插图片）。仅初始化时生效。
+   */
+  imageUpload?: ImageUploadConfig;
+  /**
+   * 图片缩放（默认开）：拖手柄改尺寸，松手把整数像素写进节点 attrs；markdown 里带尺寸的
+   * 图以 `<img src alt width height>` 保真（没拖过的图保持标准 `![alt](url)`，见
+   * imageMarkdown.ts）。传 `false` 关闭；传对象透传官方 resize 配置。仅初始化时生效。
+   */
+  imageResize?: boolean | ImageResizeOptions;
 }
 
 /**
@@ -402,6 +612,8 @@ export const MarkdownWysiwygEditor = forwardRef<
   shortcutPanel = true,
   shortcutLabels,
   shortcutFabContainer,
+  imageUpload,
+  imageResize = true,
   },
   ref,
 ) {
@@ -417,7 +629,27 @@ export const MarkdownWysiwygEditor = forwardRef<
     extensions: [
       ...baseExtensions,
       CodeBlock.configure({ lowlight, codeBlockLabels }),
-      ImageWithConfirmDelete.configure({ inline: false }),
+      ImageWithConfirmDelete.configure({
+        inline: false,
+        // 图片缩放（默认开、默认等比、默认左右两条手柄）：false 关掉；对象透传官方配置
+        // ——等比与手柄方向都有本库默认，显式传值可覆盖。
+        resize:
+          imageResize === false
+            ? false
+            : {
+                enabled: true,
+                alwaysPreserveAspectRatio: true,
+                directions: ['left', 'right'] as ResizableNodeViewDirection[],
+                // 默认下限。上限默认跟随内容区宽度（maxWidth/maxHeight 由 addNodeView
+                // 包装读取并注入 maxSize，见 ImageWithConfirmDelete）。
+                minWidth: 80,
+                minHeight: 80,
+                ...(typeof imageResize === 'object' ? imageResize : null),
+              },
+      }),
+      // 图片上传占位块：空态拖拽 / 点选 → 进度就地 → 成功原地换成 image。
+      // 不配置 imageUpload 就不注册（工具栏退回旧的直传路径）。
+      ...(imageUpload ? [ImageUploadNode.configure(imageUpload)] : []),
       ImportPlaceholder,
       // 空文档占位符：官方 Placeholder 把 data-placeholder 属性与
       // is-empty / is-editor-empty 类打在**空文本块节点**上——CSS

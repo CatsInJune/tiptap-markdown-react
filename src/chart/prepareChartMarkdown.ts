@@ -1,7 +1,7 @@
 import { normalizeChartMarkdown } from './parse';
 
 /**
- * Unwrap agentic-ui `<div data-card="true">…</div>` so comment↔table
+ * Unwrap `<div data-card="true">…</div>` so comment↔table
  * adjacency survives for normalizeChartMarkdown.
  */
 function unwrapDataCardDivs(markdown: string): string {

@@ -66,7 +66,8 @@
   color: #fff;
 }
 
-/* 末尾追加行列的 `+` 手柄：贴在表格右缘 / 下缘，长度跟着表格尺寸走（见组件里的 style）。 */
+/* 末尾追加行列的 `+` 手柄：贴在表格右缘 / 下缘，长度跟着表格尺寸走（见组件里的 style）。
+   圆角与行 / 列手柄同款全圆胶囊（厚度 16px，两端即 8px 半圆）。 */
 .extend {
   position: fixed;
   z-index: 8;
@@ -76,6 +77,7 @@
   padding: 0;
   box-sizing: border-box;
   border: 1px solid var(--tmr-table-handle-border, #e8e8ea);
+  border-radius: 999px;
   background: var(--tmr-table-handle-bg, #f1f1f3);
   color: var(--tmr-table-handle-fg, #7a7a7a);
   font-family: inherit;

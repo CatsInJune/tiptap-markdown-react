@@ -66,15 +66,15 @@ export const ZH_STRINGS: Record<string, string> = {
   '2. Client preview': '2. 客户端预览',
   '3. Server reader (SEO)': '3. 服务端阅读页（SEO）',
   'Browse components →': '浏览组件 →',
-  'zero Ant Design': '零 Ant Design',
+  'zero UI framework': '零 UI 框架',
 
   // ── 首页特性卡片 ──
   'Markdown in/out': 'Markdown 进出',
   'Author and export as Markdown. getHTML() and getJSON() available too.':
     '以 Markdown 创作与导出，getHTML() 与 getJSON() 同样可用。',
   'Opinionated UI': '自带主张的 UI',
-  'Toolbar, color palette, code blocks, TOC — styled out of the box, zero Ant Design.':
-    '工具栏、调色板、代码块、目录——开箱即用的样式，零 Ant Design。',
+  'Toolbar, color palette, code blocks, TOC — styled out of the box, zero UI framework.':
+    '工具栏、调色板、代码块、目录——开箱即用的样式，零 UI 框架依赖。',
   'Editor + Preview + SSR': '编辑器 + 预览 + SSR',
   'Client editor, live preview, and server-side renderReportHtml for SEO pages.':
     '客户端编辑器、实时预览，以及面向 SEO 页面的服务端 renderReportHtml。',
@@ -90,12 +90,12 @@ export const ZH_STRINGS: Record<string, string> = {
   'KaTeX equations': 'KaTeX 公式',
   'Toolbar insert; click to edit in place. Markdown uses $$; single $ is always a dollar sign.':
     '工具栏插入，点击原位编辑。Markdown 使用 $$，单个 $ 永远是美元符号。',
-  'Chart.js via HTML comment + GFM table (agentic-ui contract). SSR placeholder + client hydrate.':
-    'Chart.js 经 HTML 注释 + GFM 表格驱动（agentic-ui 契约），SSR 占位 + 客户端水合。',
+  'Chart.js via HTML comment + GFM table. SSR placeholder + client hydrate.':
+    'Chart.js 经 HTML 注释 + GFM 表格驱动，SSR 占位 + 客户端水合。',
 
   // ── 组件页页头 ──
-  'Batteries-included React components for editing, reading, and navigating Markdown content. Each ships with opinionated styles and Radix-based UI — no Ant Design.':
-    '用于编辑、阅读与导航 Markdown 内容的全家桶 React 组件。每个组件都带自成体系的样式与基于 Radix 的 UI——不依赖 Ant Design。',
+  'Batteries-included React components for editing, reading, and navigating Markdown content. Each ships with opinionated styles and Radix-based UI — no UI framework.':
+    '用于编辑、阅读与导航 Markdown 内容的全家桶 React 组件。每个组件都带自成体系的样式与基于 Radix 的 UI——不依赖任何 UI 框架。',
 
   // ── 组件章节描述 ──
   'The core WYSIWYG editor. Markdown in, markdown out via ref methods. Emits TOC updates through onTocChange.':
@@ -124,8 +124,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.':
     '文档结尾故意放了一个代码块——这正是 runFindCommand 吸收的 TrailingNode 边界情况。',
   'Bar in a host container': '挂进宿主容器的浮动条',
-  'findBarContainer: the library keeps the shortcut and open state, the bar mounts into a container you own (the getPopupContainer idea) — positioning is your CSS.':
-    'findBarContainer：快捷键与开合状态仍归库，浮动条挂进你自己的容器（getPopupContainer 那套思路）——定位由你的 CSS 负责。',
+  'findBarContainer: the library keeps the shortcut and open state, the bar mounts into a container you own (the popup-container pattern) — positioning is your CSS.':
+    'findBarContainer：快捷键与开合状态仍归库，浮动条挂进你自己的容器（popup container 模式）——定位由你的 CSS 负责。',
   'Host-placed bar': '宿主自摆的浮动条',
   'findBar={false}: the editor keeps the extension but renders no bar — placement, stacking and looks belong to the host.':
     'findBar={false}：编辑器保留扩展但不出条子——摆位、层叠与外观全归宿主。',
@@ -160,8 +160,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'Use More → Inline / Block equation. Click a rendered formula: it stays in the page and updates as you type.':
     '用「更多 → 行内 / 块级公式」插入。点击已渲染的公式：它留在页面里，随输入实时更新。',
 
-  'Data charts aligned with the agentic-ui contract: HTML comment JSON + GFM table. Chart.js renders in the editor, preview, and reading page (SSR placeholder → client hydrate). Click a chart to edit config JSON and table source.':
-    '对齐 agentic-ui 契约的数据图表：HTML 注释 JSON + GFM 表格。Chart.js 在编辑器、预览与阅读页渲染（SSR 占位 → 客户端水合）。点击图表可编辑配置 JSON 与表格数据。',
+  'Data charts: HTML comment JSON + GFM table. Chart.js renders in the editor, preview, and reading page (SSR placeholder → client hydrate). Click a chart to edit config JSON and table source.':
+    '数据图表：HTML 注释 JSON + GFM 表格。Chart.js 在编辑器、预览与阅读页渲染（SSR 占位 → 客户端水合）。点击图表可编辑配置 JSON 与表格数据。',
   'Author form: <!-- {"chartType":"line","x":"...","y":"..."} --> + table': '创作形态：<!-- {"chartType":"line","x":"...","y":"..."} --> + 表格',
   'MVP types: line / bar / column / pie / donut / area; multi-config → tabs': 'MVP 类型：line / bar / column / pie / donut / area；多配置 → 页签',
   'SSR emits data-type=chart placeholder; hydrate via ReportContentWithCharts': 'SSR 输出 data-type=chart 占位；经 ReportContentWithCharts 水合',
@@ -200,8 +200,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'renderCitation slot: wrap defaultDom with host Popover': 'renderCitation 插槽：用宿主 Popover 包住 defaultDom',
   'Data source lookup is 100% host-owned': '数据源查询 100% 归宿主',
   'Citation pills + host Popover': '引用标注 + 宿主 Popover',
-  'Click a pill — Popover is Radix in this demo; invret can use antd the same way.':
-    '点击圆标——本演示的 Popover 是 Radix；宿主用 antd 也一样。',
+  'Click a pill — the popover here is built on Radix; swap in your own implementation the same way.':
+    '点击圆标——本演示的 Popover 用 Radix 实现；宿主可以同样挂自己的实现。',
 
   'RSC-safe static HTML reader. Pass html from renderReportHtml() — no client JavaScript required.':
     'RSC 安全的静态 HTML 阅读器。传入 renderReportHtml() 的 html——不需要任何客户端 JS。',
@@ -249,7 +249,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'Code block NodeView labels': '代码块 NodeView 文案',
   'Find & replace: registers @tiptap/extension-find-and-replace and renders the floating bar': '查找替换：注册官方 @tiptap/extension-find-and-replace 并渲染浮动条',
   'Render the bar inside the editor; false hands placement to the host (render <FindReplaceBar> yourself)': '由编辑器渲染浮动条；传 false 把摆位交给宿主（自己渲染 <FindReplaceBar>）',
-  'Mount the bar into a container you own (getPopupContainer style); null falls back to the in-editor bar': '把浮动条挂进你自己的容器（getPopupContainer 式）；null 回落编辑器内浮动条',
+  'Mount the bar into a container you own (popup-container pattern); null falls back to the in-editor bar': '把浮动条挂进你自己的容器（popup container 模式）；null 回落编辑器内浮动条',
   'Where the library-rendered bar sits in its context (editor, or your container)': '库渲染的浮动条在其上下文（编辑器或你的容器）中的落点',
   'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())': '编辑器持有焦点时接管 Cmd/Ctrl+F；传 false 保留原生查找（用 handle.openFind()）',
   'Find & replace bar labels': '查找替换浮动条文案',
@@ -258,7 +258,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'Type / (line start or after whitespace) to open the block-insert menu. Table cells included, code blocks excluded; inert read-only': '键入 /（行首或空白后）唤起块级插入菜单。单元格内可用、代码块内排除；只读态不激活',
   'Slash menu labels (groups + item titles)': '斜杠菜单文案（分组名 + 条目名）',
   'Keyboard FAB bottom-right opens the shortcuts drawer (Format / Shortcut / Markdown). Hidden read-only': '右下角键盘悬浮键打开快捷键抽屉（格式 / 快捷键 / Markdown）。只读态隐藏',
-  'Mount the keyboard FAB into a container you own (getPopupContainer style); positioning becomes yours — e.g. stack it above a back-to-top button. null falls back to the in-editor FAB': '把键盘悬浮键挂进你自己的容器（getPopupContainer 式）；定位随之归你——例如叠在「回到顶部」按钮上方。null 回落编辑器内悬浮键',
+  'Mount the keyboard FAB into a container you own (popup-container pattern); positioning becomes yours — e.g. stack it above a back-to-top button. null falls back to the in-editor FAB': '把键盘悬浮键挂进你自己的容器（popup container 模式）；定位随之归你——例如叠在「回到顶部」按钮上方。null 回落编辑器内悬浮键',
   'Shortcuts drawer labels': '快捷键抽屉文案',
   'Export current content as markdown': '把当前内容导出为 markdown',
   'Export current content as HTML': '把当前内容导出为 HTML',
