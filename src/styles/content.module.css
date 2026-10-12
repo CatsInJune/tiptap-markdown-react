@@ -27,6 +27,17 @@
   position: relative;
 }
 
+/* 块拖拽的左侧留白：可见按钮在块左缘外侧约 8px，评论气泡再靠外一截，
+   两者都落在这段 padding 里，不会被滚动容器裁掉。手柄盒子另有一段透明热区
+   伸进块左缘（见 blockDrag.module.css），不占这段留白。 */
+.withBlockDrag {
+  padding-inline-start: 76px;
+}
+
+.withBlockDrag :global(.tmr-comment-gutter) {
+  left: -70px;
+}
+
 .editorContent {
   outline: none;
   padding: 0;
@@ -59,6 +70,16 @@
   height: 0;
   color: var(--tmr-placeholder, #b7b7b7);
   pointer-events: none;
+}
+
+/* 失焦选区：官方 Selection 扩展在编辑器 blur 时打上这个 class。
+   聚焦时它会清掉装饰，避免和浏览器原生 ::selection 叠在一起。 */
+.editorContent :global(.tmr-blur-selection) {
+  background: var(
+    --tmr-selection,
+    color-mix(in srgb, var(--tmr-accent, #ff6719) 28%, transparent)
+  );
+  border-radius: 2px;
 }
 
 .editorContent :global(h1) {
@@ -125,12 +146,1356 @@
   list-style: decimal;
 }
 
+/* numbering-format:start */
+.editorContent :global(ol[data-numbering-format] > li > p),
+.editorContent :global(ol[data-numbering-format] ol > li > p) {
+  margin-top: 0;
+}
+/* li 是 grid，嵌套 ol 的 0.7em 外边距不会和上一段塌缩，上下层会叠成约 1.4em。
+   清掉后只留段落自己的 0.7em，和普通列表一致。 */
+.editorContent :global(ol[data-numbering-format] ol) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal']) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-0 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-0;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li::before) {
+  content: counter(tmr-decimal-0) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-1 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-1;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-1, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-2 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-2;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-2, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-3 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-3;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-3) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-4 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-4;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-4, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-5 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-5;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-5, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-paren']) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-paren-0 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-paren-0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li::before) {
+  content: counter(tmr-decimal-paren-0) ")";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-paren-1 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-paren-1;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-paren-1, lower-alpha) ")";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-paren-2 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-paren-2;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-paren-2, lower-roman) ")";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-paren-3 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-paren-3;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-paren-3) ")";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-paren-4 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-paren-4;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-paren-4, lower-alpha) ")";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-paren-5 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-paren-5;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-paren-5, lower-roman) ")";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-paren'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-nested']) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-nested-0 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-nested-0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li::before) {
+  content: counter(tmr-decimal-nested-0) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-nested-1 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-nested-1;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-nested-0) "." counter(tmr-decimal-nested-1) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-nested-2 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-nested-2;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-nested-0) "." counter(tmr-decimal-nested-1) "." counter(tmr-decimal-nested-2) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-nested-3 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-nested-3;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-nested-0) "." counter(tmr-decimal-nested-1) "." counter(tmr-decimal-nested-2) "." counter(tmr-decimal-nested-3) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-nested-4 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-nested-4;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-nested-0) "." counter(tmr-decimal-nested-1) "." counter(tmr-decimal-nested-2) "." counter(tmr-decimal-nested-3) "." counter(tmr-decimal-nested-4) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-nested-5 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-nested-5;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-nested-0) "." counter(tmr-decimal-nested-1) "." counter(tmr-decimal-nested-2) "." counter(tmr-decimal-nested-3) "." counter(tmr-decimal-nested-4) "." counter(tmr-decimal-nested-5) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-nested'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-alpha']) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-alpha-0 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-alpha-0;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li::before) {
+  content: counter(tmr-upper-alpha-0, upper-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-alpha-1 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-alpha-1;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-alpha-1, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-alpha-2 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-alpha-2;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-alpha-2, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-alpha-3 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-alpha-3;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-alpha-3, upper-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-alpha-4 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-alpha-4;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-alpha-4, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-alpha-5 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-alpha-5;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-alpha-5, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-alpha']) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-alpha-0 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-alpha-0;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li::before) {
+  content: counter(tmr-lower-alpha-0, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-alpha-1 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-alpha-1;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-alpha-1) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-alpha-2 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-alpha-2;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-alpha-2, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-alpha-3 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-alpha-3;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-alpha-3, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-alpha-4 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-alpha-4;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-alpha-4) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-alpha-5 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-alpha-5;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-alpha-5, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-alpha'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-roman']) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-roman-0 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-roman-0;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li::before) {
+  content: counter(tmr-upper-roman-0, upper-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-roman-1 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-roman-1;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-roman-1, upper-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-roman-2 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-roman-2;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-roman-2) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-roman-3 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-roman-3;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-roman-3, upper-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-roman-4 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-roman-4;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-roman-4, upper-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-upper-roman-5 0;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-upper-roman-5;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-upper-roman-5) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='upper-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-roman']) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-roman-0 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-roman-0;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li::before) {
+  content: counter(tmr-lower-roman-0, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-roman-1 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-roman-1;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-roman-1) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-roman-2 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-roman-2;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-roman-2, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-roman-3 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-roman-3;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-roman-3, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-roman-4 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-roman-4;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-roman-4) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-lower-roman-5 0;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-lower-roman-5;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-lower-roman-5, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='lower-roman'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-zero']) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-zero-0 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-zero-0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li::before) {
+  content: counter(tmr-decimal-zero-0, decimal-leading-zero) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-zero-1 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-zero-1;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-zero-1, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-zero-2 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-zero-2;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-zero-2, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-zero-3 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-zero-3;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-zero-3, decimal-leading-zero) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-zero-4 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-zero-4;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-zero-4, lower-alpha) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format])) {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: tmr-decimal-zero-5 0;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.45em;
+  align-items: baseline;
+  counter-increment: tmr-decimal-zero-5;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::marker) {
+  content: none;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li::before) {
+  content: counter(tmr-decimal-zero-5, lower-roman) ".";
+  grid-column: 1;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.editorContent :global(ol[data-numbering-format='decimal-zero'] > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > ol:not([data-numbering-format]) > li > *) {
+  grid-column: 2;
+  min-width: 0;
+}
+/* numbering-format:end */
+
 .editorContent :global(blockquote) {
   border-left: 3px solid var(--tmr-accent, #ff6719);
   padding-left: 1em;
   margin: 0.9em 0;
   color: var(--tmr-muted, #777777);
   font-style: italic;
+}
+
+/* 折叠块。编辑器里是官方 NodeView（div + 按钮），阅读页静态 HTML 是原生 details。 */
+.editorContent :global([data-type='details']) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin: 0.9em 0;
+  border: 1px solid var(--tmr-border, #e6e6e6);
+  border-radius: 8px;
+  padding: 0.35em 0.6em;
+}
+
+/* 按钮撑满标题首行行高并居中，箭头落在文字中线上。展开后内容变高时仍贴着标题，不跟整块垂直居中。 */
+.editorContent :global([data-type='details'] > button) {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  box-sizing: border-box;
+  width: 1.5em;
+  height: 1lh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--tmr-muted, #777777);
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editorContent :global([data-type='details'] > button::before) {
+  content: '';
+  box-sizing: border-box;
+  width: 0.45em;
+  height: 0.45em;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.editorContent :global([data-type='details'].is-open > button::before) {
+  transform: rotate(45deg);
+}
+
+.editorContent :global([data-type='details'] > button:hover) {
+  background: var(--tmr-code-bg, #f4f4f4);
+  color: var(--tmr-text, #363737);
+}
+
+.editorContent :global([data-type='details'] > div) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.editorContent :global([data-type='details'] summary) {
+  display: block;
+  margin: 0;
+  font-weight: 600;
+  cursor: text;
+}
+
+.editorContent :global([data-type='details'] [data-type='detailsContent'] > :first-child) {
+  margin-top: 0.2em;
+}
+
+.editorContent :global(details) {
+  margin: 0.9em 0;
+  border: 1px solid var(--tmr-border, #e6e6e6);
+  border-radius: 8px;
+  padding: 0.4em 0.75em 0.5em;
+}
+
+.editorContent :global(details > summary) {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.editorContent :global(details > [data-type='detailsContent'] > :first-child) {
+  margin-top: 0.35em;
 }
 
 .editorContent :global(a) {
@@ -299,7 +1664,7 @@
   cursor: nwse-resize;
 }
 
-/* 左右手柄（本库默认方向）：居中的圆角竖条、贴边内缩，对齐官方 demo 的形态。
+/* 左右手柄（本库默认方向）：居中的窄圆角竖条、贴边内缩。
    官方内联定位把这些手柄撑满整条边（top:0;bottom:0），改回垂直居中需要 !important。 */
 .editorContent :global([data-resize-handle='left']),
 .editorContent :global([data-resize-handle='right']) {
@@ -309,7 +1674,7 @@
      无布局环境）时上一条 50% 生效（calc 引用未定义变量整条声明无效）。 */
   top: calc(var(--tmr-image-h) / 2) !important;
   bottom: auto !important;
-  width: 12px;
+  width: 8px;
   height: min(84px, 24%);
   border: none;
   border-radius: 999px;
@@ -332,13 +1697,13 @@
   transform: translate(-8px, -50%);
 }
 
-/* 上下边手柄（宿主显式开启 top/bottom 时）：同样的短条，横向 */
+/* 上下边手柄（宿主显式开启 top/bottom 时）：同样的短条，横向，厚度与左右手柄一致 */
 .editorContent :global([data-resize-handle='top']),
 .editorContent :global([data-resize-handle='bottom']) {
   left: 50% !important;
   right: auto !important;
   width: min(84px, 24%);
-  height: 12px;
+  height: 8px;
   border: none;
   border-radius: 999px;
   cursor: ns-resize;
@@ -563,6 +1928,52 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* 全文统计 + 键盘悬浮键共用的底栏。sticky 让它在滚动时贴在可视区右下，
+   避开正文左缘；整条不吃点击，按钮自己再打开。 */
+.editorStatus {
+  position: sticky;
+  bottom: 12px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 0 16px 12px;
+  pointer-events: none;
+}
+
+.editorStatus .shortcutFab {
+  position: static;
+  margin: 0;
+  pointer-events: auto;
+}
+
+.charCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 2px 10px;
+  border: 1px solid var(--tmr-toolbar-border, #ececec);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--tmr-toolbar-muted, #6b6b6b);
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: 12px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  pointer-events: none;
+}
+
+.charCountSep {
+  opacity: 0.45;
 }
 
 /* 快捷键抽屉的悬浮入口：sticky-bottom——自然位置在编辑器底部，

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { defaultShortcutLabels, type ShortcutLabels } from '../labels';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
 import { XIcon } from '../icons';
 import styles from '../styles/shortcutPanel.module.css';
 import { buildShortcutGroups, type ShortcutGroup } from './types';
@@ -7,8 +7,8 @@ import { buildShortcutGroups, type ShortcutGroup } from './types';
 export interface ShortcutPanelProps {
   open: boolean;
   onClose: () => void;
-  /** 文案覆盖，与默认英文合并。 */
-  labels?: Partial<ShortcutLabels>;
+  /** 内置语言，默认英文。 */
+  locale?: LocaleCode;
 }
 
 function isMacPlatform(): boolean {
@@ -29,11 +29,12 @@ function keycapText(key: string, mac: boolean): string {
  * 数据来自 buildShortcutGroups（键位与 input rule 均为库内真实行为）。
  * 定位 fixed 贴视口右缘；Esc 关闭。
  */
-export function ShortcutPanel({ open, onClose, labels }: ShortcutPanelProps) {
-  const t: ShortcutLabels = useMemo(
-    () => ({ ...defaultShortcutLabels, ...labels }),
-    [labels],
-  );
+export function ShortcutPanel({
+  open,
+  onClose,
+  locale = 'en',
+}: ShortcutPanelProps) {
+  const t = getLocaleBundle(locale).shortcut;
 
   // 打开期间 Esc 关闭
   useEffect(() => {
@@ -46,8 +47,8 @@ export function ShortcutPanel({ open, onClose, labels }: ShortcutPanelProps) {
   }, [open, onClose]);
 
   const groups: ShortcutGroup[] = useMemo(
-    () => (open ? buildShortcutGroups(t) : []),
-    [open, t],
+    () => (open ? buildShortcutGroups(locale) : []),
+    [open, locale],
   );
   const mac = useMemo(isMacPlatform, []);
 

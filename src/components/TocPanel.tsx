@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { ChevronDownIcon, ListUnorderedIcon, LockIcon, MenuIcon } from '../icons';
-import { defaultTocLabels, type TocLabels } from '../labels';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
 import styles from '../styles/tocPanel.module.css';
 import type { TocItem } from '../toc/extractToc';
 
@@ -13,7 +13,8 @@ export interface TocPanelProps {
   activeId?: string;
   /** 点击目录项。锁住项不触发。默认行为由调用方决定（滚动 / 跳转）。 */
   onItemClick?: (item: TocItem) => void;
-  labels?: Partial<TocLabels>;
+  /** 内置语言，默认英文。 */
+  locale?: LocaleCode;
 }
 
 /**
@@ -25,8 +26,13 @@ export interface TocPanelProps {
  *
  * 纯展示：滚动 / active 计算交给调用方，本组件只渲染 + 派发点击。
  */
-export function TocPanel({ items, activeId, onItemClick, labels }: TocPanelProps) {
-  const t = { ...defaultTocLabels, ...labels };
+export function TocPanel({
+  items,
+  activeId,
+  onItemClick,
+  locale = 'en',
+}: TocPanelProps) {
+  const t = getLocaleBundle(locale).toc;
   const isMobile = useIsMobile();
 
   const [collapsed, setCollapsed] = useState(false);

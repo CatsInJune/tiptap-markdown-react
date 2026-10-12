@@ -14,7 +14,7 @@ import {
   CopyIcon,
   TrashIcon,
 } from '../icons';
-import { defaultCodeBlockLabels, type CodeBlockLabels } from '../labels';
+import { useEditorBundle } from '../i18n/store';
 import styles from '../styles/codeBlock.module.css';
 
 // 语言选择可选项。空 value = Auto-detect（交给 lowlight 自动识别）
@@ -41,7 +41,7 @@ const LANGUAGES: { value: string; label: string }[] = [
 
 /**
  * 代码块自定义 NodeView：右上角语言选择器（Radix DropdownMenu，支持方向键导航）+ 删除。
- * 文案（Auto-detect / 删除标题）从扩展 options.codeBlockLabels 读取，缺省用英文默认。
+ * 文案从编辑器的 locale 读取，缺省英文。
  *
  * 只读态（预览 / 只读编辑器）走另一套头部：左侧语言标签，右侧复制 + 展开收起；
  * 超出 `--tmr-code-max-height`（缺省 480px）的代码块默认限高块内滚动，行号槽
@@ -52,14 +52,9 @@ export function CodeBlockView({
   node,
   updateAttributes,
   deleteNode,
-  extension,
   editor,
 }: NodeViewProps) {
-  const labels: CodeBlockLabels = {
-    ...defaultCodeBlockLabels,
-    ...((extension?.options as { codeBlockLabels?: Partial<CodeBlockLabels> })
-      ?.codeBlockLabels ?? {}),
-  };
+  const labels = useEditorBundle(editor).codeBlock;
   const language = (node.attrs.language as string) || '';
   const current = LANGUAGES.find((l) => l.value === language);
   const currentLabel = current
@@ -132,7 +127,7 @@ export function CodeBlockView({
               <button
                 type="button"
                 className={styles.langTrigger}
-                aria-label="Code language"
+                aria-label={labels.language}
               >
                 <span>{currentLabel}</span>
                 <ChevronDownIcon size={14} className={styles.langChevron} />

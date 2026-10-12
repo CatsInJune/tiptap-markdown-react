@@ -14,7 +14,7 @@ import {
 } from 'react';
 import { destroyChart, renderOrUpdateChart } from '../chart/renderChart';
 import type { ChartPayload, ChartTheme } from '../chart/types';
-import { defaultChartLabels } from '../labels';
+import { useEditorBundle } from '../i18n/store';
 import '../styles/chart.css';
 
 function tabLabel(
@@ -41,6 +41,7 @@ export function ChartView({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<ChartJs | null>(null);
   const [active, setActive] = useState(0);
+  const labels = useEditorBundle(editor).chart;
 
   const payload: ChartPayload = useMemo(
     () => ({
@@ -92,13 +93,6 @@ export function ChartView({
       chart: null,
     });
   }, [safeIndex]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const labels = {
-    ...defaultChartLabels,
-    ...(extension.options.chartLabels as
-      | Partial<typeof defaultChartLabels>
-      | undefined),
-  };
 
   const selectChart = () => {
     if (!editor || !canSelect) return;

@@ -35,6 +35,7 @@ export default defineConfig({
         'lowlight',
         /^lowlight\//,
         /^@radix-ui\//,
+        'emoji-regex',
       ],
       output: {
         // 保留模块结构有助于保留每文件 'use client' 指令与更干净的 tree-shaking

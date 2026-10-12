@@ -1,8 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   assertGuards,
   countKatexFaces,
+  katexFontOflText,
+  katexStyleBanner,
   splitFontFaces,
+  withKatexStyleBanner,
 } from './split-fonts.mjs';
 
 /** 合成 woff2：wOF2 魔数 + 固定尾巴，内容可复现。 */
@@ -108,6 +112,31 @@ describe('assertGuards', () => {
 
   it('正常产物通过', () => {
     expect(() => assertGuards('@font-face { src: url(./fonts/KaTeX_Main-Regular.woff2) }')).not.toThrow();
+  });
+});
+
+describe('KaTeX 再发行声明', () => {
+  const notice = readFileSync(new URL('../THIRD_PARTY_LICENSES.md', import.meta.url), 'utf8');
+
+  it('样式副本带上 MIT 版权与许可全文，重复套用不叠加', () => {
+    const banner = katexStyleBanner();
+    expect(banner).toContain('Copyright (c) 2013-2020 Khan Academy and other contributors');
+    expect(banner).toContain('The above copyright notice and this permission notice shall be included');
+    expect(notice).toContain(banner.slice(banner.indexOf('The MIT License'), banner.indexOf('SOFTWARE.') + 'SOFTWARE.'.length));
+    const once = withKatexStyleBanner('body { color: red; }');
+    expect(withKatexStyleBanner(once)).toBe(once);
+    expect(once.startsWith('/* KaTeX stylesheet redistributed')).toBe(true);
+  });
+
+  it('字体 OFL 全文与保留字号名写进声明文件，并跟字体放在一起', () => {
+    const ofl = katexFontOflText();
+    expect(ofl).toContain('SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007');
+    expect(ofl).toContain('Copyright (c) 2009-2010, Design Science, Inc. (<www.mathjax.org>)');
+    expect(ofl).toContain('Copyright (c) 2014-2018 Khan Academy (<www.khanacademy.org>)');
+    for (const name of ['KaTeX_Main', 'KaTeX_Math', 'KaTeX_AMS', 'KaTeX_Typewriter']) {
+      expect(ofl).toContain(name);
+    }
+    expect(notice).toContain(ofl.trim());
   });
 });
 

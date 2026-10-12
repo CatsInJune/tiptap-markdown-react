@@ -205,19 +205,16 @@ describe('LinkPopover', () => {
     expect(action('remove')?.disabled).toBe(true);
   });
 
-  it('文案可注入，并给宿主留下稳定选择器', async () => {
+  it('locale=zh 使用内置中文，并给宿主留下稳定选择器', async () => {
     editor = buildEditor('x');
-    await mount({
-      editor,
-      labels: { field: '粘贴链接', apply: '应用', open: '新窗口打开', remove: '移除' },
-    });
+    await mount({ editor, locale: 'zh' });
     await click(host.querySelector('[data-test-trigger]'));
 
-    expect(field()?.getAttribute('placeholder')).toBe('粘贴链接');
-    expect(panel()?.getAttribute('aria-label')).toBe('粘贴链接');
-    expect(action('apply')?.getAttribute('aria-label')).toBe('应用');
-    expect(action('open')?.getAttribute('aria-label')).toBe('新窗口打开');
-    expect(action('remove')?.getAttribute('aria-label')).toBe('移除');
+    expect(field()?.getAttribute('placeholder')).toBe('输入链接地址');
+    expect(panel()?.getAttribute('aria-label')).toBe('输入链接地址');
+    expect(action('apply')?.getAttribute('aria-label')).toBe('应用链接');
+    expect(action('open')?.getAttribute('aria-label')).toBe('在新窗口打开');
+    expect(action('remove')?.getAttribute('aria-label')).toBe('移除链接');
     expect(document.querySelector('[data-link-popover]')).not.toBeNull();
   });
 });

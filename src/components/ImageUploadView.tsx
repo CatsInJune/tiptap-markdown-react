@@ -5,11 +5,8 @@ import { Selection, TextSelection } from '@tiptap/pm/state';
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
 import { XIcon } from '../icons';
+import { useEditorBundle } from '../i18n/store';
 import type { ImageUploadOptions } from '../imageUpload';
-import {
-  defaultImageUploadLabels,
-  type ImageUploadLabels,
-} from '../labels';
 import styles from '../styles/imageUpload.module.css';
 
 interface FileItem {
@@ -71,10 +68,7 @@ function focusNextNode(editor: Editor) {
 export function ImageUploadView(props: NodeViewProps) {
   const { node, extension, editor, getPos } = props;
   const options = extension.options as ImageUploadOptions;
-  const labels: ImageUploadLabels = {
-    ...defaultImageUploadLabels,
-    ...options.labels,
-  };
+  const labels = useEditorBundle(editor).imageUpload;
 
   const accept = String(node.attrs.accept ?? 'image/*');
   const limit = Number(node.attrs.limit ?? 1) || 1;

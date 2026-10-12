@@ -1,5 +1,10 @@
 import Code from '@tiptap/extension-code';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import {
+  Details,
+  DetailsContent,
+  DetailsSummary,
+} from '@tiptap/extension-details';
 import Heading from '@tiptap/extension-heading';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
@@ -44,6 +49,13 @@ import {
   paragraphParseMarkdown,
   paragraphRenderMarkdown,
 } from './paragraphMarkdown';
+import {
+  detailsMarkdownTokenizer,
+  detailsParseMarkdown,
+  detailsRenderMarkdown,
+} from './detailsMarkdown';
+import { MarkdownEmoji } from './emoji/markdownEmoji';
+import { OrderedListWithNumbering } from './numberingFormat';
 import { ParagraphStyles } from './paragraphStyles';
 
 /**
@@ -239,6 +251,26 @@ export const MarkdownHeading = Heading.extend({
 });
 
 /**
+ * 官方 Details（MIT）：摘要 + 可折叠正文。三个节点必须一起注册。
+ * `persist` 把展开状态写进文档；默认展开，这样新建的块能直接接着写，
+ * 阅读页的原生 `<details open>` 也不会把正文藏起来。
+ * markdown 不用官方的 `:::details`，改走 HTML（见 detailsMarkdown.ts）。
+ */
+const DetailsBlock = Details.extend({
+  addAttributes() {
+    const inherited = this.parent?.() ?? {};
+    if (!('open' in inherited) || inherited.open == null) return inherited;
+    return {
+      ...inherited,
+      open: { ...inherited.open, default: true },
+    };
+  },
+  markdownTokenizer: detailsMarkdownTokenizer,
+  parseMarkdown: detailsParseMarkdown,
+  renderMarkdown: detailsRenderMarkdown,
+}).configure({ persist: true });
+
+/**
  * 三处共用的纯 schema 扩展——**不含 CodeBlock / Image / CitationRef / Chart**（见上方边界说明）。
  * 编辑器：`[...baseExtensions, 增强CodeBlock, 增强Image, createCitationRef(), createChart(), Markdown]`
  * server/预览：`[...baseExtensions, pureCodeBlock, pureImage, CitationRef, pureChart, …]`
@@ -251,9 +283,14 @@ export const baseExtensions: AnyExtension[] = [
     code: false,
     paragraph: false,
     heading: false,
+    // 有序列表改用带编号格式的版本。同名不能注册两份。
+    orderedList: false,
+    // 块拖拽的落点指示。颜色用主题变量（拖拽光标插在编辑器里，能读到 --tmr-accent）。
+    dropcursor: { color: 'var(--tmr-accent, #ff6719)', width: 2 },
   }),
   MarkdownParagraph,
   MarkdownHeading,
+  OrderedListWithNumbering,
   // 段落级样式：文字对齐用官方扩展（免费）；缩进 / 行高自研（官方无此扩展）。
   // 三者都往节点 style 上写片段，tiptap 的 mergeAttributes 对 style 做拼接合并。
   TextAlign.configure({ types: [MarkdownParagraph.name, MarkdownHeading.name] }),
@@ -279,6 +316,11 @@ export const baseExtensions: AnyExtension[] = [
   }),
   TaskList,
   TaskItem.configure({ nested: true }),
+  DetailsBlock,
+  DetailsSummary,
+  DetailsContent,
   reportInlineMath,
   reportBlockMath,
+  // 表情节点：`:shortcode:` 往返。建议列表是编辑器上的 configure，不进这份 schema。
+  MarkdownEmoji,
 ];

@@ -2,6 +2,8 @@
 
 // 副作用：增强 Editor.insertContent / getMarkdown 的 @tiptap/markdown 类型。
 import '@tiptap/markdown';
+// KaTeX 样式会打进 dist/style.css 与 dist/style-inline.css。版权与许可全文见
+// THIRD_PARTY_LICENSES.md 第 4 节；字体的 OFL 全文同时落在 dist/fonts/OFL.txt。
 import 'katex/dist/katex.min.css';
 import './styles/math.css';
 import './styles/chart.css';
@@ -142,31 +144,8 @@ export { extractToc, type TocItem } from './toc/extractToc';
 export { makeTocGetId } from './toc/tocSlug';
 export { scrollToTocHeading } from './toc/scrollToTocHeading';
 
-// ── 文案默认值 / 类型（i18n 注入） ──
-export {
-  defaultChartLabels,
-  defaultCodeBlockLabels,
-  defaultColorPaletteLabels,
-  defaultCommentLabels,
-  defaultFindLabels,
-  defaultImageUploadLabels,
-  defaultLinkPopoverLabels,
-  defaultShortcutLabels,
-  defaultSlashMenuLabels,
-  defaultTocLabels,
-  defaultToolbarLabels,
-  type ChartLabels,
-  type CodeBlockLabels,
-  type ColorPaletteLabels,
-  type CommentLabels,
-  type FindLabels,
-  type ImageUploadLabels,
-  type LinkPopoverLabels,
-  type ShortcutLabels,
-  type SlashMenuLabels,
-  type TocLabels,
-  type ToolbarLabels,
-} from './labels';
+// ── 界面语言（组件内置中/英，宿主传 locale） ──
+export type { LocaleCode } from './i18n';
 
 // ── 评论锚定（编辑态专属） ──
 export { CommentMark, type CommentMarkOptions, type CommentInterval } from './commentAnchor/CommentMark';

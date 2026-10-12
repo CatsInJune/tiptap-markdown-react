@@ -8,7 +8,8 @@
    没法用绝对定位跟着表格走。滚动 / 缩放时由组件收起，等下一次移动重新贴。 */
 .handle {
   position: fixed;
-  z-index: 8;
+  /* 高于块拖拽手柄（插件写在编辑器里的 z-index: 10），避免被六点压住。 */
+  z-index: 20;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -24,8 +25,7 @@
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
-/* 命中区补桥（行）：胶囊本体离表格留了 8px 视觉留白，那 8px 加一块看不见的命中区，
-   让「单元格 → 手柄」这段路上没有既非单元格也非手柄的空隙——否则指针走到一半手柄就收了。
+/* 命中区补桥（行）：胶囊右缘到表格左缘约 8px（GAP 20 − 宽 12），补上这段才点得到。
    伪元素也算宿主按钮的一部分，点它命中的是按钮本身。 */
 .handleRow::after {
   content: '';
@@ -46,18 +46,18 @@
   height: 6px;
 }
 
-/* 行手柄：贴在行左缘的竖胶囊。长度（height）由组件按行高给，这里只定粗细。 */
+/* 行手柄：贴在行左缘的竖胶囊，高度跟着行高走，这里只定厚度。 */
 .handleRow {
-  width: 18px;
+  width: 12px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 12px;
 }
 
-/* 列手柄：贴在表格上方的横胶囊。长度（width）由组件按列宽给，这里只定高度。 */
+/* 列手柄：贴在列上方的横胶囊，宽度跟着列宽走，这里只定厚度。 */
 .handleCol {
-  height: 16px;
+  height: 12px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .handle:hover {
@@ -67,10 +67,10 @@
 }
 
 /* 末尾追加行列的 `+` 手柄：贴在表格右缘 / 下缘，长度跟着表格尺寸走（见组件里的 style）。
-   圆角与行 / 列手柄同款全圆胶囊（厚度 16px，两端即 8px 半圆）。 */
+   厚度与行 / 列手柄相同（12px）。 */
 .extend {
   position: fixed;
-  z-index: 8;
+  z-index: 20;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -81,7 +81,7 @@
   background: var(--tmr-table-handle-bg, #f1f1f3);
   color: var(--tmr-table-handle-fg, #7a7a7a);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1;
   cursor: pointer;
   user-select: none;
@@ -116,7 +116,7 @@
 /* ── 操作菜单（portal 到 body，拿不到 .toolbar 变量，故写死配色） ── */
 .tableBubble {
   position: fixed;
-  z-index: 12;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   min-width: 220px;

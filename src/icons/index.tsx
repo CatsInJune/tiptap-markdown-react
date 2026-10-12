@@ -236,6 +236,16 @@ export const ListOrderedIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** 折叠块。自绘，不是 Lucide。 */
+export const DetailsIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m9 7 4 5-4 5" />
+    <path d="M15 7h5" />
+    <path d="M15 12h5" />
+    <path d="M15 17h5" />
+  </Svg>
+);
+
 export const ListChecksIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="m3 17 2 2 4-4" />
@@ -420,6 +430,26 @@ export const ChevronsUpDownIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="m7 15 5 5 5-5" />
     <path d="m7 9 5-5 5 5" />
+  </Svg>
+);
+
+/** 六点握把：块拖拽手柄。 */
+export const GripIcon = (p: IconProps) => (
+  <Svg {...p} fill="currentColor" strokeWidth={0}>
+    <circle cx="9" cy="6" r="1.25" />
+    <circle cx="15" cy="6" r="1.25" />
+    <circle cx="9" cy="12" r="1.25" />
+    <circle cx="15" cy="12" r="1.25" />
+    <circle cx="9" cy="18" r="1.25" />
+    <circle cx="15" cy="18" r="1.25" />
+  </Svg>
+);
+
+export const DownloadIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" x2="12" y1="15" y2="3" />
   </Svg>
 );
 

@@ -1,17 +1,17 @@
 'use client';
 
-import CodeBlockLowlight, {
-  type CodeBlockLowlightOptions,
-} from '@tiptap/extension-code-block-lowlight';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import FindAndReplace from '@tiptap/extension-find-and-replace';
+import Typography from '@tiptap/extension-typography';
 import Image from '@tiptap/extension-image';
 import { TableOfContents } from '@tiptap/extension-table-of-contents';
-import { Placeholder } from '@tiptap/extensions';
+import { CharacterCount, Placeholder, Selection } from '@tiptap/extensions';
 import { Markdown } from '@tiptap/markdown';
 import {
   EditorContent,
   ReactNodeViewRenderer,
   useEditor,
+  useEditorState,
   type AnyExtension,
   type Editor,
 } from '@tiptap/react';
@@ -27,7 +27,6 @@ import {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -71,8 +70,10 @@ import {
   normalizeImageCaption,
 } from '../imageMarkdown';
 import { setImageAlign } from '../imageAlign';
-import type { CodeBlockLabels, FindLabels, ShortcutLabels, SlashMenuLabels } from '../labels';
-import { defaultShortcutLabels } from '../labels';
+import { configureEmojiSuggestion } from '../emoji/EmojiSuggestion';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
+import { usePublishEditorLocale } from '../i18n/store';
+import { countWords } from '../characterCount';
 import { SlashMenu } from '../slashMenu/SlashMenuExtension';
 import { ShortcutPanel } from '../shortcuts/ShortcutPanel';
 import { KeyboardIcon } from '../icons';
@@ -94,20 +95,12 @@ import styles from '../styles/content.module.css';
 import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
 import { CodeBlockView } from './CodeBlockView';
+import { BlockDragHandle } from './BlockDragHandle';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 // 带语言选择器的代码块（自定义 React NodeView）。base 不含代码块，此增强版由编辑器注入。
-// addOptions 追加 codeBlockLabels，供 CodeBlockView 读取以本地化文案。
-type CodeBlockOptions = CodeBlockLowlightOptions & {
-  codeBlockLabels?: Partial<CodeBlockLabels>;
-};
-
-const CodeBlock = CodeBlockLowlight.extend<CodeBlockOptions>({
-  addOptions() {
-    return {
-      ...this.parent?.(),
-      codeBlockLabels: undefined,
-    } as CodeBlockOptions;
-  },
+// 文案从编辑器 locale store 读取，不写进扩展 options。
+const CodeBlock = CodeBlockLowlight.extend({
   // Built-in `code` tokens often win over chart's custom fence tokenizer;
   // upgrade ```tmr-chart here so the mid-column card editor renders ChartView.
   parseMarkdown: (token, helpers) =>
@@ -343,6 +336,47 @@ function findBarOffsetStyle(offset: FindBarOffset): CSSProperties {
 }
 
 /**
+ * 全文统计条。数字来自官方 CharacterCount 的 storage，`useEditorState` 只在
+ * 字符数 / 词数变化时重渲染。
+ */
+function CharacterCountStatus({
+  editor,
+  locale,
+}: {
+  editor: Editor;
+  locale: LocaleCode;
+}) {
+  const t = getLocaleBundle(locale).characterCount;
+  const counts = useEditorState({
+    editor,
+    selector: ({ editor: current }) => {
+      const storage = current?.storage.characterCount;
+      if (!storage) return { characters: 0, words: 0 };
+      return {
+        characters: storage.characters(),
+        words: storage.words(),
+      };
+    },
+  });
+
+  return (
+    <div
+      className={styles.charCount}
+      role="group"
+      aria-label={t.label}
+      data-characters={counts.characters}
+      data-words={counts.words}
+    >
+      <span>{t.characters(counts.characters)}</span>
+      <span className={styles.charCountSep} aria-hidden="true">
+        ·
+      </span>
+      <span>{t.words(counts.words)}</span>
+    </div>
+  );
+}
+
+/**
  * 这次按键归本编辑器管吗。Cmd/Ctrl+F 与 Esc 共用同一套边界：
  *   - 焦点在本编辑器内 → 管
  *   - 焦点不在任何输入控件里（body）且页面上只有本编辑器 → 也管（单编辑器页面点完工具栏能直接按）
@@ -418,6 +452,8 @@ export interface MarkdownWysiwygEditorProps {
    * 只读态不应用评论锚定（comments 被忽略），与 MarkdownPreview 语义一致。
    */
   editable?: boolean;
+  /** 内置界面语言，默认英文。工具栏、目录等并列组件需各自传同一个值。 */
+  locale?: LocaleCode;
   /**
    * 初始脚注来源：按 index 对齐 `[^n]`，写入 citationRef 的 url/title。
    * 仅影响初始 content；后续插入请用 `insertMarkdown(editor, md, sources)`。
@@ -445,8 +481,6 @@ export interface MarkdownWysiwygEditorProps {
   markdownFileDrop?: boolean;
   /** 追加的 Tiptap 扩展（在内置扩展之后注册）。 */
   extraExtensions?: AnyExtension[];
-  /** 代码块 NodeView 的本地化文案。 */
-  codeBlockLabels?: Partial<CodeBlockLabels>;
   /**
    * 「这段正在被 AI 改写」的高亮：宿主在提交请求时给上、回填或冲突时传空数组清空。
    * 走 decoration，**不进 markdown、不进 undo 历史**，能盖住表格与图表这类块级节点。
@@ -519,8 +553,6 @@ export interface MarkdownWysiwygEditorProps {
    * 保留浏览器原生查找，或自己摆入口。焦点不在编辑器内时不接管，同页多编辑器不会互相抢。
    */
   findShortcut?: boolean;
-  /** 查找替换浮动条的本地化文案。 */
-  findLabels?: Partial<FindLabels>;
   /**
    * 浮动条开合状态变化的通知（条子开着时 `handle.openFind()`、Esc / × 关掉都会触发）。
    * 典型用法是驱动别处的入口按钮：`<EditorToolbar onSearch={open} searchActive={isOpen} />`。
@@ -533,8 +565,6 @@ export interface MarkdownWysiwygEditorProps {
    * 「格式 / 快捷键 / Markdown」三列对照抽屉（默认 true，只读态隐藏）。
    */
   shortcutPanel?: boolean;
-  /** 快捷键抽屉的本地化文案。 */
-  shortcutLabels?: Partial<ShortcutLabels>;
   /**
    * 把快捷键悬浮键挂到宿主的容器里（与 `findBarContainer` 同一套）：
    * 给元素或返回元素的函数即可，开合状态与抽屉归库——只换按钮落点。
@@ -549,8 +579,26 @@ export interface MarkdownWysiwygEditorProps {
    * 追加自定义命令项请传 `extraExtensions` 注册 `SlashMenu.configure({ items })`。
    */
   slashMenu?: boolean;
-  /** 斜杠菜单的本地化文案。 */
-  slashMenuLabels?: Partial<SlashMenuLabels>;
+  /**
+   * 智能标点（官方 `@tiptap/extension-typography`，MIT，不是 Pro）。
+   * 键入时把直引号收成弯引号、`--` 收成破折号、`...` 收成省略号，以及箭头、©、分数等。
+   * 代码块和行内代码里不触发；Backspace 撤销刚发生的替换。`---` 仍是分隔线。
+   * 默认 true。仅初始化时生效。
+   */
+  typography?: boolean;
+  /**
+   * 表情建议列表：键入 `:`（行首或空白后）弹出，选中后插入 emoji 节点。
+   * Markdown 存成 `:shortcode:`。传 false 只是不弹列表——节点、完整短码输入和往返仍在。
+   * 只读态不弹出。默认 true。仅初始化时生效。
+   */
+  emojiSuggestion?: boolean;
+  /**
+   * 块拖拽（对齐 Tiptap Drag Context Menu）：悬停块时左侧出现手柄，拖动重排，
+   * 点击打开菜单（转成别的块 / 复制 / 再制一份 / 删除，图片还可下载）。
+   * 手柄旁的「+」在块首插入 `/`，唤起斜杠菜单（`slashMenu={false}` 时不显示加号）。
+   * 默认 true。只读态和窄屏（宽度小于 768px）不显示，并收起左侧留白。
+   */
+  blockDrag?: boolean;
   /**
    * 图片上传（对齐官方 ImageUploadNode 的交互）：配置后工具栏的图片按钮变成
    * 「插入上传块」——文档里出现拖拽 / 点击的占位块，上传进度就地显示，全部成功后就地
@@ -568,6 +616,13 @@ export interface MarkdownWysiwygEditorProps {
    * imageMarkdown.ts）。传 `false` 关闭；传对象透传官方 resize 配置。仅初始化时生效。
    */
   imageResize?: boolean | ImageResizeOptions;
+  /**
+   * 全文统计（默认关）：传 `true` 才注册 MIT 包 `@tiptap/extensions` 的 CharacterCount
+   * （开源扩展，不是付费的 `@tiptap-pro`），在编辑器底部实时显示字符数与词数。
+   * 统计条是本库自绘。词数把每个汉字算作 1 个词（该扩展默认按空格切，整段中文会是 1）。
+   * 数字也可从 `editor.storage.characterCount` 读取。仅初始化时生效。
+   */
+  characterCount?: boolean;
 }
 
 /**
@@ -581,6 +636,7 @@ export const MarkdownWysiwygEditor = forwardRef<
   {
     initialMarkdown = '',
     editable = true,
+    locale = 'en',
     sources,
     renderCitation,
     placeholder,
@@ -589,7 +645,6 @@ export const MarkdownWysiwygEditor = forwardRef<
     markdownPaste = true,
     markdownFileDrop = true,
     extraExtensions,
-    codeBlockLabels,
     className,
     comments,
     activeCommentId,
@@ -604,16 +659,17 @@ export const MarkdownWysiwygEditor = forwardRef<
     findBar = findReplace,
     findBarContainer,
     findBarOffset = DEFAULT_FIND_BAR_OFFSET,
-  findShortcut = true,
-  findLabels,
-  onFindOpenChange,
-  slashMenu = true,
-  slashMenuLabels,
-  shortcutPanel = true,
-  shortcutLabels,
-  shortcutFabContainer,
-  imageUpload,
-  imageResize = true,
+    findShortcut = true,
+    onFindOpenChange,
+    slashMenu = true,
+    typography = true,
+    emojiSuggestion = true,
+    blockDrag = true,
+    shortcutPanel = true,
+    shortcutFabContainer,
+    imageUpload,
+    imageResize = true,
+    characterCount = false,
   },
   ref,
 ) {
@@ -621,14 +677,21 @@ export const MarkdownWysiwygEditor = forwardRef<
     enrichMarkdownCitations(initialMarkdown, sources ?? []),
   );
 
+  const blockDragMobile = useIsMobile(768);
+  const showBlockDrag = blockDrag && editable && !blockDragMobile;
+
   const [findOpen, setFindOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const findInputRef = useRef<HTMLInputElement | null>(null);
 
   const editor = useEditor({
     extensions: [
-      ...baseExtensions,
-      CodeBlock.configure({ lowlight, codeBlockLabels }),
+      ...baseExtensions.map((ext) =>
+        ext.name === 'emoji'
+          ? configureEmojiSuggestion(ext, emojiSuggestion)
+          : ext,
+      ),
+      CodeBlock.configure({ lowlight }),
       ImageWithConfirmDelete.configure({
         inline: false,
         // 图片缩放（默认开、默认等比、默认左右两条手柄）：false 关掉；对象透传官方配置
@@ -674,6 +737,15 @@ export const MarkdownWysiwygEditor = forwardRef<
       ...(findReplace
         ? [FindAndReplace.configure({ injectCSS: false, searchDebounceMs: 0 })]
         : []),
+      // 失焦选区：MIT 的 Selection。非空文本选区失焦后打上 .tmr-blur-selection，
+      // 样式在 content.module.css。节点选区（图片、代码块整块）官方不保留。
+      Selection.configure({ className: 'tmr-blur-selection' }),
+      // 字数统计：MIT 的 @tiptap/extensions CharacterCount（不是 @tiptap-pro）。
+      // 只调用它的 storage，统计条是本库自绘。无 limit，不裁剪正文。
+      // 词数换成自写的 countWords，否则整段中文会被默认的按空格切分算成 1 个词。
+      ...(characterCount
+        ? [CharacterCount.configure({ wordCounter: countWords })]
+        : []),
       TableOfContents.configure({
         getId: makeTocGetId(),
         onUpdate: (anchors) => {
@@ -687,7 +759,9 @@ export const MarkdownWysiwygEditor = forwardRef<
       ...(markdownPaste ? [MarkdownPaste] : []),
       ...(markdownFileDrop ? [MarkdownFileDrop] : []),
       // 斜杠菜单（键入 / 唤起）：默认开，只读态由 suggestion 状态机自身短路
-      ...(slashMenu ? [SlashMenu.configure({ labels: slashMenuLabels })] : []),
+      ...(slashMenu ? [SlashMenu] : []),
+      // 智能标点：输入规则，不增加节点，所以不进 baseExtensions。
+      ...(typography ? [Typography] : []),
       ...(extraExtensions ?? []),
     ],
     content: preparedInitial,
@@ -701,6 +775,8 @@ export const MarkdownWysiwygEditor = forwardRef<
       },
     },
   });
+
+  usePublishEditorLocale(editor, locale);
 
   useEffect(() => {
     onEditorReady?.(editor);
@@ -950,7 +1026,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     editor && findBar && findOpen ? (
       <FindReplaceBar
         editor={editor}
-        labels={findLabels}
+        locale={locale}
         onClose={closeFind}
         inputRef={findInputRef}
         className={styles.findBar}
@@ -958,10 +1034,7 @@ export const MarkdownWysiwygEditor = forwardRef<
       />
     ) : null;
 
-  const shortcutT: ShortcutLabels = useMemo(
-    () => ({ ...defaultShortcutLabels, ...shortcutLabels }),
-    [shortcutLabels],
-  );
+  const shortcutT = getLocaleBundle(locale).shortcut;
 
   // 宿主指定了容器就把悬浮键 portal 进去（定位归宿主），解析不到回落编辑器内粘性按钮。
   // 用 layout effect（同步于提交后、绘制前）解析：函数形式读 ref 时首渲染拿到的是
@@ -999,7 +1072,10 @@ export const MarkdownWysiwygEditor = forwardRef<
     ) : null;
 
   return (
-    <div className={styles.editorHost}>
+    <div
+      className={styles.editorHost}
+      data-block-drag-gutter={showBlockDrag ? '' : undefined}
+    >
       {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
       {findBarNode && !findBarTarget ? (
         <div className={styles.findBarAnchor}>{findBarNode}</div>
@@ -1010,19 +1086,37 @@ export const MarkdownWysiwygEditor = forwardRef<
       <EditorContent
         editor={editor}
         className={
-          className ? `${styles.editorScroll} ${className}` : styles.editorScroll
+          [
+            styles.editorScroll,
+            showBlockDrag ? styles.withBlockDrag : '',
+            className ?? '',
+          ]
+            .filter(Boolean)
+            .join(' ')
         }
       />
-      {/* 快捷键抽屉入口：默认 sticky-bottom 悬浮在可视区右下；
-          宿主给了 shortcutFabContainer 就 portal 进去，定位归宿主。只读态隐藏 */}
+      {editor && showBlockDrag ? (
+        <BlockDragHandle editor={editor} />
+      ) : null}
+      {/* 统计开着时，计数与键盘悬浮键共用一条贴在右下的 sticky 底栏。
+          统计关着时悬浮键保持自己的粘性定位，不套这层——外层再包一个不粘的盒子会让 sticky 失效。 */}
+      {editor && characterCount ? (
+        <div className={styles.editorStatus}>
+          <CharacterCountStatus editor={editor} locale={locale} />
+          {shortcutFabNode && !shortcutFabTarget ? shortcutFabNode : null}
+        </div>
+      ) : shortcutFabNode && !shortcutFabTarget ? (
+        shortcutFabNode
+      ) : null}
+      {/* 快捷键抽屉入口：宿主给了 shortcutFabContainer 就 portal 进去，定位归宿主。只读态隐藏 */}
       {shortcutFabNode && shortcutFabTarget
         ? createPortal(shortcutFabNode, shortcutFabTarget)
-        : shortcutFabNode}
+        : null}
       {shortcutPanel && editable ? (
         <ShortcutPanel
           open={shortcutsOpen}
           onClose={() => setShortcutsOpen(false)}
-          labels={shortcutLabels}
+          locale={locale}
         />
       ) : null}
     </div>

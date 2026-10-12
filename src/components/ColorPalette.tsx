@@ -1,6 +1,6 @@
 'use client';
 
-import { defaultColorPaletteLabels, type ColorPaletteLabels } from '../labels';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
 import styles from '../styles/colorPalette.module.css';
 
 /**
@@ -24,12 +24,13 @@ export interface ColorPaletteProps {
   value?: string;
   /** 点击某色块。null 表示「None」（清除）。 */
   onPick: (color: string | null) => void;
-  labels?: Partial<ColorPaletteLabels>;
+  /** 内置语言，默认英文。 */
+  locale?: LocaleCode;
 }
 
 /** 颜色面板：None 清除行 + 色板网格 + THEME 品牌色。 */
-export function ColorPalette({ value, onPick, labels }: ColorPaletteProps) {
-  const t = { ...defaultColorPaletteLabels, ...labels };
+export function ColorPalette({ value, onPick, locale = 'en' }: ColorPaletteProps) {
+  const t = getLocaleBundle(locale).palette;
   const current = value?.toLowerCase();
 
   return (

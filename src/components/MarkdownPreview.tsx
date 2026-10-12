@@ -3,6 +3,8 @@
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, ReactNodeViewRenderer, useEditor } from '@tiptap/react';
 import { useEffect, useMemo } from 'react';
+import { type LocaleCode } from '../i18n';
+import { usePublishEditorLocale } from '../i18n/store';
 import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import {
@@ -30,6 +32,8 @@ export interface MarkdownPreviewProps {
    */
   renderCitation?: RenderCitation;
   className?: string;
+  /** 内置界面语言，默认英文。代码块与图表文案跟着变。 */
+  locale?: LocaleCode;
 }
 
 /**
@@ -46,6 +50,7 @@ export function MarkdownPreview({
   sources,
   renderCitation,
   className,
+  locale = 'en',
 }: MarkdownPreviewProps) {
   const prepared = useMemo(
     () =>
@@ -92,6 +97,8 @@ export function MarkdownPreview({
     },
     [extensions],
   );
+
+  usePublishEditorLocale(editor, locale);
 
   // 文档尾随空段不在这里处理：它是 StarterKit 的 TrailingNode 补的（文末是代码块/
   // 表格/图表时），事后删节点会被它重建；改成 appendTransaction 里删则会与它互相
