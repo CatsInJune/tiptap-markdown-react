@@ -1,6 +1,5 @@
 /**
- * UI 文案（i18n 注入点）。各组件接收 `labels?: Partial<...>`，与内置英文默认合并。
- * 消费方（如中文项目）可传入本地化文案。
+ * UI 文案类型与英文默认。语言包在 `src/i18n`：宿主传 `locale`，不传单条文案。
  */
 
 export interface ToolbarLabels {
@@ -82,8 +81,12 @@ export interface ToolbarLabels {
   /** 非 Markdown 文件导入失败（onError 的 source === 'import'）。 */
   importDocumentFailed: string;
   blockquote: string;
+  /** 折叠块（官方 Details）。工具栏按钮 title / aria-label。 */
+  details: string;
   bulletList: string;
   orderedList: string;
+  /** 有序列表旁的编号格式下拉：触发器 title / aria-label。 */
+  numberingFormat: string;
   taskList: string;
   more: string;
   /**
@@ -155,6 +158,7 @@ export interface SlashMenuLabels {
   orderedList: string;
   taskList: string;
   blockquote: string;
+  details: string;
   codeBlock: string;
   divider: string;
   table: string;
@@ -236,8 +240,10 @@ export const defaultToolbarLabels: ToolbarLabels = {
   importDocumentConverting: 'Converting…',
   importDocumentFailed: 'Import failed',
   blockquote: 'Blockquote',
+  details: 'Toggle',
   bulletList: 'Bullet list',
   orderedList: 'Ordered list',
+  numberingFormat: 'Numbering format',
   taskList: 'Task list',
   more: 'More',
   search: 'Find & replace',
@@ -274,6 +280,48 @@ export const defaultToolbarLabels: ToolbarLabels = {
   mathNewBlock: 'Add a TeX equation',
 };
 
+/**
+ * 块拖拽手柄和它的菜单。悬停块时出现在左侧，拖动重排，点击出菜单。
+ */
+export interface BlockDragLabels {
+  /** 拖拽手柄的 title / aria-label。 */
+  dragHandle: string;
+  /** 菜单 aria-label。 */
+  menuLabel: string;
+  /** 「转成」分组标题。 */
+  turnInto: string;
+  paragraph: string;
+  headingLabel: (level: number) => string;
+  bulletList: string;
+  orderedList: string;
+  taskList: string;
+  blockquote: string;
+  codeBlock: string;
+  copy: string;
+  duplicate: string;
+  resetFormatting: string;
+  downloadImage: string;
+  delete: string;
+}
+
+export const defaultBlockDragLabels: BlockDragLabels = {
+  dragHandle: 'Drag to move',
+  menuLabel: 'Block actions',
+  turnInto: 'Turn into',
+  paragraph: 'Normal text',
+  headingLabel: (level) => `Heading ${level}`,
+  bulletList: 'Bullet list',
+  orderedList: 'Ordered list',
+  taskList: 'Task list',
+  blockquote: 'Blockquote',
+  codeBlock: 'Code block',
+  copy: 'Copy',
+  duplicate: 'Duplicate',
+  resetFormatting: 'Reset formatting',
+  downloadImage: 'Download image',
+  delete: 'Delete',
+};
+
 export const defaultSlashMenuLabels: SlashMenuLabels = {
   menuLabel: 'Insert block',
   groupText: 'Text',
@@ -285,6 +333,7 @@ export const defaultSlashMenuLabels: SlashMenuLabels = {
   orderedList: 'Ordered list',
   taskList: 'Task list',
   blockquote: 'Blockquote',
+  details: 'Toggle',
   codeBlock: 'Code block',
   divider: 'Divider',
   table: 'Table',
@@ -331,6 +380,14 @@ export interface ShortcutLabels {
   alignJustify: string;
   /** 图片上传占位块（Mod+Shift+I）。 */
   imageUpload: string;
+  /** 智能标点：直引号收成弯引号。 */
+  smartQuote: string;
+  /** 智能标点：`...` 收成省略号。 */
+  ellipsis: string;
+  /** 智能标点：`--` 收成破折号。 */
+  emDash: string;
+  /** 表情：`:smile:` 这类短码。 */
+  emoji: string;
 }
 
 export const defaultShortcutLabels: ShortcutLabels = {
@@ -365,6 +422,37 @@ export const defaultShortcutLabels: ShortcutLabels = {
   alignRight: 'Align right',
   alignJustify: 'Justify',
   imageUpload: 'Upload image',
+  smartQuote: 'Smart quotes',
+  ellipsis: 'Ellipsis',
+  emDash: 'Em dash',
+  emoji: 'Emoji',
+};
+
+/** 全文统计（官方 CharacterCount）文案。 */
+export interface CharacterCountLabels {
+  /** 统计条的无障碍名。 */
+  label: string;
+  /** 字符数，如 "128 characters"。 */
+  characters: (count: number) => string;
+  /** 词数，如 "24 words"。 */
+  words: (count: number) => string;
+}
+
+export const defaultCharacterCountLabels: CharacterCountLabels = {
+  label: 'Document statistics',
+  characters: (count) =>
+    `${count} ${count === 1 ? 'character' : 'characters'}`,
+  words: (count) => `${count} ${count === 1 ? 'word' : 'words'}`,
+};
+
+/** 表情建议列表（键入 `:` 唤起）文案。 */
+export interface EmojiSuggestionLabels {
+  /** 弹窗 aria-label。 */
+  menuLabel: string;
+}
+
+export const defaultEmojiSuggestionLabels: EmojiSuggestionLabels = {
+  menuLabel: 'Emoji',
 };
 
 /** 链接编辑浮层（`<LinkPopover>`）文案。 */
@@ -417,6 +505,8 @@ export interface CodeBlockLabels {
   expand: string;
   /** 只读态：收起已展开的代码块。 */
   collapse: string;
+  /** 语言选择器的 aria-label。 */
+  language: string;
 }
 
 export const defaultCodeBlockLabels: CodeBlockLabels = {
@@ -425,6 +515,7 @@ export const defaultCodeBlockLabels: CodeBlockLabels = {
   copy: 'Copy code',
   expand: 'Expand code',
   collapse: 'Collapse code',
+  language: 'Code language',
 };
 
 export interface CommentLabels {

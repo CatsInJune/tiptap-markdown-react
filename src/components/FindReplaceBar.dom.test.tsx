@@ -183,12 +183,9 @@ describe('FindReplaceBar', () => {
     expect(host.textContent).toContain('Read-only');
   });
 
-  it('文案可注入', async () => {
+  it('locale=zh 使用内置中文', async () => {
     editor = buildEditor('one two one');
-    await mount({
-      editor,
-      labels: { find: '查找', next: '下一处', close: '关闭', readOnly: '只读' },
-    });
+    await mount({ editor, locale: 'zh' });
 
     expect(host.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('查找');
     expect(buttonByLabel('下一处')).not.toBeNull();

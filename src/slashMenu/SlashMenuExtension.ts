@@ -5,10 +5,7 @@ import Suggestion, {
   type SuggestionProps,
 } from '@tiptap/suggestion';
 import { PluginKey } from '@tiptap/pm/state';
-import {
-  defaultSlashMenuLabels,
-  type SlashMenuLabels,
-} from '../labels';
+import { getEditorBundle, getEditorLocale } from '../i18n/store';
 import styles from '../styles/slashMenu.module.css';
 import { createDefaultSlashMenuItems, filterSlashItems } from './items';
 import { SlashMenuPopup, type SlashMenuPopupHandle } from './SlashMenuPopup';
@@ -17,8 +14,6 @@ import type { SlashMenuItem } from './types';
 export interface SlashMenuOptions {
   /** 追加的宿主自定义命令项（排在默认项之后）。 */
   items?: SlashMenuItem[];
-  /** 弹窗文案，与默认英文文案合并。 */
-  labels?: Partial<SlashMenuLabels>;
 }
 
 /** 输入法组合态下的按键交给 IME 自己处理（上游 suggestion 不查 composing）。 */
@@ -41,15 +36,11 @@ export const SlashMenu = Extension.create<SlashMenuOptions>({
   name: 'slashMenu',
 
   addOptions() {
-    return { items: undefined, labels: undefined };
+    return { items: undefined };
   },
 
   addProseMirrorPlugins() {
-    const { items: extraItems, labels } = this.options;
-    const allItems = [
-      ...createDefaultSlashMenuItems({ ...defaultSlashMenuLabels, ...labels }),
-      ...(extraItems ?? []),
-    ];
+    const { items: extraItems } = this.options;
 
     let renderer: ReactRenderer<SlashMenuPopupHandle> | null = null;
     let unmountPopup: (() => void) | null = null;
@@ -64,7 +55,14 @@ export const SlashMenu = Extension.create<SlashMenuOptions>({
         allowSpaces: false,
         decorationClass: 'tmr-slash-suggestion',
         decorationEmptyClass: 'tmr-slash-suggestion-empty',
-        items: ({ query }) => filterSlashItems(allItems, query),
+        items: ({ editor, query }) =>
+          filterSlashItems(
+            [
+              ...createDefaultSlashMenuItems(getEditorLocale(editor)),
+              ...(extraItems ?? []),
+            ],
+            query,
+          ),
         command: ({ editor, range, props: item }) => {
           item.apply(editor, range);
         },
@@ -78,8 +76,7 @@ export const SlashMenu = Extension.create<SlashMenuOptions>({
                 props: {
                   items: props.items,
                   query: props.query,
-                  menuLabel:
-                    this.options.labels?.menuLabel ?? defaultSlashMenuLabels.menuLabel,
+                  menuLabel: getEditorBundle(props.editor).slashMenu.menuLabel,
                   command: props.command,
                 },
                 className: styles.popupHost,
@@ -105,6 +102,7 @@ export const SlashMenu = Extension.create<SlashMenuOptions>({
             renderer?.updateProps({
               items: props.items,
               query: props.query,
+              menuLabel: getEditorBundle(props.editor).slashMenu.menuLabel,
               command: props.command,
             });
           },

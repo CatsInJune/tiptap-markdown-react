@@ -10,7 +10,8 @@ import {
   type ReactNode,
 } from 'react';
 import { CheckIcon, ExternalLinkIcon, TrashIcon } from '../icons';
-import { defaultLinkPopoverLabels, type LinkPopoverLabels } from '../labels';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
+import type { LinkPopoverLabels } from '../labels';
 import {
   applyLink,
   canSetLink,
@@ -30,7 +31,8 @@ export interface LinkPopoverProps {
    * 传函数组件时得先 `forwardRef`（本库的 `<EditorToolbar>` 就是这么接的）。
    */
   trigger: ReactNode;
-  labels?: Partial<LinkPopoverLabels>;
+  /** 内置语言，默认英文。 */
+  locale?: LocaleCode;
   /** 挂到浮层根节点上的 class / 内联样式（定位与层级归宿主，Radix 只管浮层方向）。 */
   className?: string;
   style?: CSSProperties;
@@ -50,7 +52,7 @@ export interface LinkPopoverProps {
 export function LinkPopover({
   editor,
   trigger,
-  labels,
+  locale = 'en',
   className,
   style,
 }: LinkPopoverProps) {
@@ -68,7 +70,7 @@ export function LinkPopover({
         >
           <LinkPanel
             editor={editor}
-            labels={labels}
+            locale={locale}
             className={className}
             style={style}
             onClose={() => setOpen(false)}
@@ -81,18 +83,18 @@ export function LinkPopover({
 
 function LinkPanel({
   editor,
-  labels,
+  locale,
   className,
   style,
   onClose,
 }: {
   editor: Editor;
-  labels?: Partial<LinkPopoverLabels>;
+  locale: LocaleCode;
   className?: string;
   style?: CSSProperties;
   onClose: () => void;
 }) {
-  const t: LinkPopoverLabels = { ...defaultLinkPopoverLabels, ...labels };
+  const t: LinkPopoverLabels = getLocaleBundle(locale).link;
   // Radix 关闭时会卸载内容，所以这里的初值就是「每次打开读一次当前地址」——光标在链接里
   // 打开时预填它的 href，便于改地址而不是先删再加。
   const [url, setUrl] = useState(() => readLinkHref(editor));

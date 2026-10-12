@@ -1,8 +1,5 @@
 import type { Editor } from '@tiptap/core';
-import {
-  defaultSlashMenuLabels,
-  type SlashMenuLabels,
-} from '../labels';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
 import type { SlashMenuItem } from './types';
 
 /**
@@ -13,8 +10,9 @@ import type { SlashMenuItem } from './types';
  * 三组（文本 / 列表 / 高级）在弹窗里分节展示。
  */
 export function createDefaultSlashMenuItems(
-  labels: SlashMenuLabels = defaultSlashMenuLabels,
+  locale: LocaleCode = 'en',
 ): SlashMenuItem[] {
+  const labels = getLocaleBundle(locale).slashMenu;
   return [
     {
       id: 'normal-text',
@@ -85,6 +83,17 @@ export function createDefaultSlashMenuItems(
       order: 7,
       apply: (editor, range) => {
         editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+      },
+    },
+    {
+      id: 'details',
+      title: labels.details,
+      group: labels.groupAdvanced,
+      icon: '▸',
+      aliases: ['zhedie', '折叠', 'toggle', 'details', 'collapse'],
+      order: 8,
+      apply: (editor, range) => {
+        editor.chain().focus().deleteRange(range).setDetails().run();
       },
     },
     {

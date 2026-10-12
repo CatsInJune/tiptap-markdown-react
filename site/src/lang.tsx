@@ -7,11 +7,11 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { LocaleCode } from 'tiptap-markdown-react';
 import { EN_STRINGS, ZH_STRINGS } from './strings';
-import type { LocaleCode } from './i18n';
 
 /**
- * 站点自身的语言状态（区别于库组件的 labels 注入，见 i18n.ts）：
+ * 站点自身的语言状态。编辑器组件用同一个 `locale`。
  * 默认中文，localStorage 持久化，<html lang> 随之更新。
  *
  * 翻译走「字典 + 优雅回退」：英文原文即 key（数据文件零改动），

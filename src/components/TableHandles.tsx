@@ -96,13 +96,19 @@ interface HandleMenu {
   y: number;
 }
 
-/** 手柄相对单元格边缘的间距（列手柄在表格上方，行手柄在表格左侧）。 */
-const COL_HANDLE_GAP = 22;
-const ROW_HANDLE_GAP = 26;
+/**
+ * 行手柄拉满行高，列手柄拉满列宽。GAP 是胶囊外侧到表格边缘的距离，
+ * 减去厚度后仍留一段空隙，靠伪元素补桥才能把鼠标移过去。
+ */
+const COL_HANDLE_GAP = 18;
+const COL_HANDLE_HEIGHT = 12;
+const ROW_HANDLE_GAP = 20;
+const ROW_HANDLE_WIDTH = 12;
+
 /** 末尾追加行列的 `+` 手柄贴在表格右缘 / 下缘外侧的间距。 */
 const EXTEND_GAP = 6;
-/** `+` 手柄的粗细（长度由表格尺寸决定）。 */
-const EXTEND_THICKNESS = 16;
+/** `+` 手柄的粗细，与行 / 列手柄一致。长度仍跟着整表走。 */
+const EXTEND_THICKNESS = 12;
 /**
  * 指针离开单元格后手柄再活一会儿（毫秒）：走向手柄的路上有一段「既非单元格也非手柄」的空隙，
  * 立刻收起就会点不到。见下面悬停追踪那段注释。
@@ -429,8 +435,8 @@ export function TableHandles({ editor, labels }: TableHandlesProps) {
             className={`${styles.handle} ${styles.handleRow}`}
             style={{
               left: hover.tableLeft - ROW_HANDLE_GAP,
-              // 长度跟着行高走（原来固定 28px 居中，行高时就显得太短）
               top: hover.rowTop,
+              width: ROW_HANDLE_WIDTH,
               height: hover.rowHeight,
             }}
             title={labels.tableRowMenu}
@@ -446,10 +452,10 @@ export function TableHandles({ editor, labels }: TableHandlesProps) {
             data-table-handle="col"
             className={`${styles.handle} ${styles.handleCol}`}
             style={{
-              // 长度跟着列宽走，两端与单元格对齐
               left: hover.colLeft,
               top: hover.tableTop - COL_HANDLE_GAP,
               width: hover.colWidth,
+              height: COL_HANDLE_HEIGHT,
             }}
             title={labels.tableColumnMenu}
             aria-label={labels.tableColumnMenu}

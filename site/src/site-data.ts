@@ -99,6 +99,7 @@ export interface ApiRow {
 export const EDITOR_API: ApiRow[] = [
   { name: 'initialMarkdown', desc: 'Initial markdown content', type: 'string', defaultVal: "''" },
   { name: 'editable', desc: 'Read-only mode: same extensions/NodeViews/styles as editing; interactive controls collapse. Comments ignored when false', type: 'boolean', defaultVal: 'true' },
+  { name: 'locale', desc: 'Built-in UI language. en or zh. Toolbar, TOC and other sibling components take the same prop', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'sources', desc: 'Initial citation sources for [^n] (url/title on citationRef). Init-only', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'renderCitation', desc: 'NodeView slot to wrap citation pills (Popover etc.). Init-only', type: 'RenderCitation', defaultVal: '—' },
   { name: 'placeholder', desc: 'Empty-state placeholder', type: 'string', defaultVal: '—' },
@@ -109,19 +110,19 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'imageUpload', desc: 'Official ImageUploadNode-style upload: the toolbar image button inserts a drop/click placeholder block; progress shows in place and the block is replaced by the image when done. upload is required. Init-only', type: 'ImageUploadConfig', defaultVal: '—' },
   { name: 'imageResize', desc: 'Resizable images (official extension-image resize): hover the image, drag a side handle (80px min; max follows the content width by default). Size lands in width/height attrs and round-trips as <img …> in markdown. false disables; object passes official config. Init-only', type: 'boolean | ImageResizeOptions', defaultVal: 'true' },
   { name: 'extraExtensions', desc: 'Additional Tiptap extensions', type: 'AnyExtension[]', defaultVal: '—' },
-  { name: 'codeBlockLabels', desc: 'Code block NodeView labels', type: 'Partial<CodeBlockLabels>', defaultVal: '—' },
   { name: 'findReplace', desc: 'Find & replace: registers @tiptap/extension-find-and-replace and renders the floating bar', type: 'boolean', defaultVal: 'true' },
   { name: 'findBar', desc: 'Render the bar inside the editor; false hands placement to the host (render <FindReplaceBar> yourself)', type: 'boolean', defaultVal: '= findReplace' },
   { name: 'findBarContainer', desc: 'Mount the bar into a container you own (popup-container pattern); null falls back to the in-editor bar', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: '—' },
   { name: 'findBarOffset', desc: 'Where the library-rendered bar sits in its context (editor, or your container)', type: '{ top?; right?; bottom?; left? }', defaultVal: '{ top: 4, right: 4 }' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())', type: 'boolean', defaultVal: 'true' },
-  { name: 'findLabels', desc: 'Find & replace bar labels', type: 'Partial<FindLabels>', defaultVal: '—' },
   { name: 'onFindOpenChange', desc: 'Fired when the bar actually shows or hides — drives an external entry such as the toolbar magnifier', type: '(open: boolean) => void', defaultVal: '—' },
   { name: 'slashMenu', desc: 'Type / (line start or after whitespace) to open the block-insert menu. Table cells included, code blocks excluded; inert read-only', type: 'boolean', defaultVal: 'true' },
-  { name: 'slashMenuLabels', desc: 'Slash menu labels (groups + item titles)', type: 'Partial<SlashMenuLabels>', defaultVal: '—' },
+  { name: 'typography', desc: 'Official Typography (MIT, not Pro): smart quotes, em dashes, ellipses and its other input rules. Skipped inside code. --- still inserts a divider. Init-only', type: 'boolean', defaultVal: 'true' },
+  { name: 'emojiSuggestion', desc: 'Type : (line start or after whitespace) to open the emoji list. Nodes round-trip as :shortcode:. false hides the list; a full shortcode still inserts. Inert read-only. Init-only', type: 'boolean', defaultVal: 'true' },
+  { name: 'blockDrag', desc: 'Hover a block for a left handle: drag to reorder, click for turn-into / copy / duplicate / delete. A + inserts / to open the slash menu. Hidden when read-only or under 768px; reserves a left gutter', type: 'boolean', defaultVal: 'true' },
+  { name: 'characterCount', desc: 'Live full-document character and word count via MIT CharacterCount (@tiptap/extensions, not a Pro extension). The status UI is ours. Each CJK ideograph counts as one word. Read editor.storage.characterCount too. Init-only', type: 'boolean', defaultVal: 'false' },
   { name: 'shortcutPanel', desc: 'Keyboard FAB bottom-right opens the shortcuts drawer (Format / Shortcut / Markdown). Hidden read-only', type: 'boolean', defaultVal: 'true' },
   { name: 'shortcutFabContainer', desc: 'Mount the keyboard FAB into a container you own (popup-container pattern); positioning becomes yours — e.g. stack it above a back-to-top button. null falls back to the in-editor FAB', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'in-editor FAB' },
-  { name: 'shortcutLabels', desc: 'Shortcuts drawer labels', type: 'Partial<ShortcutLabels>', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
 ];
 
@@ -143,7 +144,7 @@ export const TOOLBAR_API: ApiRow[] = [
   { name: 'importAccept', desc: 'Extra accept for the default Document menu item when importMenuItems is omitted', type: 'string', defaultVal: '—' },
   { name: 'importMenuItems', desc: 'Import dropdown options (label + accept). Hosts split Markdown / Word / PDF here', type: 'ImportMenuItem[]', defaultVal: '—' },
   { name: 'showImport', desc: 'Show the Import dropdown', type: 'boolean', defaultVal: 'true' },
-  { name: 'labels', desc: 'Toolbar label overrides', type: 'Partial<ToolbarLabels>', defaultVal: '—' },
+  { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'onSearch', desc: 'Search entry (magnifier) left of the More menu; wire it to handle.toggleFind() — omit and no button renders', type: '() => void', defaultVal: '—' },
   { name: 'searchActive', desc: 'Whether the bar is open; drives aria-pressed on the search entry', type: 'boolean', defaultVal: 'false' },
   { name: 'extraToolbarItems', desc: 'Custom items in More menu', type: 'ExtraToolbarItem[]', defaultVal: '—' },
@@ -153,7 +154,7 @@ export const TOOLBAR_API: ApiRow[] = [
 export const LINK_API: ApiRow[] = [
   { name: 'editor', desc: 'Tiptap Editor instance (required)', type: 'Editor' },
   { name: 'trigger', desc: 'Your own trigger element — Radix asChild takes over its click / ref / aria', type: 'ReactNode' },
-  { name: 'labels', desc: 'Popover text: field placeholder, apply / open / remove, invalid hint', type: 'Partial<LinkPopoverLabels>', defaultVal: 'English defaults' },
+  { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'className / style', desc: 'Extra class / inline style on the panel (placement stays with Radix)', type: 'string / CSSProperties', defaultVal: '—' },
   { name: 'applyLink(editor, raw)', desc: 'Normalise and apply an address over the whole link / selection. false = the editor rejected it', type: '(editor, raw: string) => boolean' },
   { name: 'removeLink(editor)', desc: 'Strip the link from the whole range without letting autolink add it back', type: '(editor) => boolean' },
@@ -167,13 +168,14 @@ export const PREVIEW_API: ApiRow[] = [
   { name: 'sources', desc: 'Optional: attach url/title onto [^n] nodes by index', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'renderCitation', desc: 'NodeView slot: wrap the pill (e.g. host Popover). Data lookup is host-owned', type: 'RenderCitation', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
+  { name: 'locale', desc: 'Built-in UI language for the read-only code block and charts', type: "'en' | 'zh'", defaultVal: 'en' },
 ];
 
 export const TOC_API: ApiRow[] = [
   { name: 'items', desc: 'TOC entries from extractToc / onTocChange', type: 'TocItem[]' },
   { name: 'activeId', desc: 'Currently highlighted anchor id', type: 'string', defaultVal: '—' },
   { name: 'onItemClick', desc: 'Click handler (locked items ignored)', type: '(item: TocItem) => void', defaultVal: '—' },
-  { name: 'labels', desc: 'Panel label overrides', type: 'Partial<TocLabels>', defaultVal: '—' },
+  { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
 ];
 
 export const REPORT_CONTENT_API: ApiRow[] = [
@@ -214,6 +216,7 @@ export const CITATION_INTERACTIVE_API: ApiRow[] = [
 
 export const THEME_VARS: ApiRow[] = [
   { name: '--tmr-accent', desc: 'Accent color (selection, links, TOC active)', type: 'color', defaultVal: '#ff6719' },
+  { name: '--tmr-selection', desc: 'Blurred text-selection highlight. Defaults to a 28% mix of the accent', type: 'color', defaultVal: 'accent 28%' },
   { name: '--tmr-text', desc: 'Body text color', type: 'color', defaultVal: '#1b1b1b' },
   { name: '--tmr-muted', desc: 'Secondary text', type: 'color', defaultVal: '#6b6b6b' },
   { name: '--tmr-border', desc: 'Borders and dividers', type: 'color', defaultVal: '#eaeaea' },
@@ -278,7 +281,14 @@ This panel is **tiptap-markdown-react** running live. Everything is stored and e
 
 - Bullet, ordered, and task lists
 - Inline \`code\`, [links](https://tiptap.dev), highlights and colors
-- Tables, blockquotes, dividers
+- Tables, blockquotes, toggle blocks, dividers
+
+<details open>
+<summary>Toggle</summary>
+
+This section folds. Markdown keeps it as HTML details.
+
+</details>
 
 > Hover a cell: the row handle (left) and column handle (above) open the add / remove menus.
 
@@ -444,7 +454,7 @@ export const FIND_API: ApiRow[] = [
   { name: 'findBar', desc: 'Let the editor render the bar; false = host places <FindReplaceBar> itself', type: 'boolean', defaultVal: '= findReplace' },
   { name: 'findBarContainer', desc: 'Where the library-rendered bar mounts (open state + shortcut stay in the library)', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'in-editor bar' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus (only when the editor owns a bar)', type: 'boolean', defaultVal: 'true' },
-  { name: 'findLabels', desc: 'Bar labels (FindLabels)', type: 'Partial<FindLabels>', defaultVal: '—' },
+  { name: 'locale', desc: 'Built-in UI language for the bar', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'onFindOpenChange', desc: 'Bar open/close notification (fires only when the bar actually shows or hides, plus once on unmount)', type: '(open: boolean) => void', defaultVal: '—' },
   { name: 'Esc / × / toggleFind', desc: 'Ways out of the bar. Esc works from anywhere that belongs to the editor and is consumed; clicking into the document or another input deliberately does not close it', type: 'keyboard / handle', defaultVal: '—' },
   { name: 'EditorToolbar onSearch / searchActive', desc: 'Toolbar magnifier entry: onSearch wires to handle.openFind(), searchActive drives its aria-pressed', type: '() => void / boolean', defaultVal: '—' },
@@ -455,10 +465,6 @@ export const FIND_API: ApiRow[] = [
 ];
 
 export const I18N_API: ApiRow[] = [
-  { name: 'labels', desc: 'EditorToolbar text (Partial<ToolbarLabels>)', type: 'Partial<ToolbarLabels>', defaultVal: 'English defaults' },
-  { name: 'findLabels', desc: 'Find & replace bar text', type: 'Partial<FindLabels>', defaultVal: 'English defaults' },
-  { name: 'codeBlockLabels', desc: 'Code-block NodeView text (read when the editor is constructed)', type: 'Partial<CodeBlockLabels>', defaultVal: 'English defaults' },
-  { name: 'labels', desc: 'TocPanel text', type: 'Partial<TocLabels>', defaultVal: 'English defaults' },
-  { name: 'labels', desc: 'ColorPalette swatch names', type: 'Partial<ColorPaletteLabels>', defaultVal: 'English defaults' },
-  { name: 'defaultToolbarLabels …', desc: 'Every default bundle is exported — useful as a base or to diff against', type: 'Record<keyof XLabels, string>', defaultVal: '—' },
+  { name: 'locale', desc: 'Built-in language on each visible component: editor, toolbar, TOC, palette, find bar, link popover, preview', type: "'en' | 'zh'", defaultVal: 'en' },
+  { name: 'LocaleCode', desc: 'Exported union of the built-in languages', type: "'en' | 'zh'", defaultVal: '—' },
 ];

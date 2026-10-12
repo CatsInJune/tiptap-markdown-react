@@ -1,4 +1,4 @@
-import type { ShortcutLabels } from '../labels';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
 
 /**
  * 快捷键面板数据模型。keys 里的 'Mod' / 'Alt' 按平台渲染
@@ -32,7 +32,8 @@ export interface ShortcutGroup {
  * addKeyboardShortcuts 默认值，markdown 触发来自对应 input rule
  * （上标/下标/链接在本库无默认键位与 input rule，故不列）。
  */
-export function buildShortcutGroups(labels: ShortcutLabels): ShortcutGroup[] {
+export function buildShortcutGroups(locale: LocaleCode = 'en'): ShortcutGroup[] {
+  const labels = getLocaleBundle(locale).shortcut;
   return [
     {
       id: 'format',
@@ -44,6 +45,9 @@ export function buildShortcutGroups(labels: ShortcutLabels): ShortcutGroup[] {
         { id: 'underline', label: labels.underline, keys: ['Mod', 'u'] },
         { id: 'inline-code', label: labels.inlineCode, keys: ['Mod', 'e'], markdown: { marker: '`x`' } },
         { id: 'highlight', label: labels.highlight, keys: ['Mod', 'Shift', 'h'], markdown: { marker: '==x==' } },
+        { id: 'smart-quote', label: labels.smartQuote, markdown: { marker: '"' } },
+        { id: 'ellipsis', label: labels.ellipsis, markdown: { marker: '...' } },
+        { id: 'em-dash', label: labels.emDash, markdown: { marker: '--' } },
         { id: 'align-left', label: labels.alignLeft, keys: ['Mod', 'Shift', 'l'] },
         { id: 'align-center', label: labels.alignCenter, keys: ['Mod', 'Shift', 'e'] },
         { id: 'align-right', label: labels.alignRight, keys: ['Mod', 'Shift', 'r'] },
@@ -68,6 +72,7 @@ export function buildShortcutGroups(labels: ShortcutLabels): ShortcutGroup[] {
         { id: 'task-list', label: labels.taskList, markdown: { marker: '[]', terminator: 'Space' } },
         { id: 'code-block', label: labels.codeBlock, markdown: { marker: '```', terminator: 'Space' } },
         { id: 'divider', label: labels.divider, markdown: { marker: '---', terminator: 'Space' } },
+        { id: 'emoji', label: labels.emoji, markdown: { marker: ':smile:' } },
       ],
     },
     {

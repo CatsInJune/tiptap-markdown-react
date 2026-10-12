@@ -67,7 +67,7 @@ import { useEffect } from 'react';
 const COLOR_PALETTE_API = [
   { name: 'value', desc: 'Currently applied color (shows checkmark)', type: 'string', defaultVal: '—' },
   { name: 'onPick', desc: 'Called when a swatch is clicked; null clears', type: '(color: string | null) => void' },
-  { name: 'labels', desc: 'Label overrides', type: 'Partial<ColorPaletteLabels>', defaultVal: '—' },
+  { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
 ];
 
 const COMMENT_ANCHOR_API = [
@@ -228,6 +228,9 @@ function ComponentsPage() {
           'extraExtensions hook for custom Tiptap nodes',
           'Image resize, alignment & captions — round-trip as HTML in Markdown',
           'Paragraph alignment, indent & line height — round-trip as <p style> in Markdown',
+          'Live character and word count for the whole document',
+          'Smart punctuation via official Typography (MIT): quotes, -- and ... become curly quotes, an em dash and an ellipsis as you type. Code stays literal; --- is still a divider',
+          'Emoji via the official extension (MIT): type : for a suggestion list. Markdown stores :shortcode:. Skin tones are not supported',
         ]}
         demo={
           <DemoBlock title="Basic editor" description="Toolbar optional — wire EditorToolbar separately.">
@@ -242,7 +245,7 @@ function ComponentsPage() {
         id="find"
         title="Find & replace"
         description="Cmd/Ctrl+F while the editor has focus opens a floating bar: the match counter sits inside the search field, navigation wraps around, match-case / whole-word toggles, replace and replace-all. Regex (RE2) stays available through the extension's command, without a button. Matching, highlighting and replacement come from the official @tiptap/extension-find-and-replace — the bar is the library's own UI. Search scope is textblocks: paragraphs, headings, list items, table cells and code blocks; text inside node attributes (equations, chart data, image alt, citation titles) is not searched. Matches may span marks inside one block but never cross blocks. Esc closes the bar, clears highlights and returns focus."
-        importName="MarkdownWysiwygEditor (findReplace), FindReplaceBar, FindLabels"
+        importName="MarkdownWysiwygEditor (findReplace), FindReplaceBar"
         features={[
           'Cmd/Ctrl+F opens; Esc closes and restores focus',
           'Esc also closes with focus in the document, and is consumed (a host drawer wrapping the bar stays open)',
@@ -252,7 +255,7 @@ function ComponentsPage() {
           'Enter that commits an IME candidate never jumps or replaces',
           'Regex (RE2, no lookarounds) stays available via setUseRegex, no button',
           'Replace and replace-all — replace-all is a single undo step',
-          'Find-only on read-only editors; labels via findLabels',
+          'Find-only on read-only editors; bar text follows locale',
           'Toolbar magnifier entry: onSearch wires to handle.openFind(), searchActive drives its aria-pressed',
           'Stable data-find-* selectors for host CSS (bar internals are hashed CSS-module classes)',
           'Headless: drive it with editor.commands.setSearchTerm / replaceAll',
@@ -276,17 +279,17 @@ function ComponentsPage() {
       <ComponentSection
         id="i18n"
         title="Internationalization"
-        description="Each component takes a Partial<XLabels> merged over built-in English defaults — no global locale, no provider. A host ships one object per language and passes it down; switching is picking a different object. Toolbar / TOC / palette / find bar re-render live because they merge at render time; code-block labels are written into the extension options when the editor is constructed, so they only change after a remount — feed the current markdown back via getMarkdown() (initialMarkdown is init-only) so nothing is lost."
-        importName="defaultToolbarLabels, ToolbarLabels, FindLabels, CodeBlockLabels, TocLabels, ColorPaletteLabels"
+        description={'UI copy ships inside the components. Pass locale="zh" or locale="en" (the default) to the editor, toolbar, TOC, palette, find bar, link popover and preview. There is no labels prop and no provider. Switching locale updates the toolbar, find bar, shortcuts, code blocks, charts and upload placeholders without remounting the editor. Comment popover content is still your children.'}
+        importName="LocaleCode"
         features={[
-          'Per-component Partial<XLabels> merged with English defaults',
-          'Unknown keys fall back to defaults — override only what you need',
-          'Toolbar / TOC / palette / find bar switch live on re-render',
-          'codeBlockLabels follow the editor instance: remount to switch language',
-          'No locale bundle shipped: the host owns the text',
+          'Built-in en and zh bundles',
+          'locale on each visible component, default en',
+          'Toolbar, TOC, find bar, code blocks and charts switch live',
+          'No host-supplied label objects',
+          'Comment popover body stays host-owned',
         ]}
         demo={
-          <DemoBlock title="Chinese ⇄ English" description="Switching remounts the editor; the markdown is read back first so unsaved edits survive.">
+          <DemoBlock title="Chinese ⇄ English" description="The header 中 / EN switch drives this editor, the toolbar and the TOC. Unsaved edits stay.">
             <I18nDemo />
           </DemoBlock>
         }
@@ -300,11 +303,12 @@ function ComponentsPage() {
         importName="EditorToolbar"
         features={[
           'Headings, lists, tables, links, colors, alignment',
+          'Toggle block beside blockquote (official Details; markdown is HTML details)',
           'Image button: upload placeholder block (drop / click, progress in place)',
           'More menu: code block, equations, table, import markdown',
           'Radix Popover / DropdownMenu — no native selects',
           'extraToolbarItems for custom More-menu entries',
-          'Partial ToolbarLabels for i18n',
+          'locale switches the built-in toolbar copy',
         ]}
         demo={
           <DemoBlock title="Toolbar with image upload">
@@ -318,7 +322,7 @@ function ComponentsPage() {
         id="link-popover"
         title="LinkPopover"
         description="The toolbar's link button opens a small popover: type an address, apply it, open it in a new window, or remove the link. Opening it with the caret inside a link prefills that link's href — editing a URL no longer means deleting and re-adding it. The logic follows the official link-popover component (MIT); the chrome is this library's own, themed with --tmr-*. It replaces window.prompt, which could not be edited, could tell you nothing about a rejected address, and is unavailable in Electron and some WebViews."
-        importName="LinkPopover, LinkPopoverLabels, applyLink, removeLink, sanitizeLinkUrl"
+        importName="LinkPopover, applyLink, removeLink, sanitizeLinkUrl"
         features={[
           'Prefills the current href when the caret is inside a link',
           'Changes apply to the whole link (extendMarkRange), not just the caret segment',
@@ -359,7 +363,7 @@ function ComponentsPage() {
         api={MATH_API}
         extra={
           <>
-            <h4>ToolbarLabels</h4>
+            <h4>English equation strings</h4>
             <ApiTable rows={MATH_LABELS_API} />
             <Snippet
               code={`editor.commands.insertInlineMath({ latex: 'E = mc^2' })
@@ -653,10 +657,10 @@ function DemosPage() {
           {tx('粘贴检测与文件拖放默认开启——用 ', 'On by default — opt out with ')}
           <code>markdownPaste={'{false}'}</code> /{' '}
           <code>markdownFileDrop={'{false}'}</code>
-          {tx(' 关闭。检测只看纯文本内容，所以从任何应用（Xcode、VS Code、备忘录）复制的 markdown 源码都会转换，而真正的富文本（Word / 网页）照常粘贴。导入下拉的文案经 ',
-            '. Detection looks only at the plain-text content, so copying markdown source from any app (Xcode, VS Code, notes) converts, while real rich text (Word / web pages) pastes normally. The Import dropdown is localized via ')}
-          <code>labels.importDocument</code> / <code>labels.importDocumentHint</code>
-          {tx(' 注入。', '.')}
+          {tx(' 关闭。检测只看纯文本内容，所以从任何应用（Xcode、VS Code、备忘录）复制的 markdown 源码都会转换，而真正的富文本（Word / 网页）照常粘贴。导入按钮的文案随 ',
+            '. Detection looks only at the plain-text content, so copying markdown source from any app (Xcode, VS Code, notes) converts, while real rich text (Word / web pages) pastes normally. The Import button follows ')}
+          <code>locale</code>
+          {tx('。', '.')}
         </p>
       </div>
 
@@ -700,9 +704,8 @@ function DemosPage() {
       <div className="propsNote">
         <h4>{t('Props 说明')}</h4>
         <p>
-          {tx('经 ', 'Customize labels via ')}<code>codeBlockLabels</code>
-          {tx(' 在 ', ' on ')}<code>MarkdownWysiwygEditor</code>
-          {tx(' 上定制。', '.')}
+          {tx('代码块文案随 ', 'Code block text follows ')}<code>locale</code>
+          {tx('，切换时不用重建编辑器。', ' on MarkdownWysiwygEditor, including after a switch.')}
         </p>
       </div>
 
@@ -716,11 +719,9 @@ function DemosPage() {
       <div className="propsNote">
         <h4>{t('Props 说明')}</h4>
         <p>
-          {tx('无需额外 props。文案经 ', 'No extra editor props. Localize via ')}
-          <code>labels.inlineMath</code> /{' '}
-          <code>labels.blockMath</code> / <code>labels.mathNewInline</code> /{' '}
-          <code>labels.mathPlaceholder</code>
-          {tx(' 注入。命令：', '. Commands: ')}
+          {tx('无需额外 props。按钮文案随 ', 'No extra editor props. Button text follows ')}
+          <code>locale</code>
+          {tx('。命令：', '. Commands: ')}
           <code>insertInlineMath</code> / <code>insertBlockMath</code>.
         </p>
       </div>
@@ -911,9 +912,9 @@ function ApiPage() {
           {tx(' 文件，主栏 ', ' files via drag-drop or file paste, and ')}
           <code>EditorToolbar</code>
           {tx(' 自带 ', ' ships an ')}<em>{tx('导入', 'Import')}</em>
-          {tx('下拉（', ' dropdown on the main bar (')}
-          <code>labels.importDocument</code> / <code>labels.importDocumentHint</code>
-          {tx('），本地读取 ', '), which reads ')}<code>.md</code>
+          {tx('下拉，文案随 ', ' dropdown whose text follows ')}
+          <code>locale</code>
+          {tx('，本地读取 ', ' and reads ')}<code>.md</code>
           {tx(' 并把其他文件交给 ', ' and hands any other file to ')}
           <code>onImportDocument</code>
           {tx('。传 ', '. Pass ')}
@@ -929,10 +930,8 @@ function ApiPage() {
         <ApiTable rows={TOOLBAR_API} />
         <p className="componentDesc">
           {tx('更多菜单含 ', 'More menu includes ')}<em>{tx('行内公式', 'Inline equation')}</em> / <em>{tx('块级公式', 'Block equation')}</em>
-          {tx('。点击已渲染的公式可原位编辑 LaTeX。文案：', '. Click a rendered formula to edit LaTeX in place. Labels: ')}
-          <code>inlineMath</code>, <code>blockMath</code>,{' '}
-          <code>mathPlaceholder</code>, <code>mathDone</code>,{' '}
-          <code>mathNewInline</code>, <code>mathNewBlock</code>.
+          {tx('。点击已渲染的公式可原位编辑 LaTeX。按钮文案随 ', '. Click a rendered formula to edit LaTeX in place. Button text follows ')}
+          <code>locale</code>.
         </p>
         <ApiTable rows={MATH_LABELS_API} />
 

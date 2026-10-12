@@ -141,6 +141,7 @@ describe('默认命令项：插入可序列化 + 单步撤销', () => {
     'ordered-list': '1. x',
     'task-list': '- [ ] x',
     blockquote: '> x',
+    details: '<details',
     'code-block': '```',
     divider: /---/,
     table: '|',

@@ -2,7 +2,6 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { defaultShortcutLabels, type ShortcutLabels } from '../labels';
 import { buildShortcutGroups } from './types';
 import { ShortcutPanel } from './ShortcutPanel';
 
@@ -12,7 +11,7 @@ beforeAll(() => {
 });
 
 describe('快捷键注册表', () => {
-  const groups = buildShortcutGroups(defaultShortcutLabels);
+  const groups = buildShortcutGroups();
 
   it('三个分组且每条目有键位或 markdown 之一', () => {
     expect(groups.map((g) => g.id)).toEqual(['format', 'insert', 'edit']);
@@ -40,6 +39,10 @@ describe('快捷键注册表', () => {
     expect(byId['task-list'].keys).toBeUndefined();
     expect(byId['task-list'].markdown).toEqual({ marker: '[]', terminator: 'Space' });
     expect(byId['find-replace'].keys).toEqual(['Mod', 'f']);
+    expect(byId['smart-quote'].markdown).toEqual({ marker: '"' });
+    expect(byId['ellipsis'].markdown).toEqual({ marker: '...' });
+    expect(byId['em-dash'].markdown).toEqual({ marker: '--' });
+    expect(byId['emoji'].markdown).toEqual({ marker: ':smile:' });
     // 本库无 input rule / 无默认键位的项不得编造
     expect(byId['underline'].markdown).toBeUndefined();
   });
@@ -90,20 +93,12 @@ describe('ShortcutPanel 渲染', () => {
     expect(keycaps).toContain('Space');
   });
 
-  it('中文标签覆盖生效', () => {
+  it('locale=zh 使用内置中文', () => {
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
-    const labels: Partial<ShortcutLabels> = {
-      panelTitle: '快捷键',
-      colFormat: '格式',
-      colShortcut: '快捷键',
-      colMarkdown: 'Markdown',
-      formatGroup: '格式',
-      bold: '加粗',
-    };
     act(() => {
-      root.render(<ShortcutPanel open onClose={() => {}} labels={labels} />);
+      root.render(<ShortcutPanel open onClose={() => {}} locale="zh" />);
     });
     expect(host.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('快捷键');
     const headers = [...host.querySelectorAll('[class*="head"] > *')].map((e) => e.textContent);

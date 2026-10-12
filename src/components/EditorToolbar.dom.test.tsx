@@ -83,8 +83,8 @@ describe('EditorToolbar 的搜索入口', () => {
     expect(searchButton()?.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('文案可注入', async () => {
-    await mount({ onSearch: () => {}, labels: { search: '查找替换' } });
+  it('locale=zh 使用内置中文', async () => {
+    await mount({ onSearch: () => {}, locale: 'zh' });
     expect(searchButton('查找替换')).not.toBeNull();
   });
 });

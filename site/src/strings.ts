@@ -27,7 +27,6 @@ export const ZH_STRINGS: Record<string, string> = {
   'Put the caret inside a link and click the link icon — the address is prefilled and the whole link is retargeted.': '把光标放进一条链接再点链接图标——地址会被预填，改的是整条链接。',
   'Tiptap Editor instance (required)': 'Tiptap Editor 实例（必传）',
   'Your own trigger element — Radix asChild takes over its click / ref / aria': '宿主自己的触发器元素——Radix 的 asChild 会接管它的点击 / ref / aria',
-  'Popover text: field placeholder, apply / open / remove, invalid hint': '浮层文案：输入框占位、应用 / 打开 / 移除、地址非法提示',
   'Extra class / inline style on the panel (placement stays with Radix)': '面板上的附加 class / 内联样式（落点仍由 Radix 决定）',
   'Normalise and apply an address over the whole link / selection. false = the editor rejected it': '规范化地址并套到整条链接 / 选区上。返回 false = 编辑器拒了',
   'Strip the link from the whole range without letting autolink add it back': '整条摘掉链接，并且挡住自动链接加回来',
@@ -104,6 +103,11 @@ export const ZH_STRINGS: Record<string, string> = {
   'Ref API: getMarkdown(), getHTML(), getJSON(), getEditor()': 'Ref API：getMarkdown()、getHTML()、getJSON()、getEditor()',
   'onTocChange for live table-of-contents sync': 'onTocChange 实时同步目录',
   'extraExtensions hook for custom Tiptap nodes': 'extraExtensions 钩子挂自定义 Tiptap 节点',
+  'Live character and word count for the whole document': '全文实时字符数 / 词数',
+  'Smart punctuation via official Typography (MIT): quotes, -- and ... become curly quotes, an em dash and an ellipsis as you type. Code stays literal; --- is still a divider':
+    '官方 Typography（MIT）智能标点：键入引号、-- 和 ... 会收成弯引号、破折号和省略号。代码保持原样；--- 仍是分隔线',
+  'Emoji via the official extension (MIT): type : for a suggestion list. Markdown stores :shortcode:. Skin tones are not supported':
+    '官方扩展（MIT）表情：键入 : 打开建议列表。Markdown 存成 :shortcode:。不支持肤色修饰符',
   'Basic editor': '基础编辑器',
   'Toolbar optional — wire EditorToolbar separately.': '工具栏可选——单独接 EditorToolbar 即可。',
 
@@ -118,7 +122,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'Stable data-find-* selectors for host CSS (bar internals are hashed CSS-module classes)': '给宿主 CSS 的稳定 data-find-* 选择器（浮动条内部是哈希过的 CSS Modules 类名）',
   'Regex (RE2, no lookarounds) stays available via setUseRegex, no button': '正则（RE2，不支持环视）经 setUseRegex 仍可用，无按钮',
   'Replace and replace-all — replace-all is a single undo step': '单处替换与全部替换——全部替换是单步撤销',
-  'Find-only on read-only editors; labels via findLabels': '只读编辑器仅查找；文案经 findLabels 注入',
+  'Find-only on read-only editors; bar text follows locale': '只读编辑器仅查找；条文案随 locale',
   'Headless: drive it with editor.commands.setSearchTerm / replaceAll': '无头用法：用 editor.commands.setSearchTerm / replaceAll 驱动',
   'Floating find bar': '浮动查找条',
   'Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.':
@@ -130,24 +134,28 @@ export const ZH_STRINGS: Record<string, string> = {
   'findBar={false}: the editor keeps the extension but renders no bar — placement, stacking and looks belong to the host.':
     'findBar={false}：编辑器保留扩展但不出条子——摆位、层叠与外观全归宿主。',
 
-  'Each component takes a Partial<XLabels> merged over built-in English defaults — no global locale, no provider. A host ships one object per language and passes it down; switching is picking a different object. Toolbar / TOC / palette / find bar re-render live because they merge at render time; code-block labels are written into the extension options when the editor is constructed, so they only change after a remount — feed the current markdown back via getMarkdown() (initialMarkdown is init-only) so nothing is lost.':
-    '每个组件收一份 Partial<XLabels>，与内置英文默认合并——没有全局 locale，也没有 Provider。宿主为每种语言准备一个对象传下去；切换就是换一个对象。工具栏 / 目录 / 调色板 / 查找条在渲染期合并，切换即生效；代码块文案在编辑器构造时写进扩展选项，须重建编辑器才生效——先把当前内容经 getMarkdown() 取回（initialMarkdown 是 init-only），不丢任何编辑。',
-  'Per-component Partial<XLabels> merged with English defaults': '按组件注入 Partial<XLabels>，与英文默认合并',
-  'Unknown keys fall back to defaults — override only what you need': '未知键回退默认——只覆盖需要的文案',
-  'Toolbar / TOC / palette / find bar switch live on re-render': '工具栏 / 目录 / 调色板 / 查找条重渲染即切换',
-  'codeBlockLabels follow the editor instance: remount to switch language': 'codeBlockLabels 跟随编辑器实例：切换语言需重建',
-  'No locale bundle shipped: the host owns the text': '不内置 locale 包：文案归宿主所有',
+  'UI copy ships inside the components. Pass locale="zh" or locale="en" (the default) to the editor, toolbar, TOC, palette, find bar, link popover and preview. There is no labels prop and no provider. Switching locale updates the toolbar, find bar, shortcuts, code blocks, charts and upload placeholders without remounting the editor. Comment popover content is still your children.':
+    '界面文案在组件内。给编辑器、工具栏、目录、色板、查找条、链接浮层和预览传 locale="zh" 或 locale="en"（默认）。没有 labels，也没有 Provider。切换 locale 时工具栏、查找条、快捷键、代码块、图表和上传占位一起变，不用重建编辑器。评论浮层的内容仍由宿主的 children 提供。',
+  'Built-in en and zh bundles': '内置英文和中文',
+  'locale on each visible component, default en': '每个可见组件收 locale，默认 en',
+  'Toolbar, TOC, find bar, code blocks and charts switch live': '工具栏、目录、查找条、代码块和图表即时切换',
+  'No host-supplied label objects': '宿主不再传入文案对象',
+  'Comment popover body stays host-owned': '评论浮层正文仍归宿主',
   'Chinese ⇄ English': '中文 ⇄ English',
-  'Switching remounts the editor; the markdown is read back first so unsaved edits survive.':
-    '切换会重建编辑器；先取回 markdown，未保存的编辑不会丢。',
+  'The header 中 / EN switch drives this editor, the toolbar and the TOC. Unsaved edits stay.':
+    '顶栏的「中 / EN」驱动这里的编辑器、工具栏和目录。未保存的编辑还在。',
 
   'Styled formatting toolbar. Image upload button appears only when onImageUpload is provided.':
     '带样式的格式化工具栏。传入 onImageUpload 时才出现图片上传按钮。',
   'Headings, lists, tables, links, colors, alignment': '标题、列表、表格、链接、颜色、对齐',
+  'Toggle block beside blockquote (official Details; markdown is HTML details)':
+    '引用旁边的折叠块（官方 Details；Markdown 存成 HTML details）',
+  'Blurred text-selection highlight. Defaults to a 28% mix of the accent':
+    '失焦后的文本选区高亮。默认是强调色的 28% 混合',
   'More menu: code block, equations, table, import markdown': '更多菜单：代码块、公式、表格、导入 Markdown',
   'Radix Popover / DropdownMenu — no native selects': 'Radix Popover / DropdownMenu——不用原生 select',
   'extraToolbarItems for custom More-menu entries': 'extraToolbarItems 注入自定义更多菜单项',
-  'Partial ToolbarLabels for i18n': 'Partial ToolbarLabels 做国际化',
+  'locale switches the built-in toolbar copy': 'locale 切换内置工具栏文案',
   'Toolbar with image upload': '带图片上传的工具栏',
 
   'KaTeX inline and block math. Insert from the toolbar More menu; click a formula to edit LaTeX in place (the document formula updates live; the popover is input-only). Typing $ / $$ never converts — dollar amounts stay text. Markdown round-trip uses $$.':
@@ -246,20 +254,24 @@ export const ZH_STRINGS: Record<string, string> = {
   'Auto-convert pasted markdown text (Shift+paste keeps plain text). Init-only': '自动转换粘贴的 markdown 文本（Shift+粘贴保持纯文本）。仅初始化生效',
   'Drop / paste .md files to insert parsed content. Init-only': '拖入 / 粘贴 .md 文件插入解析后的内容。仅初始化生效',
   'Additional Tiptap extensions': '追加的 Tiptap 扩展',
-  'Code block NodeView labels': '代码块 NodeView 文案',
   'Find & replace: registers @tiptap/extension-find-and-replace and renders the floating bar': '查找替换：注册官方 @tiptap/extension-find-and-replace 并渲染浮动条',
   'Render the bar inside the editor; false hands placement to the host (render <FindReplaceBar> yourself)': '由编辑器渲染浮动条；传 false 把摆位交给宿主（自己渲染 <FindReplaceBar>）',
   'Mount the bar into a container you own (popup-container pattern); null falls back to the in-editor bar': '把浮动条挂进你自己的容器（popup container 模式）；null 回落编辑器内浮动条',
   'Where the library-rendered bar sits in its context (editor, or your container)': '库渲染的浮动条在其上下文（编辑器或你的容器）中的落点',
   'Take over Cmd/Ctrl+F while the editor has focus; false keeps native find (use handle.openFind())': '编辑器持有焦点时接管 Cmd/Ctrl+F；传 false 保留原生查找（用 handle.openFind()）',
-  'Find & replace bar labels': '查找替换浮动条文案',
   'Fired when the bar actually shows or hides — drives an external entry such as the toolbar magnifier': '浮动条真的显示 / 收起时回调——用来驱动别处的入口（如工具栏放大镜）',
   'Extra class on scroll container': '滚动容器上的附加 class',
   'Type / (line start or after whitespace) to open the block-insert menu. Table cells included, code blocks excluded; inert read-only': '键入 /（行首或空白后）唤起块级插入菜单。单元格内可用、代码块内排除；只读态不激活',
-  'Slash menu labels (groups + item titles)': '斜杠菜单文案（分组名 + 条目名）',
+  'Official Typography (MIT, not Pro): smart quotes, em dashes, ellipses and its other input rules. Skipped inside code. --- still inserts a divider. Init-only':
+    '官方 Typography（MIT，不是 Pro）：弯引号、破折号、省略号及其余输入规则。代码里不触发。--- 仍是分隔线。仅初始化生效',
+  'Type : (line start or after whitespace) to open the emoji list. Nodes round-trip as :shortcode:. false hides the list; a full shortcode still inserts. Inert read-only. Init-only':
+    '键入 :（行首或空白后）打开表情列表。节点以 :shortcode: 往返。传 false 只隐藏列表，打全短码仍会插入。只读态不激活。仅初始化生效',
+  'Hover a block for a left handle: drag to reorder, click for turn-into / copy / duplicate / delete. A + inserts / to open the slash menu. Hidden when read-only or under 768px; reserves a left gutter':
+    '悬停块时左侧出现手柄：拖动重排，点击可转换 / 复制 / 再制一份 / 删除。加号会插入 / 唤起斜杠菜单。只读或宽度小于 768px 时隐藏，并在左侧留出空位',
   'Keyboard FAB bottom-right opens the shortcuts drawer (Format / Shortcut / Markdown). Hidden read-only': '右下角键盘悬浮键打开快捷键抽屉（格式 / 快捷键 / Markdown）。只读态隐藏',
   'Mount the keyboard FAB into a container you own (popup-container pattern); positioning becomes yours — e.g. stack it above a back-to-top button. null falls back to the in-editor FAB': '把键盘悬浮键挂进你自己的容器（popup container 模式）；定位随之归你——例如叠在「回到顶部」按钮上方。null 回落编辑器内悬浮键',
-  'Shortcuts drawer labels': '快捷键抽屉文案',
+  'Live full-document character and word count via MIT CharacterCount (@tiptap/extensions, not a Pro extension). The status UI is ours. Each CJK ideograph counts as one word. Read editor.storage.characterCount too. Init-only':
+    '全文实时字符数与词数，走 MIT 的 CharacterCount（@tiptap/extensions，不是 Pro 扩展）。统计条是本库自绘。每个汉字算 1 个词。也可读 editor.storage.characterCount。仅初始化生效',
   'Export current content as markdown': '把当前内容导出为 markdown',
   'Export current content as HTML': '把当前内容导出为 HTML',
   'Export Tiptap JSON document': '导出 Tiptap JSON 文档',
@@ -278,7 +290,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'Extra accept for the default Document menu item when importMenuItems is omitted': '未传 importMenuItems 时，默认「文档」项的额外 accept',
   'Import dropdown options (label + accept). Hosts split Markdown / Word / PDF here': '导入下拉选项（label + accept）。宿主在此拆分 Markdown / Word / PDF',
   'Show the Import dropdown': '是否显示导入下拉',
-  'Toolbar label overrides': '工具栏文案覆盖',
+  'Built-in UI language': '内置界面语言',
   'Search entry (magnifier) at the far right; wire it to handle.openFind() — omit and no button renders': '最右端的搜索入口（放大镜）。接上 handle.openFind() 即可；不传就不渲染按钮',
   'Whether the bar is open; drives aria-pressed on the search entry': '浮动条是否开着；驱动搜索入口的 aria-pressed',
   'Custom items in More menu': '更多菜单里的自定义项',
@@ -291,7 +303,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'TOC entries from extractToc / onTocChange': 'extractToc / onTocChange 给出的目录项',
   'Currently highlighted anchor id': '当前高亮的锚点 id',
   'Click handler (locked items ignored)': '点击回调（锁定项被忽略）',
-  'Panel label overrides': '面板文案覆盖',
+  'Built-in UI language for the read-only code block and charts': '只读代码块和图表的内置界面语言',
   'HTML from renderReportHtml(...).html': 'renderReportHtml(...).html 的产物',
   'Extra class merged with editorContent': '与 editorContent 合并的附加 class',
   'Input markdown string': '输入的 markdown 字符串',
@@ -307,19 +319,16 @@ export const ZH_STRINGS: Record<string, string> = {
   'Let the editor render the bar; false = host places <FindReplaceBar> itself': '由编辑器渲染浮动条；false = 宿主自己摆 <FindReplaceBar>',
   'Where the library-rendered bar mounts (open state + shortcut stay in the library)': '库渲染的浮动条挂在哪里（开合状态与快捷键仍归库）',
   'Take over Cmd/Ctrl+F while the editor has focus (only when the editor owns a bar)': '编辑器持有焦点时接管 Cmd/Ctrl+F（仅当编辑器自带条子）',
-  'Bar labels (FindLabels)': '浮动条文案（FindLabels）',
+  'Built-in UI language for the bar': '浮动条的内置界面语言',
   'Bar open/close notification (fires only when the bar actually shows or hides)': '浮动条开合通知（只在真的显示 / 收起时回调）',
   'Toolbar magnifier entry: onSearch wires to handle.openFind(), searchActive drives its aria-pressed': '工具栏放大镜入口：onSearch 接 handle.openFind()，searchActive 驱动它的 aria-pressed',
   'Stable selectors for host CSS (the bar internals use hashed CSS-module classes)': '给宿主 CSS 用的稳定选择器（浮动条内部是哈希过的 CSS Modules 类名）',
   'The bar itself, if you place it yourself': '浮动条本体，想自己摆位时用',
   'Re-exported official extension for hand-built pipelines': '再导出的官方扩展，供自建管线使用',
   'Guard for the Tiptap 3.31.3 trailing-node transaction mismatch': 'Tiptap 3.31.3 尾随节点事务错位的防护壳',
-  'EditorToolbar text (Partial<ToolbarLabels>)': 'EditorToolbar 文案（Partial<ToolbarLabels>）',
-  'Find & replace bar text': '查找替换浮动条文案',
-  'Code-block NodeView text (read when the editor is constructed)': '代码块 NodeView 文案（编辑器构造时读取）',
-  'TocPanel text': 'TocPanel 文案',
-  'ColorPalette swatch names': 'ColorPalette 色块名称',
-  'Every default bundle is exported — useful as a base or to diff against': '所有默认文案包都有导出——适合当底稿或做 diff',
+  'Built-in language on each visible component: editor, toolbar, TOC, palette, find bar, link popover, preview':
+    '每个可见组件上的内置语言：编辑器、工具栏、目录、色板、查找条、链接浮层、预览',
+  'Exported union of the built-in languages': '导出的内置语言联合类型',
   'Toolbar More → Inline equation / Block equation. No keyboard shortcut; typing $ / $$ stays text': '工具栏更多 → 行内公式 / 块级公式。无快捷键；键入 $ / $$ 保持文本',
   'Click a formula: KaTeX stays in the document (highlighted); pill input anchors below and updates it in place; Done / Enter (⌘Enter for block)': '点击公式：KaTeX 留在文档里（高亮），下方锚定输入框原位更新；完成 / Enter（块级用 ⌘Enter）',
   'Single-line $$latex$$ serializes as inlineMath': '单行 $$latex$$ 序列化为行内公式',
@@ -345,7 +354,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'Deduplicated comment ids in document order': '按文档顺序去重的评论 id 列表',
   'Currently applied color (shows checkmark)': '当前应用的颜色（显示对勾）',
   'Called when a swatch is clicked; null clears': '点击色块时回调；null 表示清除',
-  'Label overrides': '文案覆盖',
+  'Built-in UI language. en or zh. Toolbar, TOC and other sibling components take the same prop':
+    '内置界面语言，en 或 zh。工具栏、目录等并列组件传同一个值',
 
   // ── API 页散文 ──
   'Complete reference for props, ref methods, utility functions, and theming tokens.':

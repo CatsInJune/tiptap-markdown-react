@@ -21,6 +21,7 @@ import {
   BoldIcon,
   ChevronDownIcon,
   CodeIcon,
+  DetailsIcon,
   ImageIcon,
   IndentDecreaseIcon,
   IndentIncreaseIcon,
@@ -36,7 +37,16 @@ import {
   UnderlineIcon,
   UndoIcon,
 } from '../icons';
-import { defaultToolbarLabels, type ToolbarLabels } from '../labels';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
+import type { ToolbarLabels } from '../labels';
+import {
+  applyNumberingFormat,
+  NUMBERING_FORMAT_IDS,
+  NUMBERING_FORMAT_LABELS,
+  NUMBERING_FORMAT_PREVIEWS,
+  readCurrentNumberingFormat,
+  type NumberingFormat,
+} from '../numberingFormat';
 import {
   MD_FILE_RE,
   resolveImportMenuItems,
@@ -117,7 +127,8 @@ export interface EditorToolbarProps {
   importMenuItems?: ImportMenuItem[];
   /** 是否显示导入下拉，默认 `true`。卡片等场景可关掉。 */
   showImport?: boolean;
-  labels?: Partial<ToolbarLabels>;
+  /** 内置语言，默认英文。 */
+  locale?: LocaleCode;
   /**
    * 工具栏最右端的搜索入口（放大镜）。**不传就不渲染**——条子本身归
    * `<MarkdownWysiwygEditor>`，这里只给一个入口，宿主接上自己的编辑器句柄即可：
@@ -202,9 +213,13 @@ const MenuCloseCtx = createContext<() => void>(() => {});
 function MenuPopover({
   trigger,
   children,
+  contentClassName,
+  align = 'start',
 }: {
   trigger: ReactNode;
   children: ReactNode;
+  contentClassName?: string;
+  align?: 'start' | 'center' | 'end';
 }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
@@ -213,9 +228,11 @@ function MenuPopover({
       <Popover.Trigger asChild>{trigger}</Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          className={styles.menu}
+          className={
+            contentClassName ? `${styles.menu} ${contentClassName}` : styles.menu
+          }
           sideOffset={4}
-          align="start"
+          align={align}
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => e.preventDefault()}
         >
@@ -253,6 +270,52 @@ function MenuItem({
     >
       {children}
     </button>
+  );
+}
+
+/** 编号格式：单列预览卡片，每张是五行嵌套编号。 */
+function NumberingFormatGrid({
+  current,
+  onSelect,
+}: {
+  current: NumberingFormat | null;
+  onSelect: (format: NumberingFormat) => void;
+}) {
+  const close = useContext(MenuCloseCtx);
+  return (
+    <div className={styles.numberingGrid} role="group" aria-label="Numbering formats">
+      {NUMBERING_FORMAT_IDS.map((format) => {
+        const active = current === format;
+        return (
+          <button
+            key={format}
+            type="button"
+            role="menuitem"
+            aria-label={NUMBERING_FORMAT_LABELS[format]}
+            aria-pressed={active}
+            className={`${styles.numberingOption}${active ? ` ${styles.numberingOptionActive}` : ''}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              onSelect(format);
+              close();
+            }}
+          >
+            <span className={styles.numberingPreview}>
+              {NUMBERING_FORMAT_PREVIEWS[format].map((row, index) => (
+                <span
+                  key={`${format}-${index}`}
+                  className={styles.numberingPreviewRow}
+                  data-depth={row.depth}
+                >
+                  <span className={styles.numberingPreviewMarker}>{row.marker}</span>
+                  <span className={styles.numberingPreviewLine} />
+                </span>
+              ))}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -356,14 +419,14 @@ function ColorPopover({
   bar,
   value,
   onPick,
-  paletteLabels,
+  locale,
 }: {
   title: string;
   glyph: string;
   bar: string;
   value?: string;
   onPick: (color: string | null) => void;
-  paletteLabels: { none: string; theme: string };
+  locale: LocaleCode;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -396,7 +459,7 @@ function ColorPopover({
               onPick(c);
               setOpen(false);
             }}
-            labels={paletteLabels}
+            locale={locale}
           />
         </Popover.Content>
       </Popover.Portal>
@@ -419,13 +482,13 @@ export function EditorToolbar({
   importAccept,
   importMenuItems,
   showImport = true,
-  labels,
+  locale = 'en',
   onSearch,
   searchActive = false,
   extraToolbarItems,
   className,
 }: EditorToolbarProps) {
-  const t: ToolbarLabels = { ...defaultToolbarLabels, ...labels };
+  const t: ToolbarLabels = getLocaleBundle(locale).toolbar;
 
   const state = useEditorState({
     editor,
@@ -444,7 +507,9 @@ export function EditorToolbar({
       isParagraph: e.isActive('paragraph'),
       bulletList: e.isActive('bulletList'),
       orderedList: e.isActive('orderedList'),
+      numberingFormat: readCurrentNumberingFormat(e),
       blockquote: e.isActive('blockquote'),
+      details: e.isActive('details'),
       textColor: (e.getAttributes('textStyle').color as string) || undefined,
       highlightColor:
         (e.getAttributes('highlight').color as string) || undefined,
@@ -852,7 +917,7 @@ export function EditorToolbar({
             bar={state.textColor || '#ff3b30'}
             value={state.textColor}
             onPick={applyTextColor}
-            paletteLabels={{ none: t.colorNone, theme: t.colorTheme }}
+            locale={locale}
           />
           {/* 文字高亮 */}
           <ColorPopover
@@ -861,7 +926,7 @@ export function EditorToolbar({
             bar={state.highlightColor || '#ffd83d'}
             value={state.highlightColor}
             onPick={applyHighlight}
-            paletteLabels={{ none: t.colorNone, theme: t.colorTheme }}
+            locale={locale}
           />
 
           {/* 上标 / 下标下拉（A▾） */}
@@ -920,13 +985,7 @@ export function EditorToolbar({
               光标在链接里打开时预填它的 href（旧实现是 window.prompt，在链接里点一下就删）。 */}
           <LinkPopover
             editor={editor}
-            labels={{
-              field: t.linkPrompt,
-              apply: t.linkApply,
-              open: t.linkOpen,
-              remove: t.linkRemove,
-              invalid: t.linkInvalid,
-            }}
+            locale={locale}
             trigger={
               <ToolbarButton title={t.link} active={state.link}>
                 <LinkIcon />
@@ -987,6 +1046,17 @@ export function EditorToolbar({
             onClick={() => chain().toggleBlockquote().run()}
           >
             <span className={styles.txtIcon}>❝</span>
+          </ToolbarButton>
+          <ToolbarButton
+            title={t.details}
+            active={state.details}
+            onClick={() => {
+              const next = editor.chain().focus();
+              if (editor.isActive('details')) next.unsetDetails().run();
+              else next.setDetails().run();
+            }}
+          >
+            <DetailsIcon />
           </ToolbarButton>
 
           <Divider />
@@ -1108,7 +1178,7 @@ export function EditorToolbar({
 
           <Divider />
 
-          {/* 列表 */}
+          {/* 列表。有序列表是「切换 + 编号格式」一组：箭头打开编号预览。 */}
           <ToolbarButton
             title={t.bulletList}
             active={state.bulletList}
@@ -1116,13 +1186,41 @@ export function EditorToolbar({
           >
             <ListUnorderedIcon />
           </ToolbarButton>
-          <ToolbarButton
-            title={t.orderedList}
-            active={state.orderedList}
-            onClick={() => chain().toggleOrderedList().run()}
+          <span
+            className={`${styles.listSplit}${
+              state.orderedList ? ` ${styles.listSplitActive}` : ''
+            }`}
           >
-            <ListOrderedIcon />
-          </ToolbarButton>
+            <ToolbarButton
+              title={t.orderedList}
+              active={state.orderedList}
+              onClick={() => chain().toggleOrderedList().run()}
+            >
+              <ListOrderedIcon />
+            </ToolbarButton>
+            <MenuPopover
+              align="end"
+              contentClassName={styles.numberingMenu}
+              trigger={
+                <button
+                  type="button"
+                  className={`${styles.numberingCaret}${
+                    state.numberingFormat ? ` ${styles.numberingCaretActive}` : ''
+                  }`}
+                  title={t.numberingFormat}
+                  aria-label={t.numberingFormat}
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  <ChevronDownIcon size={12} />
+                </button>
+              }
+            >
+              <NumberingFormatGrid
+                current={state.numberingFormat}
+                onSelect={(format) => applyNumberingFormat(editor, format)}
+              />
+            </MenuPopover>
+          </span>
           <ToolbarButton
             title={t.taskList}
             active={state.taskList}

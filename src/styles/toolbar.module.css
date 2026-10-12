@@ -274,6 +274,131 @@
   background: #ffe8da;
 }
 
+/* 有序列表按钮 + 编号格式箭头，贴在一起当一组。
+   高亮画在这一组上，箭头和列表图标在同一块底色里。 */
+.listSplit {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+}
+
+.listSplitActive {
+  background: #fff3ec;
+}
+
+.listSplitActive:hover {
+  background: #ffe8da;
+}
+
+.listSplitActive .btn,
+.listSplitActive .btn:hover,
+.listSplitActive .btnActive,
+.listSplitActive .btnActive:hover,
+.listSplitActive .numberingCaret,
+.listSplitActive .numberingCaret:hover {
+  background: transparent;
+}
+
+.listSplitActive .numberingCaret {
+  color: var(--sb-accent);
+}
+
+.numberingCaret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 34px;
+  margin-left: -6px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sb-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.numberingCaret:hover {
+  background: #f3f3f3;
+  color: var(--sb-text);
+}
+
+.numberingCaretActive {
+  color: var(--sb-accent);
+}
+
+.numberingMenu {
+  width: 220px;
+  min-width: 0;
+  padding: 6px;
+  /* 单列 8 张预览约 680px。限高后大约露出 3 张，其余在菜单内滚动。 */
+  max-height: min(280px, calc(100vh - 96px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.numberingGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.numberingOption {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.numberingOption:hover {
+  background: #f3f3f3;
+}
+
+.numberingOptionActive {
+  background: #fff3ec;
+  box-shadow: inset 0 0 0 1px var(--sb-accent);
+}
+
+.numberingPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.numberingPreviewRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 12px;
+}
+
+.numberingPreviewRow[data-depth='2'] {
+  padding-left: 10px;
+}
+
+.numberingPreviewRow[data-depth='3'] {
+  padding-left: 20px;
+}
+
+.numberingPreviewMarker {
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--sb-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.numberingPreviewLine {
+  flex: 1;
+  height: 1px;
+  background: #c8c8c8;
+}
+
 .tableInsertCaret {
   margin-left: auto;
   color: var(--sb-muted);

@@ -6,7 +6,6 @@
 import { mergeAttributes, Node, type Editor } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { ImageUploadView } from './components/ImageUploadView';
-import type { ImageUploadLabels } from './labels';
 
 /**
  * 上传函数：收到文件与进度回调（`progress` 为 0–100），返回可访问的图片 URL。
@@ -34,8 +33,6 @@ export interface ImageUploadOptions {
   onError?: (error: Error) => void;
   /** 单个文件成功的回调（先于占位块替换触发）。 */
   onSuccess?: (url: string) => void;
-  /** 占位块文案。 */
-  labels?: Partial<ImageUploadLabels>;
 }
 
 /**
@@ -93,7 +90,6 @@ export const ImageUploadNode = Node.create<ImageUploadOptions>({
       type: 'image',
       onError: undefined,
       onSuccess: undefined,
-      labels: undefined,
     };
   },
 

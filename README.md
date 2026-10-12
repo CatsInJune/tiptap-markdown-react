@@ -7,6 +7,7 @@ A batteries-included, self-styled **Markdown WYSIWYG editor + reader** suite bui
 - **Markdown-first**: content goes in and comes out as markdown (`getMarkdown()`), with `getHTML()` / `getJSON()` also exposed.
 - **Equations**: toolbar inserts inline / block math (KaTeX). Markdown round-trip uses `$$…$$` (inline) and newline-wrapped `$$` (block). Typing `$` / `$$` stays as text so dollar amounts are safe.
 - **Charts**: LLM-friendly data charts (`<!-- {"chartType":…} -->` + GFM table). Chart.js renders in editor / preview / reader (SSR placeholder → client hydrate). MVP: line, bar, column, pie, donut, area.
+- **Toggle blocks**: the MIT Details extension. Toolbar and `/` insert a collapsible section; markdown round-trips as HTML `<details>`. A non-empty text selection stays highlighted after the editor blurs (MIT Selection extension).
 - **Own opinionated UI**: toolbar, color palette, code block, and table of contents ship styled out of the box. Dropdowns/popovers use [Radix](https://www.radix-ui.com/) primitives; icons are inline SVG.
 - **Editor + Preview + Static reader**: edit, live client-side preview, and a pure `renderReportHtml()` for server rendering (Next.js Server Components / ISR). Reading pages that only hydrate footnotes should import `tiptap-markdown-react/reader` so they do not load `TableKit`.
 - **Table of contents**: stable, shareable slug anchors that match between the editor preview and the published reading page.
@@ -284,21 +285,20 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | --- | --- | --- |
 | `initialMarkdown` | `string` | Initial content (markdown). |
 | `editable` | `boolean` | `false` renders read-only with the **same** extensions/NodeViews/styles — interactive controls (code-block language dropdown, delete) collapse. Comments are ignored when `false`. Default `true`. |
+| `locale` | `'en' \| 'zh'` | Built-in UI language (default `en`). Pass the same value to the toolbar, TOC and any other sibling you render. |
 | `placeholder` | `string` | Placeholder for the empty document. |
 | `onEditorReady` | `(editor: Editor \| null) => void` | Get the Tiptap instance (for the toolbar). |
 | `onTocChange` | `(items: TocItem[]) => void` | Fires when headings change. |
 | `markdownPaste` | `boolean` | Auto-detect markdown in plain-text paste and convert it (Shift+paste keeps plain text). Default `true`. Init-only. |
 | `markdownFileDrop` | `boolean` | Drop or paste `.md` / `.markdown` files into the editor to insert their parsed content. Default `true`. Init-only. |
-| `imageUpload` | `ImageUploadConfig` | Official `ImageUploadNode`-style upload (see [Image upload](#image-upload)). The toolbar's image button inserts a placeholder block you can drop a file on or click to pick; progress shows in place and the block is swapped for the image when every file finishes. `upload(file, onProgress?, signal?) => Promise<url>` is required; `accept` (`image/*`), `limit` (1), `maxSize` (0 = unlimited), `onError`, `onSuccess`, `labels` are optional. The block never reaches the saved markdown. Init-only. |
+| `imageUpload` | `ImageUploadConfig` | Official `ImageUploadNode`-style upload (see [Image upload](#image-upload)). The toolbar's image button inserts a placeholder block you can drop a file on or click to pick; progress shows in place and the block is swapped for the image when every file finishes. `upload(file, onProgress?, signal?) => Promise<url>` is required; `accept` (`image/*`), `limit` (1), `maxSize` (0 = unlimited), `onError`, `onSuccess` are optional. Placeholder copy follows `locale`. The block never reaches the saved markdown. Init-only. |
 | `imageResize` | `boolean \| ImageResizeOptions` | Resizable images (default `true`, see [Image resize](#image-resize)). Drag a corner handle to resize; the size lands in the `width`/`height` node attributes and round-trips through markdown as `<img …>` (untouched images stay `![alt](url)`; `resetImageSize(editor)` clears a size). `false` disables; an object passes through to the official `resize` config (`directions`, `minWidth`, `minHeight`, `alwaysPreserveAspectRatio`). Init-only. |
 | `extraExtensions` | `AnyExtension[]` | Extra Tiptap extensions to register. |
-| `codeBlockLabels` | `Partial<CodeBlockLabels>` | Localize the code block UI. |
 | `findReplace` | `boolean` | Enable find & replace (default `true`): registers the official `@tiptap/extension-find-and-replace` and renders the floating bar. |
 | `findBar` | `boolean` | Render the floating bar inside the editor (default: same as `findReplace`). `false` hands **placement to the host** — the extension stays registered, the editor renders no bar, and you render `<FindReplaceBar editor={editor} />` wherever you want; `findShortcut` and `handle.openFind/closeFind` go quiet with it. |
 | `findBarContainer` | `HTMLElement \| (() => HTMLElement \| null)` | Mount the editor's bar into a container you own (the popup-container pattern): the library keeps open state and the shortcut, only the mount point changes. Use it when an `overflow: hidden` ancestor would clip the bar, or to park it in your own header / sidebar. Positioning is then yours (no absolute positioning is added), and if the container sits outside your themed subtree, bring `--tmr-*` along. Falls back to the in-editor bar when it resolves to `null`. |
 | `findBarOffset` | `{ top?, right?, bottom?, left? } \| number = px` | Where the library-rendered bar sits inside its positioning context. Default `{ top: 4, right: 4 }` (top-right); pass e.g. `{ bottom: 8, left: 8 }` to dock it elsewhere. The context is the editor, or your `findBarContainer` element when you supply one — the library adds `position: relative` to that container if it is `static` (otherwise the bar would anchor to some unexpected ancestor). |
 | `findShortcut` | `boolean` | Take over <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> while the editor has focus (default `true`; bound only when the editor owns a bar). `false` keeps the browser's native find — wire your own entry with `handle.openFind()`. |
-| `findLabels` | `Partial<FindLabels>` | Localize the find & replace bar. |
 | `onFindOpenChange` | `(open: boolean) => void` | Fired when the bar actually shows or hides (Esc / × included). Use it to drive an external entry such as the toolbar magnifier. Fires only on a real change — never a `false` on mount — and stays `false` while `findBar={false}`, so a host-placed bar never lights up an entry you did not open. |
 | `className` | `string` | Class on the scroll container. |
 
@@ -354,7 +354,7 @@ Same split as the toolbar: the bar is a component, its placement is yours. Set `
 
 {editor && open && (
   <div className="my-find-panel">
-    <FindReplaceBar editor={editor} onClose={() => setOpen(false)} labels={zhFind} />
+    <FindReplaceBar editor={editor} locale="zh" onClose={() => setOpen(false)} />
   </div>
 )}
 ```
@@ -374,31 +374,21 @@ Middle ground — keep the library's bar and shortcut, choose only the mount poi
 
 With `findBar={false}` the editor does not bind <kbd>Cmd/Ctrl</kbd>+<kbd>F</kbd> (it would swallow the browser's find without opening anything), so bind your own shortcut to `setOpen`. Two invariants to keep: leave `findReplace` on — the bar needs the extension's commands — and render it inside the same editor instance it drives.
 
-`FindReplaceBar` is exported if you'd rather place the bar yourself, `FindLabels` / `defaultFindLabels` for i18n, and `FindAndReplace` for hand-built pipelines. Two details to reuse when driving it yourself: keep `searchDebounceMs: 0` on the extension and debounce in your own UI, and route calls through `runFindCommand()` — it absorbs a Tiptap 3.31.3 transaction mismatch that fires on the first search when the document ends with a code block / table / chart (see the comment on `runFindCommand` for the mechanism).
+`FindReplaceBar` is exported if you'd rather place the bar yourself (pass the same `locale` as the editor), and `FindAndReplace` for hand-built pipelines. Two details to reuse when driving it yourself: keep `searchDebounceMs: 0` on the extension and debounce in your own UI, and route calls through `runFindCommand()` — it absorbs a Tiptap 3.31.3 transaction mismatch that fires on the first search when the document ends with a code block / table / chart (see the comment on `runFindCommand` for the mechanism).
 
 Styling the bar from the outside: its internals use hashed CSS-module classes, so the bar carries stable hooks instead — `[data-find-bar]` on the root, `[data-find-field="search|replace"]` on the inputs, `[data-find-counter]` on the counter, `[data-find-option="match-case|whole-words"]` on the toggles and `[data-find-action="previous|next|close|replace|replace-all"]` on the buttons. Colors stay on the theme variables (`--tmr-find-*` for the highlights, `--tmr-toolbar-*` / `--tmr-accent` for the bar chrome).
 
-#### i18n (labels)
+#### i18n
 
-There is no global locale and no provider: every visible string comes from a `Partial<XLabels>` prop that is merged over built-in English defaults (`{ ...defaultToolbarLabels, ...labels }`). A host ships one object per language and passes it down; switching languages is picking a different object. Override only the keys you care about — everything else falls back to English.
+English and Chinese ship inside the package. Each visible component takes `locale?: 'en' | 'zh'` (default `en`). There is no labels prop and no provider. The toolbar, TOC, palette, find bar and link popover are rendered by the host, so pass the same `locale` to each of them.
 
-| Component | Prop | Type |
-| --- | --- | --- |
-| `<EditorToolbar>` | `labels` | `Partial<ToolbarLabels>` (also covers the Import menu, the equation popover and the link popover) |
-| `<MarkdownWysiwygEditor>` | `findLabels` | `Partial<FindLabels>` (replace / replace-all appear as icon buttons, so their labels are the tooltip + accessible name) |
-| `<MarkdownWysiwygEditor>` | `codeBlockLabels` | `Partial<CodeBlockLabels>` |
-| `<TocPanel>` | `labels` | `Partial<TocLabels>` |
-| `<ColorPalette>` | `labels` | `Partial<ColorPaletteLabels>` |
-
-```ts
-// zh.ts — only the keys you want to change
-export const zhToolbar: Partial<ToolbarLabels> = {
-  undo: '撤销', bold: '加粗', headingLabel: (level) => `标题 ${level}`, importDocument: '导入',
-};
-export const zhFind: Partial<FindLabels> = { find: '查找', next: '下一处', replaceAll: '全部替换' };
+```tsx
+<EditorToolbar editor={editor} locale="zh" />
+<MarkdownWysiwygEditor locale="zh" onEditorReady={setEditor} />
+<TocPanel items={toc} locale="zh" />
 ```
 
-Toolbar, TOC, palette and the find bar merge at render time, so they switch live. `codeBlockLabels` is different: it is written into the code-block extension's options when the editor is constructed (the NodeView reads `extension.options`), so existing code blocks keep the old text until the editor is rebuilt — remount with `key={locale}` and feed the current markdown back via `getMarkdown()` first, because `initialMarkdown` is init-only. Not yet injectable: **chart labels** (only reachable through `createChart({ chartLabels })` on a hand-built pipeline) and comment popover text (the popover renders your `children`). One `aria-label` is hardcoded English (`Code language` in the code-block header, screen readers only).
+Switching `locale` updates toolbar, find bar, shortcuts, code blocks, charts and upload placeholders without remounting the editor. Comment popover content is still whatever you pass as `children`. `LocaleCode` is exported.
 
 #### Markdown in: paste, drop, import
 
@@ -406,7 +396,7 @@ Three ways to get markdown into the editor, all built in:
 
 - **Paste markdown text** — plain-text paste is heuristically detected (headings, lists, links, fences, tables…) and parsed into rich content. Rich-text (HTML) paste is untouched; Shift+paste always inserts plain text; pasting inside a code block is never converted. Opt out with `markdownPaste={false}`.
 - **Drop / paste `.md` files** — drag a `.md` / `.markdown` file into the editor (inserted at drop point) or paste a copied file (inserted at cursor). Opt out with `markdownFileDrop={false}`.
-- **Toolbar import** — the main-bar **Import** control is a Style/Size-like dropdown (`labels.importDocument` on the trigger, `labels.importDocumentHint` on hover). `.md` / `.markdown` is read in-package; any other file is handed to `onImportDocument`. Pass `importMenuItems` to split formats (Markdown / Word / PDF); otherwise the menu is Markdown-only, plus a Document item when `importAccept` is set. Without `onImportDocument` the picker stays `.md`-only.
+- **Toolbar import** — the main-bar **Import** control is a Style/Size-like dropdown (trigger and hint follow `locale`). `.md` / `.markdown` is read in-package; any other file is handed to `onImportDocument`. Pass `importMenuItems` to split formats (Markdown / Word / PDF); otherwise the menu is Markdown-only, plus a Document item when `importAccept` is set. Without `onImportDocument` the picker stays `.md`-only.
 
 The underlying extensions `MarkdownPaste` / `MarkdownFileDrop` (and the `looksLikeMarkdown` heuristic) are exported for custom pipelines.
 
@@ -432,7 +422,7 @@ Configure `imageUpload` on the editor and the toolbar's image button stops openi
 - **Errors** — over-size / over-limit / failed uploads call `onError(error)`; the failed row stays in the block. Remove it (or Clear all) and try again.
 - **Abort** — the `upload` callback receives an `AbortSignal` that fires when a row is removed, the queue is cleared, the block is deleted, or the editor unmounts. Hand it to `fetch` so abandoned uploads stop.
 - **Keyboard** — <kbd>Cmd/Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> inserts a block (on Windows that combo also opens DevTools — the browser wins, same as the official component); <kbd>Enter</kbd> on a selected block opens the picker.
-- The block's text comes from the `imageUpload.labels` (`ImageUploadLabels`); the `ImageUploadNode` extension and `hasImageUpload(editor)` are exported for hand-built pipelines.
+- The block's text follows the editor `locale`. The `ImageUploadNode` extension and `hasImageUpload(editor)` are exported for hand-built pipelines.
 - The legacy toolbar prop `onImageUpload` still works when the extension is not registered — see the `<EditorToolbar>` table.
 
 #### Paragraph styles: alignment, indent, line height
@@ -466,7 +456,7 @@ Defaults: two side handles (`left` / `right`, matching the official demo, shown 
 
 Hover an image and a small toolbar appears above it — left / center / right, the same hover-handle interaction as the table row/column handles. Alignment is stored as the `align` node attribute and rendered as **`data-align`** — the attribute name the official `image-align-button` uses — so existing `img[data-align="center"]` styles keep working. Keyboard shortcuts match the official component: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> / <kbd>E</kbd> / <kbd>R</kbd> with an image selected (or the cursor right next to it).
 
-Like size, alignment has no markdown syntax, so an aligned image serializes to `<img … data-align="center">` (untouched images stay `![alt](url)`) and the same tokenizer parses it back — editor, preview and server renderer all agree. For custom UIs the library exports `setImageAlign(editor, align)` / `isImageAlignActive(editor, align)` (selection-based) and `setImageAlignAt(editor, element, align)` (DOM-based); the hover toolbar's text comes from `labels.imageAlign*`.
+Like size, alignment has no markdown syntax, so an aligned image serializes to `<img … data-align="center">` (untouched images stay `![alt](url)`) and the same tokenizer parses it back — editor, preview and server renderer all agree. For custom UIs the library exports `setImageAlign(editor, align)` / `isImageAlignActive(editor, align)` (selection-based) and `setImageAlignAt(editor, element, align)` (DOM-based); the hover toolbar's text follows `locale`.
 
 #### Image caption
 
@@ -481,7 +471,7 @@ In markdown a captioned image serializes to a `<figure>` block (standard HTML se
 </figure>
 ```
 
-Images without a caption keep the plain `![alt](url)` form. Editor, preview and server renderer share the same tokenizer, so captions round-trip everywhere — including SSR. Tooling for custom UIs: `setImageCaption(editor, text)` / `setImageCaptionAtPos(editor, pos, text)`; hover-toolbar labels via `labels.imageCaption` / `imageCaptionPlaceholder`. The official side has nothing for this (`@tiptap/extension-figure` does not exist on npm), so the whole path is native to this library.
+Images without a caption keep the plain `![alt](url)` form. Editor, preview and server renderer share the same tokenizer, so captions round-trip everywhere — including SSR. Tooling for custom UIs: `setImageCaption(editor, text)` / `setImageCaptionAtPos(editor, pos, text)`; hover-toolbar caption text follows `locale`. The official side has nothing for this (`@tiptap/extension-figure` does not exist on npm), so the whole path is native to this library.
 
 ### `<EditorToolbar>` (client)
 
@@ -496,15 +486,10 @@ The row stays centred and **scrolls horizontally** when the controls no longer f
 | `importAccept` | `string` | Extra `accept` used by the default Document menu item when `importMenuItems` is omitted. |
 | `importMenuItems` | `ImportMenuItem[]` | Import dropdown options (`label` + `accept`). Hosts that want Markdown / Word / PDF pass three items. |
 | `showImport` | `boolean` | Show the Import dropdown (default `true`). |
-| `labels` | `Partial<ToolbarLabels>` | i18n labels. |
+| `locale` | `'en' \| 'zh'` | Built-in toolbar copy, including import, equations, the link popover, table handles and image alignment (default `en`). |
 | `onSearch` | `() => void` | Search entry (magnifier) left of the More menu. Wire it to `handle.toggleFind()` (or `openFind()` if you'd rather it only ever open); omit it and no button renders. Worth passing only when the editor owns a bar (`findBar` on) — a host-placed bar has nothing for it to open. Search works read-only, so the button never greys out. |
 | `searchActive` | `boolean` | Whether the bar is open; drives `aria-pressed` and the active highlight of the search entry (default `false`). Feed it from the editor's `onFindOpenChange`. |
 | `extraToolbarItems` | `ExtraToolbarItem[]` | Custom items appended to the "More" menu. |
-| `labels.inlineMath` / `blockMath` | `string` | More-menu equation items. |
-| `labels.mathPlaceholder` / `mathDone` / `mathNewInline` / `mathNewBlock` | `string` | Equation editor (empty chip/hint, input, Done). |
-| `labels.tableRowMenu` / `tableColumnMenu` | `string` | Aria-labels of the table hover handles. |
-| `labels.linkPrompt` / `linkApply` / `linkOpen` / `linkRemove` / `linkInvalid` | `string` | Link popover: field placeholder, apply, open in new window, remove, rejected-address hint. |
-| `labels.imageAlign` / `imageAlignLeft` / `imageAlignCenter` / `imageAlignRight` | `string` | Hover alignment toolbar (rendered by the toolbar, appears over the hovered image): toolbar aria-label and the three button labels. |
 
 #### Table editing (hover handles)
 
@@ -525,7 +510,7 @@ The toolbar's link button opens this popover — type an address, apply it, open
 ```tsx
 <LinkPopover
   editor={editor}
-  labels={{ field: 'Paste a link…' }}
+  locale="zh"
   trigger={<button type="button" className="my-btn"><LinkIcon /></button>}
 />
 ```
@@ -534,7 +519,7 @@ The toolbar's link button opens this popover — type an address, apply it, open
 | --- | --- | --- |
 | `editor` | `Editor` | The editor to operate on. |
 | `trigger` | `ReactNode` | Your own trigger element. Radix's `asChild` takes over its click / ref / aria, so it must be a DOM element or a `forwardRef` component (the toolbar passes its `ToolbarButton`). |
-| `labels` | `Partial<LinkPopoverLabels>` | i18n labels (`defaultLinkPopoverLabels` is exported). |
+| `locale` | `'en' \| 'zh'` | Built-in popover copy (default `en`). |
 | `className` / `style` | `string` / `CSSProperties` | Extra class / inline style on the panel; placement stays with Radix. |
 
 Styling hooks (internals are hashed CSS-module classes): `[data-link-popover]` on the panel, `[data-link-field]` on the input, `[data-link-action="apply|open|remove"]` on the buttons, `[data-link-invalid]` on the input while the editor rejects the address. Colors come from the theme variables (`--tmr-accent`, `--tmr-toolbar-border`, `--tmr-toolbar-muted`, `--tmr-text`, `--tmr-danger`).
@@ -555,6 +540,7 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 | Prop | Type | Description |
 | --- | --- | --- |
 | `markdown` | `string` | Markdown to render read-only. |
+| `locale` | `'en' \| 'zh'` | Built-in copy for the read-only code block and charts (default `en`). |
 | `className` | `string` | Class on the container. |
 
 ### `<TocPanel>` (client)
@@ -564,7 +550,7 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 | `items` | `TocItem[]` | Table of contents items. |
 | `activeId` | `string` | Currently highlighted anchor id. |
 | `onItemClick` | `(item: TocItem) => void` | Click handler (locked items are skipped). |
-| `labels` | `Partial<TocLabels>` | i18n labels. |
+| `locale` | `'en' \| 'zh'` | Built-in panel copy (default `en`). |
 
 ### `tiptap-markdown-react/server` (RSC-safe)
 
@@ -591,5 +577,5 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 MIT © CatsInJune
 
 Third-party content used or adapted by this project — Lucide icons, Tiptap UI Components
-(ported component logic and icons), KaTeX styles/fonts, and the npm dependency licenses —
-is credited in [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md).
+(ported component logic and icons), KaTeX styles (MIT) and fonts (SIL OFL 1.1), and the
+npm dependency licenses — is credited in [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md).
