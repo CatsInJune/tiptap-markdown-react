@@ -8,7 +8,6 @@ import {
   FindReplaceBar,
   MarkdownPreview,
   MarkdownWysiwygEditor,
-  ReportContent,
   ReportContentInteractive,
   ReportContentWithCharts,
   type CitationEnterContext,
@@ -16,6 +15,7 @@ import {
   type MarkdownWysiwygEditorHandle,
   type RenderCitation,
 } from 'tiptap-markdown-react';
+import { ReportContent } from 'tiptap-markdown-react/reader';
 import { renderReportHtml } from 'tiptap-markdown-react/server';
 import {
   CODEBLOCK_MD,
@@ -583,17 +583,17 @@ export function EditorTocDemo() {
   const locale = useLang().lang;
   return (
     <div className="editorTocDemoEditor">
-      <MarkdownWysiwygEditor locale={locale} initialMarkdown={TOC_MD} />
+      <MarkdownWysiwygEditor locale={locale} initialMarkdown={TOC_MD} toc />
     </div>
   );
 }
 
 /** ReportContent 静态 HTML 阅读器 */
-const SAMPLE_HTML = `<h1 id="published-article">Published article</h1>
+const SAMPLE_HTML = `<h1 id="published-article" data-toc-id="published-article">Published article</h1>
 <p>This is <strong>ReportContent</strong> — the same HTML produced by <code>renderReportHtml()</code> on the server.</p>
-<h2 id="syntax-highlighting">Syntax highlighting</h2>
+<h2 id="syntax-highlighting" data-toc-id="syntax-highlighting">Syntax highlighting</h2>
 <pre><code class="language-javascript">const sum = (a, b) =&gt; a + b;</code></pre>
-<h2 id="table-support">Table support</h2>
+<h2 id="table-support" data-toc-id="table-support">Table support</h2>
 <table><thead><tr><th>Column</th><th>Value</th></tr></thead><tbody><tr><td>Alpha</td><td>1</td></tr><tr><td>Beta</td><td>2</td></tr></tbody></table>`;
 
 export function ReportContentDemo() {

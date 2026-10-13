@@ -101,7 +101,7 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'placeholder', desc: 'Empty-state placeholder', type: 'string', defaultVal: '—' },
   { name: 'onEditorReady', desc: 'Called when editor is ready / destroyed', type: '(editor: Editor | null) => void', defaultVal: '—' },
   { name: 'onTocChange', desc: 'Optional. Fires when the heading list changes. The editor draws the outline itself', type: '(items: TocItem[]) => void', defaultVal: '—' },
-  { name: 'toc', desc: 'Built-in left outline. Ticks when there are headings; hover expands titles and click scrolls. Hidden under 768px', type: 'boolean', defaultVal: 'true' },
+  { name: 'toc', desc: 'Built-in left outline. Ticks when there are headings; hover expands titles and click scrolls. Hidden under 768px', type: 'boolean', defaultVal: 'false' },
   { name: 'markdownPaste', desc: 'Auto-convert pasted markdown text (Shift+paste keeps plain text). Init-only', type: 'boolean', defaultVal: 'true' },
   { name: 'markdownFileDrop', desc: 'Drop / paste .md files to insert parsed content. Init-only', type: 'boolean', defaultVal: 'true' },
   { name: 'imageUpload', desc: 'Official ImageUploadNode-style upload: the toolbar image button inserts a drop/click placeholder block; progress shows in place and the block is replaced by the image when done. upload is required. Init-only', type: 'ImageUploadConfig', defaultVal: '—' },
@@ -165,12 +165,15 @@ export const PREVIEW_API: ApiRow[] = [
   { name: 'sources', desc: 'Optional: attach url/title onto [^n] nodes by index', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'renderCitation', desc: 'NodeView slot: wrap the pill (e.g. host Popover). Data lookup is host-owned', type: 'RenderCitation', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
-  { name: 'locale', desc: 'Built-in UI language for the read-only code block and charts', type: "'en' | 'zh'", defaultVal: 'en' },
+  { name: 'locale', desc: 'Built-in UI language for the read-only code block, charts, and outline', type: "'en' | 'zh'", defaultVal: 'en' },
+  { name: 'toc', desc: 'Built-in left outline. Ticks when there are headings; hover expands titles and click scrolls. Hidden under 768px', type: 'boolean', defaultVal: 'false' },
 ];
 
 export const REPORT_CONTENT_API: ApiRow[] = [
   { name: 'html', desc: 'HTML from renderReportHtml(...).html', type: 'string' },
   { name: 'className', desc: 'Extra class merged with editorContent', type: 'string', defaultVal: '—' },
+  { name: 'toc', desc: 'On the ./reader export: built-in left outline. The ./server export ignores this and stays static HTML', type: 'boolean', defaultVal: 'false' },
+  { name: 'locale', desc: 'Outline accessible name on the ./reader export', type: "'en' | 'zh'", defaultVal: 'en' },
 ];
 
 export const RENDER_HTML_API: ApiRow[] = [

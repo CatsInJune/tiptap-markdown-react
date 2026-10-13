@@ -99,6 +99,8 @@ export const ZH_STRINGS: Record<string, string> = {
   // ── 组件章节描述 ──
   'The core WYSIWYG editor. Markdown in, markdown out via ref methods. A left-edge outline appears when the document has headings.':
     '核心所见即所得编辑器。Markdown 进、Markdown 出（经 ref 方法）。文档有标题时，左缘出现目录。',
+  'The core WYSIWYG editor. Markdown in, markdown out via ref methods. The left-edge outline stays off until toc is set.':
+    '核心所见即所得编辑器。Markdown 进、Markdown 出（经 ref 方法）。左缘目录默认关闭，传入 toc 才显示。',
   'Full rich-text editing with Markdown serialization': '完整的富文本编辑 + Markdown 序列化',
   'Ref API: getMarkdown(), getHTML(), getJSON(), getEditor()': 'Ref API：getMarkdown()、getHTML()、getJSON()、getEditor()',
   'Built-in left outline: hover the ticks to expand, click to jump':
@@ -214,7 +216,11 @@ export const ZH_STRINGS: Record<string, string> = {
 
   'RSC-safe static HTML reader. Pass html from renderReportHtml() — no client JavaScript required.':
     'RSC 安全的静态 HTML 阅读器。传入 renderReportHtml() 的 html——不需要任何客户端 JS。',
+  'Pass html from renderReportHtml(). The ./reader export draws the left outline; the ./server export is the static HTML shell.':
+    '传入 renderReportHtml() 的 html。./reader 出口画左侧目录；./server 出口是静态 HTML。',
   'Pure HTML injection with editorContent styles': '纯 HTML 注入 + editorContent 样式',
+  './reader adds the same left outline as the editor': './reader 加上和编辑器一样的左侧目录',
+  './server stays a static shell with no client code': './server 仍是没有客户端代码的静态壳',
   'Also exported from tiptap-markdown-react/server': '也从 tiptap-markdown-react/server 导出',
   'Ideal for published articles and SEO pages': '适合发布文章与 SEO 页面',
   'Static reader': '静态阅读器',
@@ -298,6 +304,11 @@ export const ZH_STRINGS: Record<string, string> = {
   'Markdown string to render': '要渲染的 markdown 字符串',
   'Optional: attach url/title onto [^n] nodes by index': '可选：按 index 给 [^n] 节点附上 url/title',
   'NodeView slot: wrap the pill (e.g. host Popover). Data lookup is host-owned': 'NodeView 插槽：包住圆标（如宿主 Popover）。数据查询归宿主',
+  'Built-in UI language for the read-only code block, charts, and outline':
+    '只读代码块、图表和目录的内置界面语言',
+  'On the ./reader export: built-in left outline. The ./server export ignores this and stays static HTML':
+    './reader 出口的内置左侧目录。./server 出口忽略此项，仍是静态 HTML',
+  'Outline accessible name on the ./reader export': './reader 出口里目录的无障碍名称',
   'Built-in UI language for the read-only code block and charts': '只读代码块和图表的内置界面语言',
   'HTML from renderReportHtml(...).html': 'renderReportHtml(...).html 的产物',
   'Extra class merged with editorContent': '与 editorContent 合并的附加 class',

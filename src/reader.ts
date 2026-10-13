@@ -10,7 +10,10 @@
  */
 import './styles/chart.css';
 
-export { ReportContent, type ReportContentProps } from './ReportContent';
+export {
+  ReaderReportContent as ReportContent,
+  type ReaderReportContentProps as ReportContentProps,
+} from './components/ReaderReportContent';
 export {
   CitationInteractive,
   type CitationInteractiveProps,

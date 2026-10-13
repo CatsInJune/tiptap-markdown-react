@@ -474,7 +474,7 @@ export interface MarkdownWysiwygEditorProps {
    */
   onTocChange?: (items: TocItem[]) => void;
   /**
-   * 编辑器内目录（默认 true）。有标题时在左缘显示短横线，悬停向右展开，
+   * 编辑器内目录（默认关闭）。传入后，有标题时在左缘显示短横线，悬停向右展开，
    * 点击滚到对应标题。宽度小于 768px 时不显示。
    */
   toc?: boolean;
@@ -661,7 +661,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     placeholder,
     onEditorReady,
     onTocChange,
-    toc = true,
+    toc = false,
     markdownPaste = true,
     markdownFileDrop = true,
     extraExtensions,
