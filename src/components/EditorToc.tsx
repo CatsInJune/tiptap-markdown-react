@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { getLocaleBundle, type LocaleCode } from '../i18n';
 import styles from '../styles/editorToc.module.css';
 import type { TocItem } from '../toc/extractToc';
@@ -8,9 +8,9 @@ import { scrollToTocHeading } from '../toc/scrollToTocHeading';
 
 /** 短横线宽度：层级越高越长。 */
 function barWidth(level: number): number {
-  if (level <= 1) return 16;
-  if (level === 2) return 12;
-  if (level === 3) return 8;
+  if (level <= 1) return 20;
+  if (level === 2) return 14;
+  if (level === 3) return 10;
   return 6;
 }
 
@@ -214,6 +214,18 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
       ?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
   }, [activeId, open]);
 
+  // 键盘落在短横线上时，焦点交给已经展开的标题按钮。
+  useEffect(() => {
+    if (!open || !navRef.current) return;
+    const rail = navRef.current.querySelector('[data-toc-rail]');
+    if (!rail?.contains(document.activeElement)) return;
+    const index = Math.max(
+      0,
+      items.findIndex((item) => item.id === activeId),
+    );
+    itemRefs.current[index]?.focus();
+  }, [open, activeId, items]);
+
   const jump = (item: TocItem) => {
     const scroller = findScrollParent(editorDom);
     pinnedId.current = item.id;
@@ -241,7 +253,7 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     <div className={styles.anchor}>
       <nav
         ref={navRef}
-        className={open ? styles.navOpen : styles.nav}
+        className={styles.nav}
         aria-label={t.title}
         data-editor-toc=""
         onMouseEnter={show}
@@ -262,45 +274,58 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
           }
         }}
       >
-        <ul className={styles.list}>
+        <ul className={styles.rail} data-toc-rail="" aria-hidden={open} inert={open}>
           {items.map((item, index) => {
             const active = item.id === activeId;
             return (
               <li key={item.id}>
                 <button
                   type="button"
-                  ref={(node) => {
-                    itemRefs.current[index] = node;
-                  }}
-                  data-toc-item={item.id}
-                  tabIndex={index === roving ? 0 : -1}
-                  className={
-                    open
-                      ? `${styles.item} ${active ? styles.itemActive : ''}`
-                      : styles.barButton
-                  }
-                  style={
-                    open
-                      ? { paddingLeft: `${(item.level - 1) * 12 + 10}px` }
-                      : undefined
-                  }
+                  tabIndex={!open && index === roving ? 0 : -1}
+                  className={styles.tick}
+                  style={{ '--bar-width': `${barWidth(item.level)}px` } as CSSProperties}
                   aria-current={active ? 'true' : undefined}
                   aria-label={item.text}
                   onClick={() => jump(item)}
                 >
-                  {open ? (
-                    <span className={styles.itemText}>{item.text}</span>
-                  ) : (
-                    <span
-                      className={active ? styles.barActive : styles.bar}
-                      style={{ width: barWidth(item.level) }}
-                    />
-                  )}
+                  <span className={active ? styles.barActive : styles.bar} />
                 </button>
               </li>
             );
           })}
         </ul>
+        <div className={open ? styles.cardOpen : styles.card} inert={!open}>
+          <div className={styles.cardInner}>
+            <ul className={styles.list}>
+              {items.map((item, index) => {
+                const active = item.id === activeId;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      ref={(node) => {
+                        itemRefs.current[index] = node;
+                      }}
+                      data-toc-item={item.id}
+                      tabIndex={open && index === roving ? 0 : -1}
+                      className={active ? `${styles.item} ${styles.itemActive}` : styles.item}
+                      style={
+                        {
+                          '--toc-indent': `${(item.level - 1) * 12 + 10}px`,
+                        } as CSSProperties
+                      }
+                      aria-current={active ? 'true' : undefined}
+                      aria-label={item.text}
+                      onClick={() => jump(item)}
+                    >
+                      <span className={styles.itemText}>{item.text}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
       </nav>
     </div>
   );

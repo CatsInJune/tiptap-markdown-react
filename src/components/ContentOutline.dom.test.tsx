@@ -37,7 +37,7 @@ describe('阅读端内置目录', () => {
 
   it('有 data-toc-id 的标题时画出短横线', async () => {
     await mount(<ReaderReportContent html={html} toc />);
-    const ticks = host.querySelectorAll('[data-editor-toc] button');
+    const ticks = host.querySelectorAll('[data-toc-rail] button');
     expect(ticks).toHaveLength(2);
     expect(ticks[0]?.getAttribute('aria-label')).toBe('简介');
     expect(ticks[1]?.getAttribute('aria-label')).toBe('细节');
