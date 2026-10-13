@@ -1,9 +1,10 @@
-/* 编辑器内目录：左缘短横线，悬停向右展开标题卡片。
+/* 编辑器内目录：贴在编辑器最左缘的短横线，悬停向右展开标题卡片。
    配色与工具栏 / 斜杠菜单同一套 --tmr-*：当前项用强调色，卡片用弹层底色。 */
 
 .anchor {
   position: sticky;
   top: 88px;
+  left: 0;
   /* 高于块拖拽手柄（插件写在编辑器里的 z-index: 10）和表格手柄（30），
      展开的标题卡片才不会被六点压住。菜单面板仍是 1000。 */
   z-index: 40;
@@ -14,21 +15,23 @@
   pointer-events: none;
 }
 
-.nav,
-.navOpen {
+.nav {
   --toc-accent: var(--tmr-accent, #ff6719);
   --toc-text: var(--tmr-text, #363737);
   --toc-muted: var(--tmr-toolbar-muted, #6b6b6b);
   --toc-hover: color-mix(in srgb, var(--toc-text) 6%, transparent);
   --toc-active-bg: color-mix(in srgb, var(--toc-accent) 12%, var(--tmr-popover-bg, #fff));
+  --toc-motion: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --toc-card-width: min(240px, 70vw);
 
+  position: relative;
   flex: none;
+  width: 28px;
+  margin-left: 0;
+  padding: 2px 0;
   pointer-events: auto;
-  margin-left: 8px;
-  max-height: 60vh;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
+  overflow: visible;
+  background: transparent;
   /* 目录是界面控件，不继承正文衬线（与工具栏 / 斜杠菜单同一套） */
   font-family: 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
@@ -36,39 +39,30 @@
   color: var(--toc-text);
 }
 
-.nav {
-  width: 28px;
-  padding: 2px 0;
-}
-
-.nav::-webkit-scrollbar,
-.navOpen::-webkit-scrollbar {
-  display: none;
-}
-
-.navOpen {
-  width: min(240px, 70vw);
-  box-sizing: border-box;
-  padding: 6px;
-  border-radius: 10px;
-  background: var(--tmr-popover-bg, #fff);
-  box-shadow:
-    0 6px 24px rgb(0 0 0 / 12%),
-    0 0 0 1px color-mix(in srgb, var(--tmr-toolbar-border, #ececec) 70%, transparent);
-}
-
+.rail,
 .list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.barButton {
+.rail {
+  max-height: 60vh;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.rail::-webkit-scrollbar,
+.card::-webkit-scrollbar,
+.cardOpen::-webkit-scrollbar {
+  display: none;
+}
+
+.tick {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   width: 100%;
-  height: 8px;
+  height: 14px;
   margin: 0;
   padding: 0;
   border: none;
@@ -79,6 +73,7 @@
 .bar,
 .barActive {
   display: block;
+  width: var(--bar-width, 20px);
   height: 2px;
   border-radius: 1px;
   background: color-mix(in srgb, var(--toc-muted) 55%, transparent);
@@ -88,12 +83,49 @@
   background: var(--toc-accent);
 }
 
+/* 标题卡片盖在短横线上，宽度从左缘长出来。边框画在卡片自己的外圈阴影上，
+   不能用 clip-path，否则这圈边会被裁掉。横线本身不参与过渡。 */
+.card,
+.cardOpen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 0;
+  max-height: 60vh;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  border-radius: 10px;
+  background: var(--tmr-popover-bg, #fff);
+  box-shadow: none;
+  pointer-events: none;
+  transition: width 0.2s var(--toc-motion);
+}
+
+.cardOpen {
+  width: var(--toc-card-width);
+  overflow-x: hidden;
+  overflow-y: auto;
+  pointer-events: auto;
+  box-shadow:
+    0 6px 24px rgb(0 0 0 / 12%),
+    0 0 0 1px color-mix(in srgb, var(--tmr-toolbar-border, #ececec) 70%, transparent);
+}
+
+.cardInner {
+  box-sizing: border-box;
+  width: var(--toc-card-width);
+  padding: 6px;
+}
+
 .item {
   display: flex;
   align-items: center;
   width: 100%;
   margin: 0;
-  padding: 6px 10px;
+  padding: 6px 10px 6px var(--toc-indent, 10px);
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -101,7 +133,6 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
 }
 
 .item:hover {
@@ -123,7 +154,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .navOpen {
-    scroll-behavior: auto;
+  .card,
+  .cardOpen {
+    transition: none;
   }
 }
