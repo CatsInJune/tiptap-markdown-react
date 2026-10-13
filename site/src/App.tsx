@@ -217,7 +217,7 @@ function ComponentsPage() {
       <ComponentSection
         id="editor"
         title="MarkdownWysiwygEditor"
-        description="The core WYSIWYG editor. Markdown in, markdown out via ref methods. A left-edge outline appears when the document has headings."
+        description="The core WYSIWYG editor. Markdown in, markdown out via ref methods. The left-edge outline stays off until toc is set."
         importName="MarkdownWysiwygEditor"
         features={[
           'Full rich-text editing with Markdown serialization',
@@ -476,6 +476,7 @@ const { html } = renderReportHtml(markdown);
         importName="MarkdownPreview"
         features={[
           'Same rendering pipeline as the editor',
+          'Built-in left outline: hover the ticks to expand, click to jump',
           'Syntax highlighting via lowlight',
           'Stable heading anchors for deep links',
           'Citation pills via [^n] + optional sources',
@@ -531,12 +532,12 @@ const [active, setActive] = useState(null);
       <ComponentSection
         id="report-content"
         title="ReportContent"
-        description="RSC-safe static HTML reader. Pass html from renderReportHtml() — no client JavaScript required."
+        description="Pass html from renderReportHtml(). The ./reader export draws the left outline; the ./server export is the static HTML shell."
         importName="ReportContent"
         features={[
           'Pure HTML injection with editorContent styles',
-          'Also exported from tiptap-markdown-react/server',
-          'Ideal for published articles and SEO pages',
+          './reader adds the same left outline as the editor',
+          './server stays a static shell with no client code',
         ]}
         demo={
           <DemoBlock title="Static reader" description="Pre-rendered HTML sample — same output as renderReportHtml().">

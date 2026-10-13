@@ -1,10 +1,16 @@
 'use client';
 
+import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, ReactNodeViewRenderer, useEditor } from '@tiptap/react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { type LocaleCode } from '../i18n';
 import { usePublishEditorLocale } from '../i18n/store';
+import { useIsMobile } from '../hooks/useIsMobile';
+import type { TocItem } from '../toc/extractToc';
+import { makeTocGetId } from '../toc/tocSlug';
+import { sameTocItems } from '../toc/readTocItems';
+import { EditorToc } from './EditorToc';
 import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import {
@@ -32,8 +38,13 @@ export interface MarkdownPreviewProps {
    */
   renderCitation?: RenderCitation;
   className?: string;
-  /** 内置界面语言，默认英文。代码块与图表文案跟着变。 */
+  /** 内置界面语言，默认英文。代码块、图表和目录文案跟着变。 */
   locale?: LocaleCode;
+  /**
+   * 内置左缘目录（默认关闭）。传入后，有标题时显示短横线，悬停展开，点击滚动。
+   * 宽度小于 768px 时不显示。
+   */
+  toc?: boolean;
 }
 
 /**
@@ -51,7 +62,11 @@ export function MarkdownPreview({
   renderCitation,
   className,
   locale = 'en',
+  toc = false,
 }: MarkdownPreviewProps) {
+  const mobile = useIsMobile(768);
+  const [tocItems, setTocItems] = useState<TocItem[]>([]);
+  const tocItemsRef = useRef<TocItem[]>([]);
   const prepared = useMemo(
     () =>
       prepareChartMarkdown(
@@ -80,8 +95,23 @@ export function MarkdownPreview({
       createChart({ editable: false }),
       createCitationRef({ renderCitation }),
       Markdown,
+      TableOfContents.configure({
+        getId: makeTocGetId(),
+        onUpdate: (anchors) => {
+          const next = anchors
+            .filter((anchor) => anchor.originalLevel <= 6 && anchor.textContent.trim())
+            .map((anchor) => ({
+              id: anchor.id,
+              level: anchor.originalLevel,
+              text: anchor.textContent,
+            }));
+          if (sameTocItems(tocItemsRef.current, next)) return;
+          tocItemsRef.current = next;
+          setTocItems(next);
+        },
+      }),
     ],
-    [renderCitation],
+    [previewCodeBlock, renderCitation],
   );
 
   const editor = useEditor(
@@ -109,10 +139,19 @@ export function MarkdownPreview({
     editor.commands.setContent(prepared, { contentType: 'markdown' });
   }, [editor, prepared]);
 
+  const showToc = Boolean(editor && toc && !mobile && tocItems.length > 0);
+
   return (
-    <EditorContent
-      editor={editor}
-      className={className ?? styles.editorScroll}
-    />
+    <div className={styles.editorHost}>
+      {showToc && editor ? (
+        <EditorToc items={tocItems} editorDom={editor.view.dom} locale={locale} />
+      ) : null}
+      <EditorContent
+        editor={editor}
+        className={[className ?? styles.editorScroll, showToc ? styles.withToc : '']
+          .filter(Boolean)
+          .join(' ')}
+      />
+    </div>
   );
 }

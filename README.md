@@ -286,7 +286,7 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | `locale` | `'en' \| 'zh'` | Built-in UI language (default `en`). Pass the same value to the toolbar and any other sibling you render. The outline uses the editor's locale. |
 | `placeholder` | `string` | Placeholder for the empty document. |
 | `onEditorReady` | `(editor: Editor \| null) => void` | Get the Tiptap instance (for the toolbar). |
-| `toc` | `boolean` | Built-in outline on the left edge (default `true`). Collapsed ticks expand on hover; click scrolls to the heading. Hidden below 768px and when there are no headings. |
+| `toc` | `boolean` | Built-in outline on the left edge (default `false`). When on, collapsed ticks expand on hover and click scrolls to the heading. Hidden below 768px and when there are no headings. |
 | `onTocChange` | `(items: TocItem[]) => void` | Optional. Fires when the heading list changes. The editor draws the outline itself. |
 | `markdownPaste` | `boolean` | Auto-detect markdown in plain-text paste and convert it (Shift+paste keeps plain text). Default `true`. Init-only. |
 | `markdownFileDrop` | `boolean` | Drop or paste `.md` / `.markdown` files into the editor to insert their parsed content. Default `true`. Init-only. |
@@ -538,8 +538,9 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 | Prop | Type | Description |
 | --- | --- | --- |
 | `markdown` | `string` | Markdown to render read-only. |
-| `locale` | `'en' \| 'zh'` | Built-in copy for the read-only code block and charts (default `en`). |
+| `locale` | `'en' \| 'zh'` | Built-in copy for the read-only code block, charts, and outline (default `en`). |
 | `className` | `string` | Class on the container. |
+| `toc` | `boolean` | Built-in left outline (default `false`). Hidden under 768px or when there are no headings. |
 
 ### `tiptap-markdown-react/server` (RSC-safe)
 
@@ -547,7 +548,7 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 | --- | --- |
 | `renderReportHtml(markdown, options?)` | `{ html, toc, ok }` — markdown → HTML。`includeToc` 默认 true；卡片预览传 false。`stabilize` 给流式半成品补未闭合围栏。解析失败 `ok: false`，不把已有 HTML 吞成空串。 |
 | `stabilizeMarkdown(markdown)` | 给未闭合 ` ``` ` / `~~~` 补闭合。 |
-| `ReportContent` | `<ReportContent html={...} />` static reader with editor content styles. |
+| `ReportContent` | Static HTML shell with editor content styles. No outline. The `./reader` export of the same name draws the left outline. |
 | `extractToc`, `makeTocGetId` | TOC helpers. |
 | `baseExtensions`, `pureCodeBlock`, `pureImage`, `lowlight` | Schema-level extensions. |
 
@@ -555,8 +556,10 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 
 | Export | Description |
 | --- | --- |
-| `ReportContentInteractive` | `ReportContent` + citation click delegation. |
-| `ReportContent`, `CitationInteractive` | Compose your own wrapper. |
+| `ReportContent` | Static HTML. Pass `toc` for the same left outline as the editor (default off). |
+| `ReportContentInteractive` | `ReportContent` + citation click delegation. Outline stays off unless `toc` is set. |
+| `ReportContentWithCharts` | `ReportContent` + chart hydration. Outline stays off unless `toc` is set. |
+| `CitationInteractive` | Compose your own wrapper around server `ReportContent` when you do not want the outline. |
 | `SourceRef`, citation DOM/types | Footnote helpers. |
 | `extractFootnoteSources(markdown)` | `{ markdown, sources }` — 把 GFM 脚注定义行（`[^n]: …`）抽成 `SourceRef[]` 并从正文剥离；标记那一半交给 enrich / apply。 |
 | `scrollToTocHeading` | Scroll the reading container to a heading. |

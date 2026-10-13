@@ -63,6 +63,10 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
   const navRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const hideTimer = useRef<number | null>(null);
+  /** 点击后先钉住这一项。正文不够长、滚不到激活线时，滚动监听不能把它盖掉。 */
+  const pinnedId = useRef<string | null>(null);
+  const pinScroll = useRef<number | null>(null);
+  const pinTimer = useRef<number | null>(null);
 
   const clearHide = () => {
     if (hideTimer.current !== null) {
@@ -85,7 +89,13 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     }, 80);
   };
 
-  useEffect(() => () => clearHide(), []);
+  useEffect(
+    () => () => {
+      clearHide();
+      if (pinTimer.current !== null) window.clearTimeout(pinTimer.current);
+    },
+    [],
+  );
 
   // 视口上半区里最靠上的标题为当前章节；都离开上半区时，取已经滚过去的最后一个。
   useEffect(() => {
@@ -102,7 +112,45 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     const viewport = isViewportScroller(scrollParent);
     const visible = new Set<Element>();
 
+    const scrollPos = () =>
+      viewport ? window.scrollY : scrollParent.scrollTop;
+
     const apply = () => {
+      const pos = scrollPos();
+      if (pinnedId.current) {
+        const lockedAt = pinScroll.current;
+        if (lockedAt === null || Math.abs(pos - lockedAt) <= 2) {
+          setActiveId(pinnedId.current);
+          return;
+        }
+        pinnedId.current = null;
+        pinScroll.current = null;
+      }
+
+      const maxScroll = viewport
+        ? Math.max(
+            0,
+            (document.scrollingElement?.scrollHeight ?? 0) - window.innerHeight,
+          )
+        : Math.max(0, scrollParent.scrollHeight - scrollParent.clientHeight);
+      // 已经滚到底、后面没有更多正文时，当前项是视口里最靠下的标题。
+      if (maxScroll > 1 && pos >= maxScroll - 2) {
+        const rootBottom = viewport
+          ? window.innerHeight
+          : scrollParent.getBoundingClientRect().bottom;
+        let lastInView: HTMLElement | null = null;
+        for (const heading of headings) {
+          if (heading.getBoundingClientRect().top < rootBottom - 8) {
+            lastInView = heading;
+          }
+        }
+        const id = (lastInView ?? headings[headings.length - 1]).getAttribute(
+          'data-toc-id',
+        );
+        if (id) setActiveId(id);
+        return;
+      }
+
       const rootTop = viewport ? 0 : scrollParent.getBoundingClientRect().top;
       let best: HTMLElement | null = null;
       let bestTop = Infinity;
@@ -167,8 +215,19 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
   }, [activeId, open]);
 
   const jump = (item: TocItem) => {
+    const scroller = findScrollParent(editorDom);
+    pinnedId.current = item.id;
+    pinScroll.current = null;
     setActiveId(item.id);
-    scrollToTocHeading(item.id, findScrollParent(editorDom));
+    scrollToTocHeading(item.id, scroller);
+    if (pinTimer.current !== null) window.clearTimeout(pinTimer.current);
+    pinTimer.current = window.setTimeout(() => {
+      pinTimer.current = null;
+      if (pinnedId.current !== item.id) return;
+      pinScroll.current = isViewportScroller(scroller)
+        ? window.scrollY
+        : scroller.scrollTop;
+    }, 480);
   };
 
   const move = (delta: number) => {
