@@ -40,10 +40,6 @@ export const COMPONENT_NAV: NavGroup[] = [
     ],
   },
   {
-    title: 'Navigation',
-    items: [{ id: 'toc', label: 'TocPanel', href: '#/components?toc' }],
-  },
-  {
     title: 'UI',
     items: [{ id: 'color-palette', label: 'ColorPalette', href: '#/components?color-palette' }],
   },
@@ -99,12 +95,13 @@ export interface ApiRow {
 export const EDITOR_API: ApiRow[] = [
   { name: 'initialMarkdown', desc: 'Initial markdown content', type: 'string', defaultVal: "''" },
   { name: 'editable', desc: 'Read-only mode: same extensions/NodeViews/styles as editing; interactive controls collapse. Comments ignored when false', type: 'boolean', defaultVal: 'true' },
-  { name: 'locale', desc: 'Built-in UI language. en or zh. Toolbar, TOC and other sibling components take the same prop', type: "'en' | 'zh'", defaultVal: 'en' },
+  { name: 'locale', desc: 'Built-in UI language. en or zh. Toolbar and other sibling components take the same prop; the outline follows the editor', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'sources', desc: 'Initial citation sources for [^n] (url/title on citationRef). Init-only', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'renderCitation', desc: 'NodeView slot to wrap citation pills (Popover etc.). Init-only', type: 'RenderCitation', defaultVal: '—' },
   { name: 'placeholder', desc: 'Empty-state placeholder', type: 'string', defaultVal: '—' },
   { name: 'onEditorReady', desc: 'Called when editor is ready / destroyed', type: '(editor: Editor | null) => void', defaultVal: '—' },
-  { name: 'onTocChange', desc: 'TOC updates when headings change', type: '(items: TocItem[]) => void', defaultVal: '—' },
+  { name: 'onTocChange', desc: 'Optional. Fires when the heading list changes. The editor draws the outline itself', type: '(items: TocItem[]) => void', defaultVal: '—' },
+  { name: 'toc', desc: 'Built-in left outline. Ticks when there are headings; hover expands titles and click scrolls. Hidden under 768px', type: 'boolean', defaultVal: 'true' },
   { name: 'markdownPaste', desc: 'Auto-convert pasted markdown text (Shift+paste keeps plain text). Init-only', type: 'boolean', defaultVal: 'true' },
   { name: 'markdownFileDrop', desc: 'Drop / paste .md files to insert parsed content. Init-only', type: 'boolean', defaultVal: 'true' },
   { name: 'imageUpload', desc: 'Official ImageUploadNode-style upload: the toolbar image button inserts a drop/click placeholder block; progress shows in place and the block is replaced by the image when done. upload is required. Init-only', type: 'ImageUploadConfig', defaultVal: '—' },
@@ -169,13 +166,6 @@ export const PREVIEW_API: ApiRow[] = [
   { name: 'renderCitation', desc: 'NodeView slot: wrap the pill (e.g. host Popover). Data lookup is host-owned', type: 'RenderCitation', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
   { name: 'locale', desc: 'Built-in UI language for the read-only code block and charts', type: "'en' | 'zh'", defaultVal: 'en' },
-];
-
-export const TOC_API: ApiRow[] = [
-  { name: 'items', desc: 'TOC entries from extractToc / onTocChange', type: 'TocItem[]' },
-  { name: 'activeId', desc: 'Currently highlighted anchor id', type: 'string', defaultVal: '—' },
-  { name: 'onItemClick', desc: 'Click handler (locked items ignored)', type: '(item: TocItem) => void', defaultVal: '—' },
-  { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
 ];
 
 export const REPORT_CONTENT_API: ApiRow[] = [
@@ -439,14 +429,6 @@ export const CITATION_SOURCES = [
     title: '2025Q3 财报',
     excerpt: '营业收入：108,300,000,000美元',
   },
-];
-
-export const SAMPLE_TOC = [
-  { id: 'intro', level: 1, text: 'Introduction', locked: false },
-  { id: 'getting-started', level: 2, text: 'Getting Started', locked: false },
-  { id: 'api-reference', level: 2, text: 'API Reference', locked: false },
-  { id: 'advanced', level: 2, text: 'Advanced Usage', locked: true },
-  { id: 'changelog', level: 2, text: 'Changelog', locked: false },
 ];
 
 export const FIND_API: ApiRow[] = [

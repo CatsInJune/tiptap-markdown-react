@@ -34,6 +34,15 @@
   padding-inline-start: 76px;
 }
 
+/* 左侧目录的短横线落在拖拽留白外侧，不和手柄、评论气泡抢同一条缝。 */
+.withToc {
+  padding-inline-start: 60px;
+}
+
+.withBlockDrag.withToc {
+  padding-inline-start: 104px;
+}
+
 .withBlockDrag :global(.tmr-comment-gutter) {
   left: -70px;
 }

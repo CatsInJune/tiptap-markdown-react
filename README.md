@@ -121,16 +121,14 @@ Use the `./server` entry from a Server Component — it has no client code and n
 ```tsx
 // app/p/[slug]/page.tsx  (React Server Component)
 import { renderReportHtml, ReportContent } from 'tiptap-markdown-react/server';
-import { TocPanel } from 'tiptap-markdown-react'; // client component, for the sidebar
 import 'tiptap-markdown-react/style.css';
 
 export default async function Page() {
   const markdown = await loadMarkdown();
-  const { html, toc } = renderReportHtml(markdown);
+  const { html } = renderReportHtml(markdown);
 
   return (
     <article>
-      {/* toc can be passed to a client <TocPanel toc={toc} /> */}
       <ReportContent html={html} />
     </article>
   );
@@ -285,10 +283,11 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | --- | --- | --- |
 | `initialMarkdown` | `string` | Initial content (markdown). |
 | `editable` | `boolean` | `false` renders read-only with the **same** extensions/NodeViews/styles — interactive controls (code-block language dropdown, delete) collapse. Comments are ignored when `false`. Default `true`. |
-| `locale` | `'en' \| 'zh'` | Built-in UI language (default `en`). Pass the same value to the toolbar, TOC and any other sibling you render. |
+| `locale` | `'en' \| 'zh'` | Built-in UI language (default `en`). Pass the same value to the toolbar and any other sibling you render. The outline uses the editor's locale. |
 | `placeholder` | `string` | Placeholder for the empty document. |
 | `onEditorReady` | `(editor: Editor \| null) => void` | Get the Tiptap instance (for the toolbar). |
-| `onTocChange` | `(items: TocItem[]) => void` | Fires when headings change. |
+| `toc` | `boolean` | Built-in outline on the left edge (default `true`). Collapsed ticks expand on hover; click scrolls to the heading. Hidden below 768px and when there are no headings. |
+| `onTocChange` | `(items: TocItem[]) => void` | Optional. Fires when the heading list changes. The editor draws the outline itself. |
 | `markdownPaste` | `boolean` | Auto-detect markdown in plain-text paste and convert it (Shift+paste keeps plain text). Default `true`. Init-only. |
 | `markdownFileDrop` | `boolean` | Drop or paste `.md` / `.markdown` files into the editor to insert their parsed content. Default `true`. Init-only. |
 | `imageUpload` | `ImageUploadConfig` | Official `ImageUploadNode`-style upload (see [Image upload](#image-upload)). The toolbar's image button inserts a placeholder block you can drop a file on or click to pick; progress shows in place and the block is swapped for the image when every file finishes. `upload(file, onProgress?, signal?) => Promise<url>` is required; `accept` (`image/*`), `limit` (1), `maxSize` (0 = unlimited), `onError`, `onSuccess` are optional. Placeholder copy follows `locale`. The block never reaches the saved markdown. Init-only. |
@@ -380,12 +379,11 @@ Styling the bar from the outside: its internals use hashed CSS-module classes, s
 
 #### i18n
 
-English and Chinese ship inside the package. Each visible component takes `locale?: 'en' | 'zh'` (default `en`). There is no labels prop and no provider. The toolbar, TOC, palette, find bar and link popover are rendered by the host, so pass the same `locale` to each of them.
+English and Chinese ship inside the package. Each visible component takes `locale?: 'en' | 'zh'` (default `en`). There is no labels prop and no provider. The toolbar, palette, find bar and link popover are rendered by the host, so pass the same `locale` to each of them. The outline is drawn by the editor and follows the editor's `locale`.
 
 ```tsx
 <EditorToolbar editor={editor} locale="zh" />
 <MarkdownWysiwygEditor locale="zh" onEditorReady={setEditor} />
-<TocPanel items={toc} locale="zh" />
 ```
 
 Switching `locale` updates toolbar, find bar, shortcuts, code blocks, charts and upload placeholders without remounting the editor. Comment popover content is still whatever you pass as `children`. `LocaleCode` is exported.
@@ -542,15 +540,6 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 | `markdown` | `string` | Markdown to render read-only. |
 | `locale` | `'en' \| 'zh'` | Built-in copy for the read-only code block and charts (default `en`). |
 | `className` | `string` | Class on the container. |
-
-### `<TocPanel>` (client)
-
-| Prop | Type | Description |
-| --- | --- | --- |
-| `items` | `TocItem[]` | Table of contents items. |
-| `activeId` | `string` | Currently highlighted anchor id. |
-| `onItemClick` | `(item: TocItem) => void` | Click handler (locked items are skipped). |
-| `locale` | `'en' \| 'zh'` | Built-in panel copy (default `en`). |
 
 ### `tiptap-markdown-react/server` (RSC-safe)
 

@@ -96,6 +96,7 @@ import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
 import { CodeBlockView } from './CodeBlockView';
 import { BlockDragHandle } from './BlockDragHandle';
+import { EditorToc } from './EditorToc';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 // 带语言选择器的代码块（自定义 React NodeView）。base 不含代码块，此增强版由编辑器注入。
@@ -452,7 +453,7 @@ export interface MarkdownWysiwygEditorProps {
    * 只读态不应用评论锚定（comments 被忽略），与 MarkdownPreview 语义一致。
    */
   editable?: boolean;
-  /** 内置界面语言，默认英文。工具栏、目录等并列组件需各自传同一个值。 */
+  /** 内置界面语言，默认英文。工具栏等并列组件需各自传同一个值。目录跟着编辑器。 */
   locale?: LocaleCode;
   /**
    * 初始脚注来源：按 index 对齐 `[^n]`，写入 citationRef 的 url/title。
@@ -467,8 +468,16 @@ export interface MarkdownWysiwygEditorProps {
   placeholder?: string;
   /** editor 实例就绪 / 销毁时回调，供外部工具栏使用。 */
   onEditorReady?: (editor: Editor | null) => void;
-  /** 目录变化回调（正文标题增删改时），供侧边目录实时展示。 */
+  /**
+   * 目录变化回调（正文标题增删改时）。编辑器自己画左侧目录，
+   * 这个回调只把同一份 `TocItem[]` 交给还想自己用数据的宿主。
+   */
   onTocChange?: (items: TocItem[]) => void;
+  /**
+   * 编辑器内目录（默认 true）。有标题时在左缘显示短横线，悬停向右展开，
+   * 点击滚到对应标题。宽度小于 768px 时不显示。
+   */
+  toc?: boolean;
   /**
    * 粘贴纯文本时启发式检测 markdown 并自动转富文本(Shift+粘贴保持纯文本)。
    * 默认 true。仅初始化时生效。
@@ -625,6 +634,16 @@ export interface MarkdownWysiwygEditorProps {
   characterCount?: boolean;
 }
 
+function sameTocItems(a: TocItem[], b: TocItem[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (item, index) =>
+      item.id === b[index].id &&
+      item.level === b[index].level &&
+      item.text === b[index].text,
+  );
+}
+
 /**
  * 所见即所得 Markdown 编辑器（基于 Tiptap v3 + 官方 @tiptap/markdown）。
  * 内容进出均为 markdown 字符串。工具栏由外部渲染——通过 onEditorReady 拿到 editor 实例。
@@ -642,6 +661,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     placeholder,
     onEditorReady,
     onTocChange,
+    toc = true,
     markdownPaste = true,
     markdownFileDrop = true,
     extraExtensions,
@@ -682,7 +702,11 @@ export const MarkdownWysiwygEditor = forwardRef<
 
   const [findOpen, setFindOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [tocItems, setTocItems] = useState<TocItem[]>([]);
   const findInputRef = useRef<HTMLInputElement | null>(null);
+  const onTocChangeRef = useRef(onTocChange);
+  onTocChangeRef.current = onTocChange;
+  const tocItemsRef = useRef<TocItem[]>([]);
 
   const editor = useEditor({
     extensions: [
@@ -748,12 +772,20 @@ export const MarkdownWysiwygEditor = forwardRef<
         : []),
       TableOfContents.configure({
         getId: makeTocGetId(),
+        // 官方扩展在滚动时也会 onUpdate（只为刷新 isActive）。目录项没变就不通知，
+        // 否则每次滚动都 setState。回调走 ref：扩展只在创建时绑一次。
         onUpdate: (anchors) => {
-          onTocChange?.(
-            anchors
-              .filter((a) => a.level <= 6)
-              .map((a) => ({ id: a.id, level: a.level, text: a.textContent })),
-          );
+          const next = anchors
+            .filter((a) => a.originalLevel <= 6 && a.textContent.trim())
+            .map((a) => ({
+              id: a.id,
+              level: a.originalLevel,
+              text: a.textContent,
+            }));
+          if (sameTocItems(tocItemsRef.current, next)) return;
+          tocItemsRef.current = next;
+          setTocItems(next);
+          onTocChangeRef.current?.(next);
         },
       }),
       ...(markdownPaste ? [MarkdownPaste] : []),
@@ -1083,12 +1115,20 @@ export const MarkdownWysiwygEditor = forwardRef<
       {findBarNode && findBarTarget
         ? createPortal(findBarNode, findBarTarget)
         : null}
+      {editor && toc && !blockDragMobile && tocItems.length > 0 ? (
+        <EditorToc
+          items={tocItems}
+          editorDom={editor.view.dom}
+          locale={locale}
+        />
+      ) : null}
       <EditorContent
         editor={editor}
         className={
           [
             styles.editorScroll,
             showBlockDrag ? styles.withBlockDrag : '',
+            toc && !blockDragMobile && tocItems.length > 0 ? styles.withToc : '',
             className ?? '',
           ]
             .filter(Boolean)

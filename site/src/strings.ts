@@ -49,7 +49,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'SSR charts': 'SSR 图表',
   'SSR + citations': 'SSR + 引用标注',
   'Markdown Output': 'Markdown 输出',
-  'Table of Contents': '目录面板',
+  'Table of Contents': '目录',
   'CSS Variables': 'CSS 变量',
   'WYSIWYG Editor': '所见即所得编辑器',
 
@@ -97,11 +97,12 @@ export const ZH_STRINGS: Record<string, string> = {
     '用于编辑、阅读与导航 Markdown 内容的全家桶 React 组件。每个组件都带自成体系的样式与基于 Radix 的 UI——不依赖任何 UI 框架。',
 
   // ── 组件章节描述 ──
-  'The core WYSIWYG editor. Markdown in, markdown out via ref methods. Emits TOC updates through onTocChange.':
-    '核心所见即所得编辑器。Markdown 进、Markdown 出（经 ref 方法），并通过 onTocChange 实时上报目录。',
+  'The core WYSIWYG editor. Markdown in, markdown out via ref methods. A left-edge outline appears when the document has headings.':
+    '核心所见即所得编辑器。Markdown 进、Markdown 出（经 ref 方法）。文档有标题时，左缘出现目录。',
   'Full rich-text editing with Markdown serialization': '完整的富文本编辑 + Markdown 序列化',
   'Ref API: getMarkdown(), getHTML(), getJSON(), getEditor()': 'Ref API：getMarkdown()、getHTML()、getJSON()、getEditor()',
-  'onTocChange for live table-of-contents sync': 'onTocChange 实时同步目录',
+  'Built-in left outline: hover the ticks to expand, click to jump':
+    '内置左侧目录：悬停短横线展开，点击跳转',
   'extraExtensions hook for custom Tiptap nodes': 'extraExtensions 钩子挂自定义 Tiptap 节点',
   'Live character and word count for the whole document': '全文实时字符数 / 词数',
   'Smart punctuation via official Typography (MIT): quotes, -- and ... become curly quotes, an em dash and an ellipsis as you type. Code stays literal; --- is still a divider':
@@ -219,13 +220,6 @@ export const ZH_STRINGS: Record<string, string> = {
   'Static reader': '静态阅读器',
   'Pre-rendered HTML sample — same output as renderReportHtml().': '预渲染的 HTML 样例——与 renderReportHtml() 输出一致。',
 
-  'Sidebar table of contents. Consumes TocItem[] from onTocChange or extractToc.':
-    '侧栏目录面板。消费 onTocChange 或 extractToc 给出的 TocItem[]。',
-  'Active item highlighting via activeId': 'activeId 高亮当前项',
-  'Locked sections (e.g. paywalled content)': '锁定章节（如付费内容）',
-  'Click handler with locked-item guard': '点击回调，锁定项被拦截',
-  'TOC panel': '目录面板',
-
   '10×6 color matrix used inside EditorToolbar. Can be used standalone for custom color pickers.':
     'EditorToolbar 内用的 10×6 颜色矩阵。也可独立用于自定义取色器。',
   'None row to clear color': '「无」一行用于清除颜色',
@@ -236,7 +230,8 @@ export const ZH_STRINGS: Record<string, string> = {
     '仅服务端可用的函数。不需要浏览器或 Tiptap Editor 实例，把 markdown 渲染成 HTML + 目录。',
   'Pure function — runs in Server Components / ISR': '纯函数——可跑在 Server Components / ISR',
   'Stable slug anchors via makeTocGetId': '经 makeTocGetId 生成稳定 slug 锚点',
-  'Returns { html, toc } for ReportContent + TocPanel': '返回 { html, toc }，配合 ReportContent + TocPanel',
+  'Returns { html, toc } — toc is the extracted outline':
+    '返回 { html, toc }，toc 是抽出的目录',
 
   // ── 演示页 ──
   'Interactive examples grouped by scenario. Each block is a live preview you can edit and inspect.':
@@ -250,7 +245,10 @@ export const ZH_STRINGS: Record<string, string> = {
   'NodeView slot to wrap citation pills (Popover etc.). Init-only': '包住引用圆标的 NodeView 插槽（Popover 等）。仅初始化生效',
   'Empty-state placeholder': '空态占位文案',
   'Called when editor is ready / destroyed': '编辑器就绪 / 销毁时回调',
-  'TOC updates when headings change': '标题增删改时上报目录',
+  'Optional. Fires when the heading list changes. The editor draws the outline itself':
+    '可选。标题列表变化时回调。目录由编辑器自己画',
+  'Built-in left outline. Ticks when there are headings; hover expands titles and click scrolls. Hidden under 768px':
+    '内置左侧目录。有标题时显示短横线，悬停展开标题，点击滚动。宽度小于 768px 时隐藏',
   'Auto-convert pasted markdown text (Shift+paste keeps plain text). Init-only': '自动转换粘贴的 markdown 文本（Shift+粘贴保持纯文本）。仅初始化生效',
   'Drop / paste .md files to insert parsed content. Init-only': '拖入 / 粘贴 .md 文件插入解析后的内容。仅初始化生效',
   'Additional Tiptap extensions': '追加的 Tiptap 扩展',
@@ -300,9 +298,6 @@ export const ZH_STRINGS: Record<string, string> = {
   'Markdown string to render': '要渲染的 markdown 字符串',
   'Optional: attach url/title onto [^n] nodes by index': '可选：按 index 给 [^n] 节点附上 url/title',
   'NodeView slot: wrap the pill (e.g. host Popover). Data lookup is host-owned': 'NodeView 插槽：包住圆标（如宿主 Popover）。数据查询归宿主',
-  'TOC entries from extractToc / onTocChange': 'extractToc / onTocChange 给出的目录项',
-  'Currently highlighted anchor id': '当前高亮的锚点 id',
-  'Click handler (locked items ignored)': '点击回调（锁定项被忽略）',
   'Built-in UI language for the read-only code block and charts': '只读代码块和图表的内置界面语言',
   'HTML from renderReportHtml(...).html': 'renderReportHtml(...).html 的产物',
   'Extra class merged with editorContent': '与 editorContent 合并的附加 class',
@@ -354,8 +349,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'Deduplicated comment ids in document order': '按文档顺序去重的评论 id 列表',
   'Currently applied color (shows checkmark)': '当前应用的颜色（显示对勾）',
   'Called when a swatch is clicked; null clears': '点击色块时回调；null 表示清除',
-  'Built-in UI language. en or zh. Toolbar, TOC and other sibling components take the same prop':
-    '内置界面语言，en 或 zh。工具栏、目录等并列组件传同一个值',
+  'Built-in UI language. en or zh. Toolbar and other sibling components take the same prop; the outline follows the editor':
+    '内置界面语言，en 或 zh。工具栏等并列组件传同一个值；目录跟着编辑器',
 
   // ── API 页散文 ──
   'Complete reference for props, ref methods, utility functions, and theming tokens.':
@@ -418,7 +413,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'renderReportHtml produces static pills; click a pill — CitationInteractive emits enter/leave, host owns the Popover. Inner <a> does not navigate (pointer-events:none); use the panel link.':
     'renderReportHtml 产出静态圆标；点击圆标时 CitationInteractive 抛出 enter/leave，Popover 归宿主。内部 <a> 不导航（pointer-events:none），请用面板链接。',
   'Edit on the left — live Markdown export on the right.': '左边编辑——右边实时导出 Markdown。',
-  'Editor headings sync to TocPanel via onTocChange.': '编辑器标题经 onTocChange 实时同步到 TocPanel。',
+  'Headings show as ticks on the editor’s left edge. Hover to expand, click to jump.':
+    '标题在编辑器左缘显示成短横线。悬停展开，点击跳转。',
   'Override --tmr-accent and other tokens without forking.': '不改库源码即可覆盖 --tmr-accent 等设计令牌。',
 
   // ── 快捷键面板演示 ──

@@ -1169,38 +1169,11 @@ a {
   overflow: auto;
 }
 
-.tocDemo {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-.tocDemoAside {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.tocDemoAside button {
-  margin-top: 8px;
-  padding: 6px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #fff;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.editorTocDemo {
-  display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: 16px;
-}
-
 .editorTocDemoEditor {
   border: 1px solid var(--line-soft);
   border-radius: 8px;
   padding: 12px;
-  max-height: 280px;
+  max-height: 420px;
   overflow: auto;
 }
 
@@ -1272,9 +1245,6 @@ a {
   .markdownOutDemo {
     grid-template-columns: 1fr;
   }
-  .editorTocDemo {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 640px) {
@@ -1290,9 +1260,6 @@ a {
   .demoBody,
   .demoCardBody {
     padding: 16px;
-  }
-  .tocDemo {
-    flex-direction: column;
   }
 }
 

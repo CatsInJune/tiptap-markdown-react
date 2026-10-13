@@ -11,12 +11,10 @@ import {
   ReportContent,
   ReportContentInteractive,
   ReportContentWithCharts,
-  TocPanel,
   type CitationEnterContext,
   type CommentRef,
   type MarkdownWysiwygEditorHandle,
   type RenderCitation,
-  type TocItem,
 } from 'tiptap-markdown-react';
 import { renderReportHtml } from 'tiptap-markdown-react/server';
 import {
@@ -28,7 +26,6 @@ import {
   INGEST_MD,
   MATH_MD,
   PREVIEW_MD,
-  SAMPLE_TOC,
 } from './site-data';
 import { useLang, useTx } from './lang';
 
@@ -552,51 +549,41 @@ export function MarkdownOutputDemo() {
   );
 }
 
-/** TOC 面板 */
-export function TocDemo() {
-  const locale = useLang().lang;
-  const [activeId, setActiveId] = useState('getting-started');
-  const [items, setItems] = useState<TocItem[]>(SAMPLE_TOC);
-  return (
-    <div className="tocDemo">
-      <TocPanel
-        items={items}
-        activeId={activeId}
-        locale={locale}
-        onItemClick={(item) => !item.locked && setActiveId(item.id)}
-      />
-      <div className="tocDemoAside">
-        <p>
-          Active: <code>{activeId}</code>
-        </p>
-        <button type="button" onClick={() => setItems([...SAMPLE_TOC])}>
-          Reset items
-        </button>
-      </div>
-    </div>
-  );
-}
+const TOC_MD = `# 目录
 
-/** 编辑器内联 TOC 同步 */
+左侧短横线跟着标题走。悬停展开，点击跳到对应章节。
+
+把这一节写长一点，滚动时当前章节的那条线会变深。
+
+## 起步
+
+从这里开始。再写一段，让标题之间拉开距离。
+
+再写一段。滚动容器里，上半区最靠上的标题就是当前项。
+
+### 安装
+
+三级标题的线更短。
+
+## 接口
+
+### 参数
+
+### 返回值
+
+## 更新记录
+
+### 1.0
+
+### 1.1
+`;
+
+/** 编辑器内置左侧目录 */
 export function EditorTocDemo() {
   const locale = useLang().lang;
-  const [toc, setToc] = useState<TocItem[]>([]);
-  const [activeId, setActiveId] = useState('');
   return (
-    <div className="editorTocDemo">
-      <div className="editorTocDemoEditor">
-        <MarkdownWysiwygEditor
-          locale={locale}
-          initialMarkdown="# Intro\n\n## Getting Started\n\n## API Reference\n\n## Changelog"
-          onTocChange={setToc}
-        />
-      </div>
-      <TocPanel
-        items={toc}
-        activeId={activeId}
-        locale={locale}
-        onItemClick={(item) => setActiveId(item.id)}
-      />
+    <div className="editorTocDemoEditor">
+      <MarkdownWysiwygEditor locale={locale} initialMarkdown={TOC_MD} />
     </div>
   );
 }
@@ -777,7 +764,6 @@ export function I18nDemo() {
   const locale = useLang().lang;
   const tx = useTx();
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [toc, setToc] = useState<TocItem[]>([]);
   const [findOpen, setFindOpen] = useState(false);
   const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
 
@@ -800,22 +786,14 @@ export function I18nDemo() {
             searchActive={findOpen}
           />
         )}
-        <div className="editorTocDemo">
-          <div className="editorTocDemoEditor">
-            <MarkdownWysiwygEditor
-              ref={editorRef}
-              initialMarkdown={I18N_MD}
-              locale={locale}
-              characterCount
-              onFindOpenChange={setFindOpen}
-              onTocChange={setToc}
-              onEditorReady={setEditor}
-            />
-          </div>
-          {toc.length > 0 && (
-            <TocPanel items={toc} activeId={toc[0].id} locale={locale} />
-          )}
-        </div>
+        <MarkdownWysiwygEditor
+          ref={editorRef}
+          initialMarkdown={I18N_MD}
+          locale={locale}
+          characterCount
+          onFindOpenChange={setFindOpen}
+          onEditorReady={setEditor}
+        />
       </div>
     </div>
   );
