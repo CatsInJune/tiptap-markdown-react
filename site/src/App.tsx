@@ -21,7 +21,6 @@ import {
   PreviewDemo,
   ReportContentDemo,
   ThemeDemo,
-  TocDemo,
   ToolbarDemo,
 } from './demos';
 import {
@@ -43,7 +42,6 @@ import {
   REPORT_CONTENT_API,
   SCROLL_TO_TOC_HEADING_API,
   THEME_VARS,
-  TOC_API,
   TOC_UTIL_API,
   TOOLBAR_API,
 } from './site-data';
@@ -219,12 +217,12 @@ function ComponentsPage() {
       <ComponentSection
         id="editor"
         title="MarkdownWysiwygEditor"
-        description="The core WYSIWYG editor. Markdown in, markdown out via ref methods. Emits TOC updates through onTocChange."
+        description="The core WYSIWYG editor. Markdown in, markdown out via ref methods. A left-edge outline appears when the document has headings."
         importName="MarkdownWysiwygEditor"
         features={[
           'Full rich-text editing with Markdown serialization',
           'Ref API: getMarkdown(), getHTML(), getJSON(), getEditor()',
-          'onTocChange for live table-of-contents sync',
+          'Built-in left outline: hover the ticks to expand, click to jump',
           'extraExtensions hook for custom Tiptap nodes',
           'Image resize, alignment & captions — round-trip as HTML in Markdown',
           'Paragraph alignment, indent & line height — round-trip as <p style> in Markdown',
@@ -549,24 +547,6 @@ const [active, setActive] = useState(null);
       />
 
       <ComponentSection
-        id="toc"
-        title="TocPanel"
-        description="Sidebar table of contents. Consumes TocItem[] from onTocChange or extractToc."
-        importName="TocPanel"
-        features={[
-          'Active item highlighting via activeId',
-          'Locked sections (e.g. paywalled content)',
-          'Click handler with locked-item guard',
-        ]}
-        demo={
-          <DemoBlock title="TOC panel">
-            <TocDemo />
-          </DemoBlock>
-        }
-        api={TOC_API}
-      />
-
-      <ComponentSection
         id="color-palette"
         title="ColorPalette"
         description="10×6 color matrix used inside EditorToolbar. Can be used standalone for custom color pickers."
@@ -587,7 +567,7 @@ const [active, setActive] = useState(null);
         features={[
           'Pure function — runs in Server Components / ISR',
           'Stable slug anchors via makeTocGetId',
-          'Returns { html, toc } for ReportContent + TocPanel',
+          'Returns { html, toc } — toc is the extracted outline',
         ]}
         extra={
           <Snippet
@@ -844,17 +824,18 @@ function DemosPage() {
       <DemoBlock
         anchor="demo-toc"
         title="Table of Contents"
-        description="Editor headings sync to TocPanel via onTocChange."
+        description="Headings show as ticks on the editor’s left edge. Hover to expand, click to jump."
       >
         <EditorTocDemo />
       </DemoBlock>
       <div className="propsNote">
         <h4>{t('Props 说明')}</h4>
         <p>
-          <code>TocPanel</code>
-          {tx(' 接收 ', ' takes ')}<code>items</code>、<code>activeId</code>
-          {tx(' 与 ', ' and ')}<code>onItemClick</code>
-          {tx('。锁定项不可点击。', '. Locked items are not clickable.')}
+          <code>toc</code>
+          {tx(
+            ' 默认打开。没有标题或宽度小于 768px 时不显示。传 false 可关掉。',
+            ' is on by default. Hidden when there are no headings or the width is under 768px. Pass false to turn it off.',
+          )}
         </p>
       </div>
 
@@ -963,9 +944,6 @@ function ApiPage() {
         <ApiTable rows={CITATION_API} />
         <h4>CitationInteractive</h4>
         <ApiTable rows={CITATION_INTERACTIVE_API} />
-
-        <h3>TocPanel</h3>
-        <ApiTable rows={TOC_API} />
 
         <h3>ReportContent</h3>
         <ApiTable rows={REPORT_CONTENT_API} />

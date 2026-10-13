@@ -21,7 +21,7 @@ export {
   type MarkdownPreviewProps,
 } from './components/MarkdownPreview';
 
-// ── 工具栏 / 色板 / 目录 ──
+// ── 工具栏 / 色板 ──
 export {
   EditorToolbar,
   type EditorToolbarProps,
@@ -32,7 +32,6 @@ export {
   type ImportMenuItem,
 } from './components/EditorToolbar';
 export { ColorPalette, type ColorPaletteProps } from './components/ColorPalette';
-export { TocPanel, type TocPanelProps } from './components/TocPanel';
 export { CodeBlockView } from './components/CodeBlockView';
 export {
   FindReplaceBar,
