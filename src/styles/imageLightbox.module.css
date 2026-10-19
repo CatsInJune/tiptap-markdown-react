@@ -1,0 +1,126 @@
+/* 图片灯箱。portal 到 body，盖过工具条（z-index 最高到 1001）。 */
+
+.root {
+  display: contents;
+}
+
+/* 只有阅读态（单击打开）才把光标改成放大镜；编辑态单击是选中，不暗示单击预览。 */
+.root[data-image-preview='click'] :global(img),
+.root[data-image-preview='click'] :global(.tmr-image-crop) {
+  cursor: zoom-in;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgb(0 0 0 / 78%);
+  outline: none;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.frame {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  line-height: 0;
+  transform-origin: center center;
+}
+
+.frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+.bar {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 8px;
+  background: rgb(32 32 32 / 92%);
+  color: #fff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
+  transform: translateX(-50%);
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tool:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+.tool:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tool:disabled:hover {
+  background: transparent;
+}
+
+.count {
+  min-width: 48px;
+  padding: 0 4px;
+  font-size: 13px;
+  line-height: 32px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}

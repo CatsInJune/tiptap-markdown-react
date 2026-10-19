@@ -201,13 +201,14 @@ describe('ImageAlignTools（悬停工具条）', () => {
     editor?.destroy();
   });
 
-  it('悬浮图片浮出按钮组（三对齐 + 描述）；移开后收起（宽限 160ms）', async () => {
+  it('悬浮图片浮出按钮组（三对齐 + 裁剪 + 描述 + 预览）；移开后收起（宽限 160ms）', async () => {
     await mount();
     expect(bar()).toBeNull();
 
     await hoverImage();
     expect(bar()).not.toBeNull();
-    expect(bar()?.querySelectorAll('button').length).toBe(4);
+    expect(bar()?.querySelectorAll('button').length).toBe(6);
+    expect(bar()?.querySelector('[data-image-align-action="preview"]')).not.toBeNull();
 
     // 移到图片外：宽限后收起
     await act(async () => {
@@ -284,6 +285,40 @@ describe('ImageAlignTools（悬停工具条）', () => {
     expect(editor.getMarkdown()).toContain(
       '<figcaption>图 1：营收趋势</figcaption>',
     );
+  });
+
+  it('裁剪按钮打开面板，取消或 Esc 收起且不改文档', async () => {
+    await mount();
+    await hoverImage();
+    const before = editor.getMarkdown();
+
+    const cropBtn = document.querySelector<HTMLButtonElement>(
+      '[data-image-align-action="crop"]',
+    );
+    if (!cropBtn) throw new Error('no crop button');
+    await act(async () => {
+      cropBtn.click();
+    });
+    expect(document.querySelector('[data-image-crop]')).not.toBeNull();
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+    });
+    expect(document.querySelector('[data-image-crop]')).toBeNull();
+    expect(editor.getMarkdown()).toBe(before);
+
+    await act(async () => {
+      cropBtn.click();
+    });
+    const cancel = document.querySelector<HTMLButtonElement>('[data-image-crop-cancel]');
+    if (!cancel) throw new Error('no cancel button');
+    await act(async () => {
+      cancel.click();
+    });
+    expect(document.querySelector('[data-image-crop]')).toBeNull();
+    expect(editor.getMarkdown()).toBe(before);
   });
 });
 

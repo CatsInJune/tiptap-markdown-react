@@ -11,14 +11,16 @@ import type { DOMOutputSpec } from '@tiptap/pm/model';
 /**
  * 图片节点的 markdown 往返（客户端 / 预览 / server 三端共用）。
  *
- * 尺寸（拖拽缩放的产物，整数像素）、对齐（`data-align`）与描述（图注）在 markdown 里
- * 都没有原生语法，HTML 是唯一能带上它们的 CommonMark 合法形式：
- * `<img src="…" alt="…" width="300" data-align="center">`，
+ * 尺寸（拖拽缩放的产物，整数像素）、对齐（`data-align`）、裁剪（`data-crop`）与描述
+ * （图注）在 markdown 里都没有原生语法，HTML 是唯一能带上它们的 CommonMark 合法形式：
+ * `<img src="…" alt="…" width="300" data-align="center" data-crop="0.1000,0.0000,0.5000,1.0000">`，
  * 带描述时再包一层 `<figure><img …><figcaption>…</figcaption></figure>`（HTML 标准语义，
  * GitHub 同样认）。因此：
  *
- * - 序列化：**只有带尺寸 / 对齐 / 描述的图**输出 HTML 形式；没动过的图保持标准
+ * - 序列化：**只有带尺寸 / 对齐 / 裁剪 / 描述的图**输出 HTML 形式；没动过的图保持标准
  *   `![alt](src "title")`，markdown 不为没用过的功能付可读性代价。
+ * - 裁剪不改 `src`（原图还在）。`data-crop` 是相对原图的 `x,y,w,h`（0–1，四位小数）；
+ *   HTML 里再用一层 `.tmr-image-crop` 把可见区域裁出来，编辑态 / 预览 / SSR 同一套。
  * - 解析：自建 block 级 tokenizer 认领 `<img …>` 与 `<figure>…</figure>`（一个扩展
  *   只能挂一个 tokenizer）。不认领的话，客户端靠 `window.DOMParser` 隐式还原、
  *   server 端没有 window 会把它转义成字面文本（与 sup/sub 当初踩的是同一条边界）。
@@ -35,6 +37,22 @@ export interface ImageSizeAttrs {
 
 /** 图片对齐（HTML 属性 `data-align`，与官方 image-align-button 同名）。 */
 export type ImageAlign = 'left' | 'center' | 'right';
+
+/**
+ * 裁剪矩形，相对原图宽高的比例（0–1）。
+ * `x` / `y` 是左上角，`w` / `h` 是宽高。整张图（或几乎整张）归一成 null，不进 markdown。
+ */
+export interface ImageCrop {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** 裁剪框最短边。再小既难点中，显示也会糊成一条线。 */
+const CROP_MIN = 0.05;
+/** 贴着整张图的边（四边都在这个误差内）视为没裁，避免无意义的 data-crop。 */
+const CROP_FULL_EPS = 0.005;
 
 const IMAGE_ALIGN_VALUES = new Set<string>(['left', 'center', 'right']);
 
@@ -64,6 +82,109 @@ export const imageAlignAttribute = {
  * `caption`（图注）属性的共享配置：不进 img 标签（是节点级 renderHTML 包的
  * `<figure>/<figcaption>` 结构），解析侧从 figure 里读。
  */
+function round4(n: number): number {
+  return Math.round(n * 10000) / 10000;
+}
+
+function parseCropParts(
+  value: unknown,
+): { x: number; y: number; w: number; h: number } | null {
+  if (typeof value === 'string') {
+    const parts = value.split(',').map((part) => Number(part.trim()));
+    if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return null;
+    return { x: parts[0] ?? 0, y: parts[1] ?? 0, w: parts[2] ?? 0, h: parts[3] ?? 0 };
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const x = Number(record.x);
+    const y = Number(record.y);
+    const w = Number(record.w);
+    const h = Number(record.h);
+    if (![x, y, w, h].every((n) => Number.isFinite(n))) return null;
+    return { x, y, w, h };
+  }
+  return null;
+}
+
+/**
+ * 归一化裁剪：只认落在原图内、边长够得着的矩形。
+ * 整张图、空值、脏字符串（`data-crop="nope"`）都是 null。
+ */
+export function normalizeImageCrop(value: unknown): ImageCrop | null {
+  const parsed = parseCropParts(value);
+  if (!parsed || parsed.w <= 0 || parsed.h <= 0) return null;
+  const w = Math.min(1, Math.max(CROP_MIN, parsed.w));
+  const h = Math.min(1, Math.max(CROP_MIN, parsed.h));
+  const x = Math.min(Math.max(0, parsed.x), 1 - w);
+  const y = Math.min(Math.max(0, parsed.y), 1 - h);
+  const crop: ImageCrop = {
+    x: round4(x),
+    y: round4(y),
+    w: round4(Math.min(w, 1 - x)),
+    h: round4(Math.min(h, 1 - y)),
+  };
+  if (crop.w < CROP_MIN || crop.h < CROP_MIN) return null;
+  if (
+    crop.x <= CROP_FULL_EPS &&
+    crop.y <= CROP_FULL_EPS &&
+    crop.x + crop.w >= 1 - CROP_FULL_EPS &&
+    crop.y + crop.h >= 1 - CROP_FULL_EPS
+  ) {
+    return null;
+  }
+  return crop;
+}
+
+/** `data-crop` 的规范写法（四位小数，方便往返幂等）。 */
+export function formatImageCrop(crop: ImageCrop): string {
+  return [crop.x, crop.y, crop.w, crop.h].map((n) => n.toFixed(4)).join(',');
+}
+
+function cropPercent(value: number): string {
+  const rounded = Math.round(value * 10000) / 10000;
+  return `${rounded}%`;
+}
+
+/** img 在裁剪框里的百分比定位（框是可见区域，img 铺开整张原图）。 */
+export function cropImageBox(crop: ImageCrop): {
+  width: string;
+  height: string;
+  left: string;
+  top: string;
+} {
+  return {
+    width: cropPercent(100 / crop.w),
+    height: cropPercent(100 / crop.h),
+    left: cropPercent((-100 * crop.x) / crop.w),
+    top: cropPercent((-100 * crop.y) / crop.h),
+  };
+}
+
+/** 静态 HTML（预览 / SSR）里 img 的内联样式，与编辑态 frame 里的 img 同一套数字。 */
+export function cropImageCss(crop: ImageCrop): string {
+  const box = cropImageBox(crop);
+  return `position:absolute;max-width:none;margin:0;pointer-events:none;width:${box.width};height:${box.height};left:${box.left};top:${box.top}`;
+}
+
+/** 裁剪框的布局尺寸：宽是可见像素，高交给 aspect-ratio，窄屏 max-width:100% 时还能保持比例。 */
+export function cropFrameCss(width: number, height: number): string {
+  return `width:${width}px;aspect-ratio:${width}/${height}`;
+}
+
+/**
+ * `crop` 属性的共享配置：attrs 里是 {@link ImageCrop}，HTML 渲染成 `data-crop`。
+ * 视觉裁剪不在这个属性上（img 的 style / 外包 frame 由 imageNodeHtml 与编辑态 NodeView 写）。
+ */
+export const imageCropAttribute = {
+  default: null,
+  parseHTML: (element: HTMLElement) =>
+    normalizeImageCrop(element.getAttribute('data-crop')),
+  renderHTML: (attributes: Record<string, unknown>) => {
+    const crop = normalizeImageCrop(attributes.crop);
+    return crop ? { 'data-crop': formatImageCrop(crop) } : {};
+  },
+};
+
 export const imageCaptionAttribute = {
   default: null,
   parseHTML: (element: HTMLElement) => {
@@ -77,21 +198,48 @@ export const imageCaptionAttribute = {
   renderHTML: () => ({}),
 };
 
+/** 有裁剪时把 img 包进 `.tmr-image-crop`（可见区域 = width/height，img 按比例铺开）。 */
+function imageElementSpec(output: {
+  attrs: Record<string, unknown>;
+  htmlAttributes: Record<string, unknown>;
+}): DOMOutputSpec {
+  const crop = normalizeImageCrop(output.attrs.crop);
+  if (!crop) return ['img', output.htmlAttributes];
+  const width = toPixel(
+    output.attrs.width == null ? null : String(output.attrs.width),
+  );
+  const height = toPixel(
+    output.attrs.height == null ? null : String(output.attrs.height),
+  );
+  return [
+    'span',
+    {
+      class: 'tmr-image-crop',
+      ...(width != null && height != null
+        ? { style: cropFrameCss(width, height) }
+        : null),
+    },
+    ['img', { ...output.htmlAttributes, style: cropImageCss(crop) }],
+  ];
+}
+
 /**
  * 节点级 HTML 渲染：有描述时输出 `<figure><img …><figcaption>…</figcaption></figure>`
- * （HTML 标准语义），否则维持官方单 `<img>` 结构。两份扩展共用。
+ * （HTML 标准语义），否则维持官方单 `<img>` 结构。有裁剪时 img 外包一层裁剪框。
+ * 两份扩展共用。
  */
 export function imageNodeHtml(output: {
   attrs: Record<string, unknown>;
   htmlAttributes: Record<string, unknown>;
 }): DOMOutputSpec {
   const caption = normalizeImageCaption(output.attrs.caption);
-  if (!caption) return ['img', output.htmlAttributes];
+  const image = imageElementSpec(output);
+  if (!caption) return image;
   // 多子节点直接展开跟在元素后面（嵌套数组会被 prosemirror 的 renderSpec 判为非法）
   return [
     'figure',
     { class: 'tmr-image-figure' },
-    ['img', output.htmlAttributes],
+    image,
     ['figcaption', { class: 'tmr-image-caption' }, caption],
   ];
 }
@@ -117,6 +265,7 @@ export function imageFigureParseRule(): {
         width: toPixel(img.getAttribute('width')),
         height: toPixel(img.getAttribute('height')),
         align: normalizeImageAlign(img.getAttribute('data-align')),
+        crop: normalizeImageCrop(img.getAttribute('data-crop')),
         caption: normalizeImageCaption(caption?.textContent ?? null),
       };
     },
@@ -179,7 +328,7 @@ function toPixel(value: string | null): number | null {
 }
 
 /**
- * 图片的 markdown 序列化：带尺寸 / 对齐 / 描述的输出 HTML 形式，否则标准语法。
+ * 图片的 markdown 序列化：带尺寸 / 对齐 / 裁剪 / 描述的输出 HTML 形式，否则标准语法。
  * 描述（图注）用 `<figure>` + `<figcaption>` 包裹（HTML 标准语义，GitHub 同样认）；
  * 覆盖 @tiptap/extension-image 的内置实现（它只输出 src/alt/title，其余都会丢）。
  */
@@ -193,9 +342,10 @@ export function imageRenderMarkdown(node: {
   const width = toPixel(attrs.width == null ? null : String(attrs.width));
   const height = toPixel(attrs.height == null ? null : String(attrs.height));
   const align = normalizeImageAlign(attrs.align);
+  const crop = normalizeImageCrop(attrs.crop);
   const caption = normalizeImageCaption(attrs.caption);
 
-  if (width == null && height == null && !align && !caption) {
+  if (width == null && height == null && !align && !crop && !caption) {
     return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
   }
 
@@ -205,6 +355,7 @@ export function imageRenderMarkdown(node: {
   if (width != null) parts.push(`width="${width}"`);
   if (height != null) parts.push(`height="${height}"`);
   if (align) parts.push(`data-align="${align}"`);
+  if (crop) parts.push(`data-crop="${formatImageCrop(crop)}"`);
   const imgTag = `<img ${parts.join(' ')}>`;
 
   if (!caption) return imgTag;
@@ -230,6 +381,7 @@ function imageTokenFromImgTag(
     width: toPixel(attrValue(attrsString, 'width')),
     height: toPixel(attrValue(attrsString, 'height')),
     align: normalizeImageAlign(attrValue(attrsString, 'data-align')),
+    crop: normalizeImageCrop(attrValue(attrsString, 'data-crop')),
     caption,
   };
 }
@@ -273,7 +425,7 @@ export const imageMarkdownTokenizer: MarkdownTokenizer = {
   },
 };
 
-/** 把上面认领的 token 还原成 image 节点（含尺寸、对齐与描述）。 */
+/** 把上面认领的 token 还原成 image 节点（含尺寸、对齐、裁剪与描述）。 */
 export function imageParseMarkdown(
   token: MarkdownToken,
   helpers: MarkdownParseHelpers,
@@ -289,6 +441,7 @@ export function imageParseMarkdown(
     width: token.width ?? null,
     height: token.height ?? null,
     align: token.align ?? null,
+    crop: normalizeImageCrop(token.crop),
     caption: normalizeImageCaption(token.caption),
   });
 }

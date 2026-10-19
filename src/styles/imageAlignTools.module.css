@@ -2,7 +2,7 @@
    追踪 + fixed 定位 + portal 到 body）。配色走 --tmr-* 变量，宿主可覆盖。
 
    给宿主的稳定选择器（内部 class 是 CSS Modules 哈希过的）：根节点 [data-image-align]、
-   三个按钮 [data-image-align-action="left|center|right"]（当前方向 aria-pressed="true"）。 */
+   按钮 [data-image-align-action="left|center|right|crop|caption|preview"]（当前态 aria-pressed="true"）。 */
 
 .bar {
   position: fixed;
@@ -76,4 +76,19 @@
 .btnActive {
   color: var(--tmr-accent, #ff6719);
   background: rgb(0 0 0 / 5%);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btnApply {
+  color: #fff;
+  background: var(--tmr-accent, #ff6719);
+}
+
+.btnApply:hover:not(:disabled) {
+  background: var(--tmr-accent, #ff6719);
+  filter: brightness(0.95);
 }

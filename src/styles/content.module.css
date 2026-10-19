@@ -1632,6 +1632,52 @@
   margin-right: 0;
 }
 
+/* 裁剪：frame 是可见区域（width + aspect-ratio），img 按百分比铺开原图并被 overflow 裁掉。
+   编辑态 frame 在缩放 wrapper 里，margin 归容器；预览 / SSR 的 frame 自己带上下 margin
+   （与裸 img 同一节奏）。图注 figure 已经有 margin，里面的 frame 不再加。 */
+.editorContent :global(.tmr-image-crop) {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  margin: 0.8em 0;
+  border-radius: 6px;
+  line-height: 0;
+}
+
+.editorContent :global(.tmr-image-crop > img) {
+  position: absolute;
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+  pointer-events: none;
+}
+
+.editorContent :global([data-resize-wrapper] .tmr-image-crop),
+.editorContent :global(figure.tmr-image-figure > .tmr-image-crop) {
+  margin: 0;
+}
+
+.editorContent :global(.ProseMirror-selectednode.tmr-image-crop),
+.editorContent :global(.ProseMirror-selectednode > .tmr-image-crop),
+.editorContent :global([data-resize-container].ProseMirror-selectednode .tmr-image-crop) {
+  outline: 2px solid var(--tmr-accent, #ff6719);
+}
+
+.editorContent :global([data-resize-container].ProseMirror-selectednode .tmr-image-crop > img) {
+  outline: none;
+}
+
+/* 裁剪进行时选区盖在原图上，缩放手柄和选中描边让开，避免和裁剪框叠在一起。 */
+.editorContent :global([data-resize-container][data-image-cropping] [data-resize-handle]) {
+  display: none;
+}
+
+.editorContent :global([data-resize-container][data-image-cropping].ProseMirror-selectednode img),
+.editorContent :global([data-resize-container][data-image-cropping] .tmr-image-crop) {
+  outline: none;
+}
+
 /* 图片缩放手柄。官方 ResizableNodeView 只给手柄内联定位（top/left/bottom/right），
    没有视觉样式——尺寸与配色在这里定；拖动逻辑归 JS（mousedown→mousemove→commit）。
    显示时机：仅鼠标悬浮图片时出现（拖拽中保持），移开即隐。 */

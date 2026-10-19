@@ -126,13 +126,16 @@ export {
   setImageAlignAt,
 } from './imageAlign';
 export { setImageCaption, setImageCaptionAtPos } from './imageCaption';
+export { setImageCrop, setImageCropAtPos } from './imageCrop';
 export {
   imageMarkdownTokenizer,
   imageParseMarkdown,
   imageRenderMarkdown,
   normalizeImageAlign,
   normalizeImageCaption,
+  normalizeImageCrop,
   type ImageAlign,
+  type ImageCrop,
   type ImageSizeAttrs,
 } from './imageMarkdown';
 export { MarkdownPaste, looksLikeMarkdown } from './markdownPaste';

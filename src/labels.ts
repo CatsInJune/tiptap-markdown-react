@@ -64,6 +64,30 @@ export interface ToolbarLabels {
   imageCaption: string;
   /** 描述输入框的占位与无障碍名。 */
   imageCaptionPlaceholder: string;
+  /** 图片裁剪按钮的 title / aria-label。 */
+  imageCrop: string;
+  /** 裁剪面板「应用」按钮。 */
+  imageCropApply: string;
+  /** 裁剪面板「取消」按钮。 */
+  imageCropCancel: string;
+  /** 裁剪面板「重置」按钮：去掉裁剪，回到整张原图。 */
+  imageCropReset: string;
+  /** 编辑态工具条「预览」按钮：打开大图灯箱。 */
+  imagePreview: string;
+  /** 灯箱关闭按钮。 */
+  imagePreviewClose: string;
+  /** 灯箱上一张。 */
+  imagePreviewPrev: string;
+  /** 灯箱下一张。 */
+  imagePreviewNext: string;
+  /** 灯箱缩小。 */
+  imagePreviewZoomOut: string;
+  /** 灯箱放大。 */
+  imagePreviewZoomIn: string;
+  /** 灯箱「自适应」：缩回当前视口。 */
+  imagePreviewFit: string;
+  /** 灯箱顺时针旋转。 */
+  imagePreviewRotate: string;
   /** Markdown 文件导入失败（与图片上传共用 onError 回调时，便于宿主区分文案）。 */
   importMarkdownFailed: string;
   /** 主栏导入下拉触发器上的短文案（对齐 style / fontSize）。 */
@@ -231,6 +255,18 @@ export const defaultToolbarLabels: ToolbarLabels = {
   imageAlignRight: 'Align right',
   imageCaption: 'Caption',
   imageCaptionPlaceholder: 'Add a caption…',
+  imageCrop: 'Crop',
+  imageCropApply: 'Apply',
+  imageCropCancel: 'Cancel',
+  imageCropReset: 'Reset crop',
+  imagePreview: 'Preview',
+  imagePreviewClose: 'Close',
+  imagePreviewPrev: 'Previous image',
+  imagePreviewNext: 'Next image',
+  imagePreviewZoomOut: 'Zoom out',
+  imagePreviewZoomIn: 'Zoom in',
+  imagePreviewFit: 'Fit',
+  imagePreviewRotate: 'Rotate',
   importMarkdownFailed: 'Markdown import failed',
   importDocument: 'Import',
   importDocumentHint: 'Import a file',
