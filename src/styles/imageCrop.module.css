@@ -1,0 +1,100 @@
+/* 选区盖在文档原图上（overlay 与原图等大）。比例相对这一层，不另开缩略图。 */
+
+.surface {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  user-select: none;
+  cursor: default;
+}
+
+.dim {
+  position: absolute;
+  background: rgb(0 0 0 / 45%);
+  pointer-events: none;
+}
+
+/* 裁剪框本身透明，只负责描边和拖动手柄。 */
+.box {
+  position: absolute;
+  border: 1.5px dashed var(--tmr-accent, #ff6719);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 85%);
+  cursor: move;
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, transparent 33.33%, rgb(255 255 255 / 55%) 33.33%, rgb(255 255 255 / 55%) calc(33.33% + 1px), transparent calc(33.33% + 1px), transparent 66.66%, rgb(255 255 255 / 55%) 66.66%, rgb(255 255 255 / 55%) calc(66.66% + 1px), transparent calc(66.66% + 1px)),
+    linear-gradient(to bottom, transparent 33.33%, rgb(255 255 255 / 55%) 33.33%, rgb(255 255 255 / 55%) calc(33.33% + 1px), transparent calc(33.33% + 1px), transparent 66.66%, rgb(255 255 255 / 55%) 66.66%, rgb(255 255 255 / 55%) calc(66.66% + 1px), transparent calc(66.66% + 1px));
+  pointer-events: none;
+}
+
+.handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid var(--tmr-accent, #ff6719);
+  border-radius: 2px;
+}
+
+.handle[data-crop-handle='nw'] {
+  top: -5px;
+  left: -5px;
+  cursor: nwse-resize;
+}
+
+.handle[data-crop-handle='ne'] {
+  top: -5px;
+  right: -5px;
+  cursor: nesw-resize;
+}
+
+.handle[data-crop-handle='sw'] {
+  bottom: -5px;
+  left: -5px;
+  cursor: nesw-resize;
+}
+
+.handle[data-crop-handle='se'] {
+  right: -5px;
+  bottom: -5px;
+  cursor: nwse-resize;
+}
+
+.handle[data-crop-handle='n'],
+.handle[data-crop-handle='s'] {
+  left: 50%;
+  width: 18px;
+  height: 6px;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.handle[data-crop-handle='n'] {
+  top: -4px;
+}
+
+.handle[data-crop-handle='s'] {
+  bottom: -4px;
+}
+
+.handle[data-crop-handle='e'],
+.handle[data-crop-handle='w'] {
+  top: 50%;
+  width: 6px;
+  height: 18px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.handle[data-crop-handle='e'] {
+  right: -4px;
+}
+
+.handle[data-crop-handle='w'] {
+  left: -4px;
+}

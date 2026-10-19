@@ -57,11 +57,13 @@ import type {
 import { baseExtensions, lowlight } from '../extensions';
 import { isComposingKeyEvent } from '../findReplace';
 import { FindReplaceBar } from './FindReplaceBar';
+import { ImagePreviewHost } from './ImageLightbox';
 import { ImportPlaceholder } from '../importPlaceholder';
 import { ImageUploadNode, type ImageUploadConfig } from '../imageUpload';
 import {
   imageAlignAttribute,
   imageCaptionAttribute,
+  imageCropAttribute,
   imageFigureParseRule,
   imageMarkdownTokenizer,
   imageNodeHtml,
@@ -70,6 +72,7 @@ import {
   normalizeImageCaption,
 } from '../imageMarkdown';
 import { setImageAlign } from '../imageAlign';
+import { syncResizableImageCrop } from '../imageCropLayout';
 import { configureEmojiSuggestion } from '../emoji/EmojiSuggestion';
 import { getLocaleBundle, type LocaleCode } from '../i18n';
 import { usePublishEditorLocale } from '../i18n/store';
@@ -151,6 +154,7 @@ export const ImageWithConfirmDelete = Image.extend({
       ...(Image.config.addAttributes?.call(this) ?? {}),
       align: imageAlignAttribute,
       caption: imageCaptionAttribute,
+      crop: imageCropAttribute,
     };
   },
 
@@ -235,6 +239,7 @@ export const ImageWithConfirmDelete = Image.extend({
         element?: HTMLElement;
         maxSize?: { width?: number; height?: number };
         removeHandles?: () => void;
+        onResize?: (width: number, height: number) => void;
       };
 
       // 「打开就是只读」的文档：官方只在收到第一个 update 事件后才同步 editable（摘手柄），
@@ -269,7 +274,10 @@ export const ImageWithConfirmDelete = Image.extend({
         (element.parentElement ?? container).appendChild(captionEl);
 
         const syncHandleTop = () => {
-          const height = element.offsetHeight;
+          // 裁剪后 img 被绝对定位、比可见区域大；手柄要相对裁剪框，而不是整张原图。
+          const frame = element.closest('.tmr-image-crop');
+          const box = frame instanceof HTMLElement ? frame : element;
+          const height = box.offsetHeight;
           if (height > 0) {
             container.style.setProperty('--tmr-image-h', `${height}px`);
           } else {
@@ -290,19 +298,26 @@ export const ImageWithConfirmDelete = Image.extend({
 
       // 官方 onUpdate 把 width/height 划进「拖拽自己管」的集合直接跳过，于是程序化改
       // 尺寸（resetImageSize 清掉、宿主 updateAttributes）后数据变了、视觉不动。
-      // 这里在 update 后把 style 对齐 attrs（图注文案也顺带同步）；拖拽路径不经过
+      // 这里在 update 后把 style 对齐 attrs（裁剪框 / 图注文案也顺带同步）；拖拽路径不经过
       // update，互不干扰。
-      if (resizable.element) {
-        const { element } = resizable;
+      if (resizable.element instanceof HTMLImageElement) {
+        const img = resizable.element;
+        const host = resizable as {
+          element: HTMLElement;
+          onResize?: (width: number, height: number) => void;
+        };
+        const sync = (attrs: Record<string, unknown>) => {
+          syncResizableImageCrop(host, img, attrs);
+          syncCaption?.(attrs);
+        };
+        sync(props.node.attrs);
         const originalUpdate = nodeView.update?.bind(nodeView);
         if (originalUpdate) {
           nodeView.update = (...args) => {
             const ok = originalUpdate(...args);
             if (ok) {
               const attrs = (args[0] as { attrs: Record<string, unknown> }).attrs;
-              element.style.width = attrs.width ? `${attrs.width}px` : '';
-              element.style.height = attrs.height ? `${attrs.height}px` : '';
-              syncCaption?.(attrs);
+              sync(attrs);
             }
             return ok;
           };
@@ -1122,19 +1137,21 @@ export const MarkdownWysiwygEditor = forwardRef<
           locale={locale}
         />
       ) : null}
-      <EditorContent
-        editor={editor}
-        className={
-          [
-            styles.editorScroll,
-            showBlockDrag ? styles.withBlockDrag : '',
-            toc && !blockDragMobile && tocItems.length > 0 ? styles.withToc : '',
-            className ?? '',
-          ]
-            .filter(Boolean)
-            .join(' ')
-        }
-      />
+      <ImagePreviewHost locale={locale} activate={editable ? 'dblclick' : 'click'}>
+        <EditorContent
+          editor={editor}
+          className={
+            [
+              styles.editorScroll,
+              showBlockDrag ? styles.withBlockDrag : '',
+              toc && !blockDragMobile && tocItems.length > 0 ? styles.withToc : '',
+              className ?? '',
+            ]
+              .filter(Boolean)
+              .join(' ')
+          }
+        />
+      </ImagePreviewHost>
       {editor && showBlockDrag ? (
         <BlockDragHandle editor={editor} />
       ) : null}

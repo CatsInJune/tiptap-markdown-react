@@ -7,17 +7,20 @@ import { findImagePos } from './imageAlign';
  *
  * 拖拽缩放只有入口没有出口：拖过尺寸的图在 markdown 里是 `<img …>`，想在保存形态上
  * 反悔（比如拖歪了、想恢复原图全尺寸）时——undo 之外没有别的路。这个工具补上出口：
- * 宿主可以接自己的按钮 / 菜单（库内暂不渲染 UI）。
+ * 宿主可以接自己的按钮 / 菜单（库内暂不渲染 UI）。裁剪一并清掉，否则撤掉尺寸后
+ * `data-crop` 还在，预览没有宽高可撑开裁剪框。
  *
  * @returns 是否找到并重置了图片。没找到图（光标不在图旁）时返回 false。
  */
 export function resetImageSize(editor: Editor): boolean {
   const pos = findImagePos(editor);
   if (pos == null) return false;
+  // crop 和显示尺寸一起写。只清 width/height 会留下没有布局盒子的 data-crop，
+  // 预览里裁剪框高度为 0。尺寸的「反悔」因此连裁剪一起撤。
   return editor
     .chain()
     .focus()
     .setNodeSelection(pos)
-    .updateAttributes('image', { width: null, height: null })
+    .updateAttributes('image', { width: null, height: null, crop: null })
     .run();
 }

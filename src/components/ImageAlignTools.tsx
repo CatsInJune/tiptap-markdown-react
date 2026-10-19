@@ -14,12 +14,27 @@ import {
   AlignLeftIcon,
   AlignRightIcon,
   CaptionsIcon,
+  CheckIcon,
+  CropIcon,
+  ExpandIcon,
+  RotateCcwIcon,
+  XIcon,
   type IconProps,
 } from '../icons';
 import type { ToolbarLabels } from '../labels';
 import { setImageCaptionAtPos } from '../imageCaption';
+import { setImageCropAtPos } from '../imageCrop';
 import { setImageAlignAtPos } from '../imageAlign';
-import { normalizeImageAlign, normalizeImageCaption, type ImageAlign } from '../imageMarkdown';
+import {
+  normalizeImageAlign,
+  normalizeImageCaption,
+  normalizeImageCrop,
+  type ImageAlign,
+  type ImageCrop,
+} from '../imageMarkdown';
+import { ImageCropStage, type ImageCropStageHandle } from './ImageCropStage';
+import { openCropSurface, type CropSurface } from '../imageCropLayout';
+import { requestImagePreview } from '../imagePreview';
 import styles from '../styles/imageAlignTools.module.css';
 
 export interface ImageAlignToolsProps {
@@ -71,7 +86,8 @@ function measureImage(editor: Editor, img: HTMLImageElement): HoverImage | null 
   }
   const node = editor.state.doc.nodeAt(pos);
   if (!node || node.type.name !== 'image') return null;
-  const rect = img.getBoundingClientRect();
+  const frame = img.closest('.tmr-image-crop');
+  const rect = (frame instanceof HTMLElement ? frame : img).getBoundingClientRect();
   return {
     pos,
     img,
@@ -83,8 +99,8 @@ function measureImage(editor: Editor, img: HTMLImageElement): HoverImage | null 
 }
 
 /**
- * 图片对齐工具条（悬停式，与表格悬停手柄同一套交互）：鼠标落在图片上时，图片上方
- * （放不下就下方）浮出一排左 / 中 / 右按钮，点一下即对齐，当前对齐方向高亮。
+ * 图片工具条（悬停式，与表格悬停手柄同一套交互）：鼠标落在图片上时，图片上方
+ * （放不下就下方）浮出左 / 中 / 右、裁剪、描述。点对齐即生效；裁剪打开原图上的选框。
  *
  * fixed 定位 + portal 到 body：它要贴着图片边缘，而工具栏并不在编辑器 DOM 内。
  * 滚动 / 缩放时重新量悬停的那张图让工具条跟着走。
@@ -99,12 +115,21 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
   const [captionDraft, setCaptionDraft] = useState<string | null>(null);
   const captionDraftRef = useRef<string | null>(null);
   captionDraftRef.current = captionDraft;
+  /** 裁剪进行时，鼠标离开图片也不收工具条。选区画在文档原图上。 */
+  const [cropping, setCropping] = useState(false);
+  const cropOpenRef = useRef(false);
+  cropOpenRef.current = cropping;
+  const cropSessionRef = useRef<CropSurface | null>(null);
+  const cropStageRef = useRef<ImageCropStageHandle>(null);
+  const [cropOverlay, setCropOverlay] = useState<HTMLElement | null>(null);
 
   const clearHover = useCallback(() => {
     if (!hoverRef.current) return;
     hoverRef.current = null;
     setHover(null);
     setCaptionDraft(null);
+    cropOpenRef.current = false;
+    setCropping(false);
   }, []);
 
   /** 重新量一遍悬停的那张图（滚动 / 缩放 / 属性更新后坐标与元素都会变样）。 */
@@ -144,14 +169,20 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
         return;
       }
 
+      const cropHost =
+        target && editor.view.dom.contains(target)
+          ? target.closest('.tmr-image-crop')
+          : null;
       const img =
         target && editor.view.dom.contains(target)
-          ? (target.closest('img') as HTMLImageElement | null)
+          ? ((cropHost instanceof HTMLElement
+              ? cropHost.querySelector('img')
+              : target.closest('img')) as HTMLImageElement | null)
           : null;
 
       if (!img) {
-        // 正在输入描述：不自动收（用户可能在拖选文字 / 鼠标短暂移开）
-        if (captionDraftRef.current !== null) return;
+        // 正在输入描述 / 裁剪：不自动收（用户可能在拖选区，鼠标短暂移开）
+        if (captionDraftRef.current !== null || cropOpenRef.current) return;
         // 既不在图片也不在工具条上：宽限一段再收（指针可能正走向工具条）
         if (hoverRef.current && clearTimerRef.current === null) {
           clearTimerRef.current = setTimeout(() => {
@@ -164,6 +195,8 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
 
       cancelPendingClear();
       if (hoverRef.current?.img === img) return;
+      // 换了一张图：上一张的裁剪面板没有可落的位置
+      setCropping(false);
       const next = measureImage(editor, img);
       hoverRef.current = next;
       setHover(next);
@@ -195,6 +228,32 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
     };
   }, [editor, remeasureHover]);
 
+  useEffect(() => {
+    if (!cropping) return;
+    const current = hoverRef.current;
+    if (!current) return;
+    const dom = editor.view.nodeDOM(current.pos);
+    const img =
+      dom instanceof HTMLImageElement
+        ? dom
+        : dom instanceof HTMLElement
+          ? dom.querySelector('img')
+          : null;
+    if (!(img instanceof HTMLImageElement)) return;
+    const crop = normalizeImageCrop(
+      editor.state.doc.nodeAt(current.pos)?.attrs.crop,
+    );
+    const session = openCropSurface(img, crop);
+    cropSessionRef.current = session;
+    setCropOverlay(session.overlay);
+    remeasureHover();
+    return () => {
+      session.restore();
+      if (cropSessionRef.current === session) cropSessionRef.current = null;
+      setCropOverlay(null);
+    };
+  }, [cropping, editor, remeasureHover]);
+
   if (typeof document === 'undefined') return null;
   if (!hover || !editor.isEditable) return null;
 
@@ -204,6 +263,7 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
   const nodeAttrs = editor.state.doc.nodeAt(hover.pos)?.attrs;
   const active = normalizeImageAlign(nodeAttrs?.align);
   const caption = normalizeImageCaption(nodeAttrs?.caption);
+  const crop = normalizeImageCrop(nodeAttrs?.crop);
   const labelOf: Record<ImageAlign, string> = {
     left: labels.imageAlignLeft,
     center: labels.imageAlignCenter,
@@ -215,6 +275,37 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
     setImageCaptionAtPos(editor, hover.pos, captionDraft);
     setCaptionDraft(null);
     // 描述显示在图片下方 → 几何变了，重新量一遍让工具条归位
+    remeasureHover();
+  };
+
+  const commitCrop = (next: ImageCrop | null) => {
+    const pos = hover.pos;
+    const session = cropSessionRef.current;
+    const dom = editor.view.nodeDOM(pos);
+    const img =
+      dom instanceof HTMLImageElement
+        ? dom
+        : dom instanceof HTMLElement
+          ? dom.querySelector('img')
+          : null;
+    const naturalWidth = img?.naturalWidth ?? 0;
+    const naturalHeight = img?.naturalHeight ?? 0;
+    const attrWidth = Number(nodeAttrs?.width);
+    const displayWidth =
+      (session && session.displayWidth > 0 ? session.displayWidth : 0) ||
+      (Number.isFinite(attrWidth) && attrWidth > 0 ? attrWidth : 0) ||
+      naturalWidth;
+    // 先放开 DOM 锁，紧接着的 attrs 同步才会把展开的原图收成新的裁剪窗口。
+    session?.discard();
+    setImageCropAtPos(
+      editor,
+      pos,
+      next,
+      naturalWidth > 0 && naturalHeight > 0 && displayWidth > 0
+        ? { naturalWidth, naturalHeight, displayWidth }
+        : null,
+    );
+    setCropping(false);
     remeasureHover();
   };
 
@@ -262,6 +353,24 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
 
       <button
         type="button"
+        data-image-align-action="crop"
+        className={`${styles.btn} ${crop || cropping ? styles.btnActive : ''}`}
+        title={labels.imageCrop}
+        aria-label={labels.imageCrop}
+        aria-pressed={!!crop || cropping}
+        onClick={() => {
+          setCaptionDraft(null);
+          setCropping((open) => {
+            cropOpenRef.current = !open;
+            return !open;
+          });
+        }}
+      >
+        <CropIcon size={14} />
+      </button>
+
+      <button
+        type="button"
         data-image-align-action="caption"
         className={`${styles.btn} ${caption ? styles.btnActive : ''}`}
         title={labels.imageCaption}
@@ -270,11 +379,72 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
         onClick={() => {
           // 已打开就交给输入框的 blur 提交；这里只管打开
           if (captionDraftRef.current !== null) return;
+          cropOpenRef.current = false;
+          setCropping(false);
           setCaptionDraft(caption ?? '');
         }}
       >
         <CaptionsIcon size={14} />
       </button>
+
+      {cropping ? null : (
+        <button
+          type="button"
+          data-image-align-action="preview"
+          className={styles.btn}
+          title={labels.imagePreview}
+          aria-label={labels.imagePreview}
+          onClick={() => {
+            const dom = editor.view.nodeDOM(hover.pos);
+            const img =
+              dom instanceof HTMLImageElement
+                ? dom
+                : dom instanceof HTMLElement
+                  ? dom.querySelector('img')
+                  : null;
+            if (img instanceof HTMLImageElement) requestImagePreview(img);
+          }}
+        >
+          <ExpandIcon size={14} />
+        </button>
+      )}
+
+      {cropping ? (
+        <>
+          <span className={styles.divider} aria-hidden />
+          <button
+            type="button"
+            className={styles.btn}
+            data-image-crop-reset=""
+            title={labels.imageCropReset}
+            aria-label={labels.imageCropReset}
+            disabled={!crop}
+            onClick={() => commitCrop(null)}
+          >
+            <RotateCcwIcon size={14} />
+          </button>
+          <button
+            type="button"
+            className={styles.btn}
+            data-image-crop-cancel=""
+            title={labels.imageCropCancel}
+            aria-label={labels.imageCropCancel}
+            onClick={() => setCropping(false)}
+          >
+            <XIcon size={14} />
+          </button>
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.btnApply}`}
+            data-image-crop-apply=""
+            title={labels.imageCropApply}
+            aria-label={labels.imageCropApply}
+            onClick={() => cropStageRef.current?.apply()}
+          >
+            <CheckIcon size={14} />
+          </button>
+        </>
+      ) : null}
 
       {captionDraft !== null ? (
         <div className={styles.captionRow}>
@@ -294,6 +464,17 @@ export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
             onBlur={commitCaption}
           />
         </div>
+      ) : null}
+
+      {cropOverlay ? (
+        <ImageCropStage
+          ref={cropStageRef}
+          overlay={cropOverlay}
+          crop={crop}
+          label={labels.imageCrop}
+          onApply={commitCrop}
+          onCancel={() => setCropping(false)}
+        />
       ) : null}
     </div>,
     document.body,

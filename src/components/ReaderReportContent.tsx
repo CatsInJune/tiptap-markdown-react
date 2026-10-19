@@ -6,6 +6,7 @@ import {
   type ReportContentProps,
 } from '../ReportContent';
 import { ContentOutline } from './ContentOutline';
+import { ImagePreviewHost } from './ImageLightbox';
 
 export interface ReaderReportContentProps extends ReportContentProps {
   /**
@@ -30,7 +31,9 @@ export function ReaderReportContent({
 }: ReaderReportContentProps) {
   return (
     <ContentOutline toc={toc} locale={locale} watch={html}>
-      <ReportContent html={html} className={className} {...rest} />
+      <ImagePreviewHost locale={locale} activate="click">
+        <ReportContent html={html} className={className} {...rest} />
+      </ImagePreviewHost>
     </ContentOutline>
   );
 }

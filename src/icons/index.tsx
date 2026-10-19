@@ -206,6 +206,14 @@ export const CaptionsIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** 裁剪：两把角尺，path 取自 Lucide（ISC）。 */
+export const CropIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+    <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+  </Svg>
+);
+
 export const ImportIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 3v12" />
@@ -318,6 +326,69 @@ export const XIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M18 6 6 18" />
     <path d="m6 6 12 12" />
+  </Svg>
+);
+
+export const ChevronLeftIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m15 18-6-6 6-6" />
+  </Svg>
+);
+
+export const ChevronRightIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m9 18 6-6-6-6" />
+  </Svg>
+);
+
+/** 放大镜加号，path 取自 Lucide（ISC）。 */
+export const ZoomInIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+    <path d="M11 8v6" />
+    <path d="M8 11h6" />
+  </Svg>
+);
+
+/** 放大镜减号，path 取自 Lucide（ISC）。 */
+export const ZoomOutIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="11" cy="11" r="8" />
+    <path d="m21 21-4.3-4.3" />
+    <path d="M8 11h6" />
+  </Svg>
+);
+
+/** 顺时针旋转，path 取自 Lucide（ISC）。 */
+export const RotateCwIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+  </Svg>
+);
+
+/** 四角向内，灯箱「自适应」：缩回视口，path 取自 Lucide shrink（ISC）。 */
+export const FitIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="m15 15 6 6" />
+    <path d="m15 9 6-6" />
+    <path d="M21 16v5h-5" />
+    <path d="M21 8V3h-5" />
+    <path d="M3 16v5h5" />
+    <path d="m3 21 6-6" />
+    <path d="M3 8V3h5" />
+    <path d="M9 9 3 3" />
+  </Svg>
+);
+
+/** 四角展开，编辑器里的「图片预览」入口，path 取自 Lucide（ISC）。 */
+export const ExpandIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M15 3h6v6" />
+    <path d="m21 3-7 7" />
+    <path d="M9 21H3v-6" />
+    <path d="m3 21 7-7" />
   </Svg>
 );
 

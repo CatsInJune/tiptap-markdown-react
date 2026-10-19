@@ -36,6 +36,7 @@ import { parseCodeTokenAsChartOrCodeBlock } from './chart/codeBlockChartParse';
 import {
   imageAlignAttribute,
   imageCaptionAttribute,
+  imageCropAttribute,
   imageFigureParseRule,
   imageMarkdownTokenizer,
   imageNodeHtml,
@@ -206,6 +207,7 @@ export const pureImage = Image.extend({
       ...(Image.config.addAttributes?.call(this) ?? {}),
       align: imageAlignAttribute,
       caption: imageCaptionAttribute,
+      crop: imageCropAttribute,
     };
   },
   parseHTML() {

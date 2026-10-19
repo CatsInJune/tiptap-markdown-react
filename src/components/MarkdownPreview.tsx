@@ -21,6 +21,7 @@ import type { RenderCitation } from '../citationTypes';
 import { createCitationRef } from '../createCitationRef';
 import { baseExtensions, pureCodeBlock, pureImage } from '../extensions';
 import { CodeBlockView } from './CodeBlockView';
+import { ImagePreviewHost } from './ImageLightbox';
 import '../styles/chart.css';
 import styles from '../styles/content.module.css';
 
@@ -146,12 +147,14 @@ export function MarkdownPreview({
       {showToc && editor ? (
         <EditorToc items={tocItems} editorDom={editor.view.dom} locale={locale} />
       ) : null}
-      <EditorContent
-        editor={editor}
-        className={[className ?? styles.editorScroll, showToc ? styles.withToc : '']
-          .filter(Boolean)
-          .join(' ')}
-      />
+      <ImagePreviewHost locale={locale} activate="click">
+        <EditorContent
+          editor={editor}
+          className={[className ?? styles.editorScroll, showToc ? styles.withToc : '']
+            .filter(Boolean)
+            .join(' ')}
+        />
+      </ImagePreviewHost>
     </div>
   );
 }
