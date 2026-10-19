@@ -1653,6 +1653,19 @@
   pointer-events: none;
 }
 
+/* 预览 / SSR：居中和右对齐要推裁剪框。框有明确宽度，左右 margin auto 才有效。 */
+.editorContent :global(.tmr-image-crop[data-align='center']) {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.editorContent :global(.tmr-image-crop[data-align='right']) {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* 编辑态对齐走缩放容器的 justify-content；图注 figure 自己带对齐。
+   这两处框的 margin 必须在上面的对齐规则之后清零，否则 auto 会撑开容器。 */
 .editorContent :global([data-resize-wrapper] .tmr-image-crop),
 .editorContent :global(figure.tmr-image-figure > .tmr-image-crop) {
   margin: 0;

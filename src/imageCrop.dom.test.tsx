@@ -165,6 +165,21 @@ describe('图片裁剪的 markdown 往返', () => {
     expect(rendered.html).toContain('width:200%');
     expect(rendered.html).toContain('src="https://x/a.png"');
   });
+
+  it('居中后再裁剪，对齐落在裁剪框上（预览靠它 margin auto）', () => {
+    const rendered = renderReportHtml(
+      '<img src="https://x/a.png" alt="a" width="200" height="200" data-align="center" data-crop="0.0000,0.0000,0.5000,1.0000">',
+    );
+    expect(rendered.html).toMatch(
+      /<span(?=[^>]*class="tmr-image-crop")(?=[^>]*data-align="center")[^>]*>/,
+    );
+    const right = renderReportHtml(
+      '<img src="https://x/a.png" alt="a" width="200" height="200" data-align="right" data-crop="0.0000,0.0000,0.5000,1.0000">',
+    );
+    expect(right.html).toMatch(
+      /<span(?=[^>]*class="tmr-image-crop")(?=[^>]*data-align="right")[^>]*>/,
+    );
+  });
 });
 
 describe('setImageCropAtPos / 编辑态裁剪框', () => {

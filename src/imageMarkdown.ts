@@ -205,6 +205,7 @@ function imageElementSpec(output: {
 }): DOMOutputSpec {
   const crop = normalizeImageCrop(output.attrs.crop);
   if (!crop) return ['img', output.htmlAttributes];
+  const align = normalizeImageAlign(output.attrs.align);
   const width = toPixel(
     output.attrs.width == null ? null : String(output.attrs.width),
   );
@@ -215,6 +216,8 @@ function imageElementSpec(output: {
     'span',
     {
       class: 'tmr-image-crop',
+      // 对齐落在可见的裁剪框上。框内 img 是绝对定位，margin auto 推不动它。
+      ...(align ? { 'data-align': align } : {}),
       ...(width != null && height != null
         ? { style: cropFrameCss(width, height) }
         : null),
