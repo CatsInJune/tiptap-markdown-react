@@ -55,4 +55,33 @@ describe('阅读端内置目录', () => {
     expect(host.querySelector('[data-editor-toc]')).toBeNull();
     expect(host.textContent).toContain('无锚点');
   });
+
+  it('点击被外层截住时，按下就高亮，滚动不会把它改回去', async () => {
+    await mount(<ReaderReportContent html={html} toc />);
+    const stopClick = (event: Event) => event.stopPropagation();
+    host.addEventListener('click', stopClick, true);
+    const ticks = [
+      ...host.querySelectorAll<HTMLButtonElement>('[data-toc-rail] button'),
+    ];
+    const current = () => ticks.findIndex((tick) => tick.getAttribute('aria-current') === 'true');
+    const target = current() === 0 ? 1 : 0;
+
+    await act(async () => {
+      ticks[target]?.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, button: 0, cancelable: true }),
+      );
+    });
+    expect(ticks[target]?.getAttribute('aria-current')).toBe('true');
+
+    await act(async () => {
+      ticks[target]?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true, button: 0, cancelable: true }),
+      );
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(ticks[target]?.getAttribute('aria-current')).toBe('true');
+    expect(current()).toBe(target);
+
+    host.removeEventListener('click', stopClick, true);
+  });
 });
