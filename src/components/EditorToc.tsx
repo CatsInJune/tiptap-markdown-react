@@ -63,10 +63,15 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
   const navRef = useRef<HTMLElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const hideTimer = useRef<number | null>(null);
-  /** 点击后先钉住这一项。正文不够长、滚不到激活线时，滚动监听不能把它盖掉。 */
+  /** 点选后先钉住这一项。正文不够长、滚不到激活线时，滚动监听不能把它盖掉。 */
   const pinnedId = useRef<string | null>(null);
   const pinScroll = useRef<number | null>(null);
   const pinTimer = useRef<number | null>(null);
+  /** 卸掉「滚动停稳再记下位置」的监听。新的点选会先取消上一次。 */
+  const cancelPinWatch = useRef<(() => void) | null>(null);
+  /** 按下后等到松开再开始计时，按住不放时不会提前交还高亮。 */
+  const cancelPointerWait = useRef<(() => void) | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const clearHide = () => {
     if (hideTimer.current !== null) {
@@ -92,7 +97,8 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
   useEffect(
     () => () => {
       clearHide();
-      if (pinTimer.current !== null) window.clearTimeout(pinTimer.current);
+      cancelPointerWait.current?.();
+      cancelPinWatch.current?.();
     },
     [],
   );
@@ -206,12 +212,21 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     if (index >= 0) setRoving(index);
   }, [activeId, items]);
 
+  // 只滚目录卡片自己。scrollIntoView 会把页面一起带走，阅读页的窗口滚动会被它拽偏。
   useEffect(() => {
     if (!open || !activeId) return;
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    navRef.current
-      ?.querySelector(`[data-toc-item="${CSS.escape(activeId)}"]`)
-      ?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    const card = cardRef.current;
+    const button = card?.querySelector<HTMLElement>(
+      `[data-toc-item="${CSS.escape(activeId)}"]`,
+    );
+    if (!card || !button) return;
+    const cardRect = card.getBoundingClientRect();
+    const buttonRect = button.getBoundingClientRect();
+    if (buttonRect.top < cardRect.top) {
+      card.scrollTop -= cardRect.top - buttonRect.top;
+    } else if (buttonRect.bottom > cardRect.bottom) {
+      card.scrollTop += buttonRect.bottom - cardRect.bottom;
+    }
   }, [activeId, open]);
 
   // 键盘落在短横线上时，焦点交给已经展开的标题按钮。
@@ -226,20 +241,87 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     itemRefs.current[index]?.focus();
   }, [open, activeId, items]);
 
-  const jump = (item: TocItem) => {
+  /**
+   * 滚动停稳后再记下位置。停稳前 pinScroll 一直是 null，滚动监听只能维持钉住的项。
+   * 阅读页的平滑滚动常常超过库内那 400ms，不能用固定延时提前解锁。
+   */
+  const watchPinRelease = (itemId: string, scroller: HTMLElement) => {
+    cancelPinWatch.current?.();
+    const scrollTarget: HTMLElement | Window = isViewportScroller(scroller)
+      ? window
+      : scroller;
+    let settled = false;
+    const lock = () => {
+      if (settled) return;
+      settled = true;
+      scrollTarget.removeEventListener('scroll', arm);
+      scrollTarget.removeEventListener('scrollend', lock);
+      if (pinTimer.current !== null) {
+        window.clearTimeout(pinTimer.current);
+        pinTimer.current = null;
+      }
+      if (cancelPinWatch.current === cancel) cancelPinWatch.current = null;
+      if (pinnedId.current !== itemId) return;
+      pinScroll.current = isViewportScroller(scroller)
+        ? window.scrollY
+        : scroller.scrollTop;
+    };
+    const arm = () => {
+      if (settled) return;
+      if (pinTimer.current !== null) window.clearTimeout(pinTimer.current);
+      pinTimer.current = window.setTimeout(lock, 100);
+    };
+    const cancel = () => {
+      if (settled) return;
+      settled = true;
+      scrollTarget.removeEventListener('scroll', arm);
+      scrollTarget.removeEventListener('scrollend', lock);
+      if (pinTimer.current !== null) {
+        window.clearTimeout(pinTimer.current);
+        pinTimer.current = null;
+      }
+      if (cancelPinWatch.current === cancel) cancelPinWatch.current = null;
+    };
+    cancelPinWatch.current = cancel;
+    scrollTarget.addEventListener('scroll', arm, { passive: true });
+    scrollTarget.addEventListener('scrollend', lock);
+    arm();
+  };
+
+  /** 立刻高亮这一项，并清掉上一次的解锁计时。 */
+  const pinHighlight = (item: TocItem) => {
+    cancelPinWatch.current?.();
     const scroller = findScrollParent(editorDom);
     pinnedId.current = item.id;
     pinScroll.current = null;
     setActiveId(item.id);
+    return scroller;
+  };
+
+  const jump = (item: TocItem) => {
+    const scroller = pinHighlight(item);
+    watchPinRelease(item.id, scroller);
     scrollToTocHeading(item.id, scroller);
-    if (pinTimer.current !== null) window.clearTimeout(pinTimer.current);
-    pinTimer.current = window.setTimeout(() => {
-      pinTimer.current = null;
-      if (pinnedId.current !== item.id) return;
-      pinScroll.current = isViewportScroller(scroller)
-        ? window.scrollY
-        : scroller.scrollTop;
-    }, 480);
+  };
+
+  /**
+   * 按下就钉住高亮。阅读页会在捕获阶段停掉 click、自己滚窗口，
+   * click 上的 setState 到不了；pointerdown 先于那次拦截。
+   * 松开后再等滚动停稳，按住按钮时不会把高亮交回去。
+   */
+  const pressItem = (item: TocItem, event: { button: number }) => {
+    if (event.button !== 0) return;
+    cancelPointerWait.current?.();
+    const scroller = pinHighlight(item);
+    const stop = () => {
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+      if (cancelPointerWait.current === stop) cancelPointerWait.current = null;
+      watchPinRelease(item.id, scroller);
+    };
+    cancelPointerWait.current = stop;
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
   };
 
   const move = (delta: number) => {
@@ -286,6 +368,7 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
                   style={{ '--bar-width': `${barWidth(item.level)}px` } as CSSProperties}
                   aria-current={active ? 'true' : undefined}
                   aria-label={item.text}
+                  onPointerDown={(event) => pressItem(item, event)}
                   onClick={() => jump(item)}
                 >
                   <span className={active ? styles.barActive : styles.bar} />
@@ -294,7 +377,11 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
             );
           })}
         </ul>
-        <div className={open ? styles.cardOpen : styles.card} inert={!open}>
+        <div
+          ref={cardRef}
+          className={open ? styles.cardOpen : styles.card}
+          inert={!open}
+        >
           <div className={styles.cardInner}>
             <ul className={styles.list}>
               {items.map((item, index) => {
@@ -316,6 +403,7 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
                       }
                       aria-current={active ? 'true' : undefined}
                       aria-label={item.text}
+                      onPointerDown={(event) => pressItem(item, event)}
                       onClick={() => jump(item)}
                     >
                       <span className={styles.itemText}>{item.text}</span>
