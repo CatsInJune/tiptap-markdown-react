@@ -44,6 +44,16 @@ function isViewportScroller(node: HTMLElement): boolean {
   );
 }
 
+/**
+ * 标题顶到达滚动区顶，才算滚到这一节。
+ * 有 scroll-margin-top 时激活线跟着下移（阅读页用它给固定顶栏留空）。
+ */
+function headingHasArrived(heading: HTMLElement, rootTop: number): boolean {
+  const margin = Number.parseFloat(getComputedStyle(heading).scrollMarginTop);
+  const line = rootTop + (Number.isFinite(margin) && margin > 0 ? margin : 8);
+  return heading.getBoundingClientRect().top <= line;
+}
+
 export interface EditorTocProps {
   items: TocItem[];
   /** 编辑器正文根节点，用来找标题和滚动容器。 */
@@ -103,7 +113,7 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     [],
   );
 
-  // 视口上半区里最靠上的标题为当前章节；都离开上半区时，取已经滚过去的最后一个。
+  // 当前章节是已经滚过激活线的最后一个标题。下一节要自己顶到线，才会接过高亮。
   useEffect(() => {
     const headings = items
       .map((item) =>
@@ -116,7 +126,6 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
 
     const scrollParent = findScrollParent(editorDom);
     const viewport = isViewportScroller(scrollParent);
-    const visible = new Set<Element>();
 
     const scrollPos = () =>
       viewport ? window.scrollY : scrollParent.scrollTop;
@@ -158,41 +167,14 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
       }
 
       const rootTop = viewport ? 0 : scrollParent.getBoundingClientRect().top;
-      let best: HTMLElement | null = null;
-      let bestTop = Infinity;
-      for (const el of visible) {
-        const top = (el as HTMLElement).getBoundingClientRect().top;
-        if (top < bestTop) {
-          bestTop = top;
-          best = el as HTMLElement;
-        }
+      let current = headings[0];
+      for (const heading of headings) {
+        if (!headingHasArrived(heading, rootTop)) break;
+        current = heading;
       }
-      if (!best) {
-        let last: HTMLElement | null = null;
-        for (const heading of headings) {
-          if (heading.getBoundingClientRect().top <= rootTop + 12) last = heading;
-        }
-        best = last ?? headings[0];
-      }
-      const id = best.getAttribute('data-toc-id');
+      const id = current.getAttribute('data-toc-id');
       if (id) setActiveId(id);
     };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) visible.add(entry.target);
-          else visible.delete(entry.target);
-        }
-        apply();
-      },
-      {
-        root: viewport ? null : scrollParent,
-        rootMargin: '0px 0px -60% 0px',
-        threshold: [0, 1],
-      },
-    );
-    for (const heading of headings) observer.observe(heading);
 
     const onScroll = () => apply();
     const scrollTarget: HTMLElement | Window = viewport ? window : scrollParent;
@@ -200,7 +182,6 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     apply();
 
     return () => {
-      observer.disconnect();
       scrollTarget.removeEventListener('scroll', onScroll);
     };
   }, [items, editorDom]);

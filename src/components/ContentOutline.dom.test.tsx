@@ -84,4 +84,50 @@ describe('阅读端内置目录', () => {
 
     host.removeEventListener('click', stopClick, true);
   });
+
+  it('下一标题还没到激活线时，目录仍停在上一节', async () => {
+    await mount(<ReaderReportContent html={html} toc />);
+    const intro = host.querySelector<HTMLElement>('[data-toc-id="intro"]');
+    const detail = host.querySelector<HTMLElement>('[data-toc-id="detail"]');
+    expect(intro).not.toBeNull();
+    expect(detail).not.toBeNull();
+    for (const heading of [intro, detail]) {
+      heading!.style.scrollMarginTop = '64px';
+    }
+    const place = (tops: Record<string, number>) => {
+      for (const heading of [intro, detail]) {
+        const top = tops[heading!.getAttribute('data-toc-id') ?? ''] ?? 0;
+        heading!.getBoundingClientRect = () =>
+          ({
+            top,
+            bottom: top + 28,
+            left: 0,
+            right: 0,
+            width: 0,
+            height: 28,
+            x: 0,
+            y: top,
+            toJSON() {
+              return {};
+            },
+          }) as DOMRect;
+      }
+    };
+    const activeLabel = () =>
+      host
+        .querySelector<HTMLButtonElement>('[data-toc-rail] button[aria-current="true"]')
+        ?.getAttribute('aria-label');
+
+    place({ intro: -40, detail: 240 });
+    await act(async () => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(activeLabel()).toBe('简介');
+
+    place({ intro: -400, detail: 60 });
+    await act(async () => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(activeLabel()).toBe('细节');
+  });
 });
