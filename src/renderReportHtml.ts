@@ -2,7 +2,7 @@ import {
   generateTocIds,
   TableOfContents,
 } from '@tiptap/extension-table-of-contents';
-import type { JSONContent } from '@tiptap/core';
+import { flattenExtensions, type Extensions, type JSONContent } from '@tiptap/core';
 import { MarkdownManager } from '@tiptap/markdown';
 import { renderToHTMLString } from '@tiptap/static-renderer';
 import {
@@ -75,15 +75,48 @@ const sharedManager = new MarkdownManager({
   ],
 });
 
+/**
+ * 静态渲染器把 marks 数组的第一个包在最里面，编辑器 DOM 把第一个包在最外面。
+ * 下划线 / 删除线若落在斜体外面，线按正体的位置画，和编辑器、预览对不上。
+ * 只在渲染这条路径上把 mark 的先后整个倒过来，错误的包裹方向刚好抵消。
+ * priority 从 1 起：0 会被 tiptap 当成缺省、退回 100。
+ */
+function extensionsForStaticRender(extensions: Extensions): Extensions {
+  const marks = flattenExtensions(extensions)
+    .filter((ext) => ext.type === 'mark')
+    .sort((a, b) => {
+      const pa = a.config.priority || 100;
+      const pb = b.config.priority || 100;
+      return pb - pa;
+    });
+  const reversed = new Map(marks.map((ext, index) => [ext.name, index + 1]));
+  const retarget = (ext: (typeof marks)[number]): (typeof marks)[number] => {
+    if (ext.type === 'mark') {
+      const priority = reversed.get(ext.name);
+      return priority == null ? ext : ext.extend({ priority });
+    }
+    if (ext.config.addExtensions) {
+      return ext.extend({
+        addExtensions() {
+          const parent = this.parent?.() ?? [];
+          return parent.map((child) => retarget(child));
+        },
+      });
+    }
+    return ext;
+  };
+  return extensions.map((ext) => retarget(ext));
+}
+
 function htmlFromJson(json: JSONContent): string {
-  const extensions = [
+  const extensions = extensionsForStaticRender([
     ...baseExtensions,
     pureCodeBlock,
     pureImage,
     pureChart,
     CitationRef,
     TableOfContents.configure({ getId: makeTocGetId() }),
-  ];
+  ]);
   return renderToHTMLString({
     extensions,
     content: json,
@@ -153,7 +186,7 @@ export function renderReportHtml(
   try {
     const jsonWithIds = generateTocIds(json, extensions);
     const html = renderToHTMLString({
-      extensions,
+      extensions: extensionsForStaticRender(extensions),
       content: jsonWithIds,
       options: {
         nodeMapping: {

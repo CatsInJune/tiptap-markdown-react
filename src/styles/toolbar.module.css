@@ -180,6 +180,32 @@
   text-overflow: ellipsis;
 }
 
+/* 样式 / 字号按钮：候选文案叠在同一格，宽度取最长的一档，切换时按钮不伸缩。 */
+.styleTriggerStable {
+  max-width: none;
+}
+
+.styleTriggerLabelStable {
+  display: inline-grid;
+  overflow: visible;
+}
+
+.styleTriggerSizer,
+.styleTriggerValue {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.styleTriggerSizer {
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+}
+
+.styleTriggerSizer > span {
+  display: block;
+}
+
 .styleTriggerCaret {
   color: var(--sb-muted);
   flex: none;

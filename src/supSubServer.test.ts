@@ -20,7 +20,7 @@ describe('上标/下标：server 端渲染', () => {
 
   it('内层 markdown 照常解析', () => {
     const { html } = renderReportHtml('x<sup>**2**</sup>', { includeToc: false });
-    expect(html).toContain('<sup>');
-    expect(html).toContain('<strong>2</strong>');
+    expect(html).toContain('<sup>2</sup>');
+    expect(html).toContain('<strong>');
   });
 });

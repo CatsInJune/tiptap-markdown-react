@@ -1512,6 +1512,14 @@
   text-decoration: underline;
 }
 
+/* 高亮：盖掉浏览器给 <mark> 的默认「黑字 + 纯黄底」。
+   color: inherit 让外层文字颜色能透进来，否则预览会被涂成黑字、
+   服务端渲染又可能露出文字颜色，两边对不上。指定色由行内 background-color 覆盖。 */
+.editorContent :global(mark:not(.tmr-comment)) {
+  color: inherit;
+  background-color: #ffd83d;
+}
+
 /* 仅行内代码加灰底；代码块内的 <code>（在 pre 内）由 NodeView 自管，排除掉 */
 .editorContent :global(code:not(pre code)) {
   background: var(--tmr-code-bg, #f4f4f4);

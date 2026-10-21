@@ -185,3 +185,65 @@ describe('EditorToolbar 的图片按钮', () => {
     expect(imageButton()).toBeNull();
   });
 });
+
+describe('样式按钮显示当前块级', () => {
+  let host: HTMLDivElement;
+  let root: Root;
+  let editor: Editor;
+
+  afterEach(() => {
+    act(() => {
+      root.unmount();
+    });
+    host.remove();
+    editor.destroy();
+  });
+
+  async function mount(markdown: string, locale?: 'zh' | 'en') {
+    editor = new Editor({
+      extensions: [...baseExtensions, Markdown],
+      content: markdown,
+      contentType: 'markdown',
+    });
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    await act(async () => {
+      root.render(<EditorToolbar editor={editor} locale={locale} />);
+    });
+  }
+
+  function styleButton() {
+    return host.querySelector<HTMLButtonElement>('button[aria-label="Style"], button[aria-label="样式"]');
+  }
+
+  it('正文显示「正文」，光标在标题上显示 H 级', async () => {
+    await mount('正文', 'zh');
+    const value = () =>
+      styleButton()?.querySelector('[class*="styleTriggerValue"]')?.textContent;
+    expect(value()).toBe('正文');
+    expect(styleButton()?.title).toBe('正文');
+
+    editor.chain().focus().toggleHeading({ level: 2 }).run();
+    await act(async () => {});
+    expect(value()).toBe('H2');
+    expect(styleButton()?.title).toBe('标题 2');
+  });
+
+  it('字号在「字号」和具体像素之间切换，占位宽度包含全部档位', async () => {
+    await mount('正文', 'zh');
+    const fontButton = () =>
+      host.querySelector<HTMLButtonElement>('button[aria-label="字号"]');
+    const value = () =>
+      fontButton()?.querySelector('[class*="styleTriggerValue"]')?.textContent;
+    const sizer = fontButton()?.querySelector('[class*="styleTriggerSizer"]');
+    expect(value()).toBe('字号');
+    expect(sizer?.textContent).toContain('字号');
+    expect(sizer?.textContent).toContain('24px');
+    expect(sizer?.textContent).toContain('30px');
+
+    editor.chain().focus().selectAll().setFontSize('24px').run();
+    await act(async () => {});
+    expect(value()).toBe('24px');
+  });
+});
