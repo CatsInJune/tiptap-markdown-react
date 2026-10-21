@@ -23,6 +23,7 @@ import {
   CITATION_SOURCES,
   CHART_MD,
   DEMO_MD,
+  DEMO_SOURCES,
   INGEST_MD,
   MATH_MD,
   PREVIEW_MD,
@@ -633,14 +634,19 @@ export function ThemeDemo() {
   );
 }
 
-/** 首页三 tab 大 demo */
+/** 首页大 demo：编辑、客户端预览、服务端渲染、Markdown 产物。 */
 export function HeroDemo() {
   const locale = useLang().lang;
+  const tx = useTx();
   const [editor, setEditor] = useState<Editor | null>(null);
   const [markdown, setMarkdown] = useState(DEMO_MD);
-  const [tab, setTab] = useState<'editor' | 'markdown' | 'reader'>('editor');
+  const [tab, setTab] = useState<'editor' | 'markdown' | 'reader' | 'ssr'>('editor');
   const [findOpen, setFindOpen] = useState(false);
   const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
+  const serverHtml = useMemo(
+    () => renderReportHtml(markdown, { sources: DEMO_SOURCES, includeToc: false }).html,
+    [markdown],
+  );
 
   useEffect(() => {
     if (!editor) return;
@@ -666,21 +672,28 @@ export function HeroDemo() {
           className={tab === 'editor' ? 'active' : ''}
           onClick={() => setTab('editor')}
         >
-          Editor
+          {tx('编辑', 'Editor')}
         </button>
         <button
           type="button"
           className={tab === 'reader' ? 'active' : ''}
           onClick={() => setTab('reader')}
         >
-          Rendered
+          {tx('预览', 'Rendered')}
+        </button>
+        <button
+          type="button"
+          className={tab === 'ssr' ? 'active' : ''}
+          onClick={() => setTab('ssr')}
+        >
+          {tx('服务端渲染', 'Server render')}
         </button>
         <button
           type="button"
           className={tab === 'markdown' ? 'active' : ''}
           onClick={() => setTab('markdown')}
         >
-          Markdown output
+          {tx('Markdown 产物', 'Markdown output')}
         </button>
       </div>
       <div style={{ display: tab === 'editor' ? 'block' : 'none' }}>
@@ -697,6 +710,7 @@ export function HeroDemo() {
             ref={editorRef}
             locale={locale}
             initialMarkdown={DEMO_MD}
+            sources={DEMO_SOURCES}
             placeholder="Write something…"
             // 图片上传挂在编辑器上（官方 ImageUploadNode 同款）：工具栏按钮 → 拖拽/点选
             // 占位块 → 进度就地显示 → 成功就地换图；占位块不进 Markdown 产物
@@ -708,7 +722,12 @@ export function HeroDemo() {
       </div>
       {tab === 'reader' && (
         <div className="demoBody">
-          <MarkdownPreview markdown={markdown} locale={locale} />
+          <MarkdownPreview markdown={markdown} locale={locale} sources={DEMO_SOURCES} />
+        </div>
+      )}
+      {tab === 'ssr' && (
+        <div className="demoBody">
+          <ReportContentWithCharts html={serverHtml} locale={locale} />
         </div>
       )}
       {tab === 'markdown' && (

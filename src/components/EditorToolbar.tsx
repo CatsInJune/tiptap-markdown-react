@@ -798,11 +798,26 @@ export function EditorToolbar({
             trigger={
               <button
                 type="button"
-                className={styles.styleTrigger}
-                title={t.style}
+                className={`${styles.styleTrigger} ${styles.styleTriggerStable}`}
+                title={
+                  state.headingLevel
+                    ? t.headingLabel(state.headingLevel)
+                    : t.normalText
+                }
+                aria-label={t.style}
                 onMouseDown={(e) => e.preventDefault()}
               >
-                <span className={styles.styleTriggerLabel}>{t.style}</span>
+                <span className={`${styles.styleTriggerLabel} ${styles.styleTriggerLabelStable}`}>
+                  <span className={styles.styleTriggerSizer} aria-hidden="true">
+                    <span>{t.normalText}</span>
+                    {HEADING_LEVELS.map((lv) => (
+                      <span key={lv}>{`H${lv}`}</span>
+                    ))}
+                  </span>
+                  <span className={styles.styleTriggerValue}>
+                    {state.headingLevel ? `H${state.headingLevel}` : t.normalText}
+                  </span>
+                </span>
                 <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
               </button>
             }
@@ -835,14 +850,22 @@ export function EditorToolbar({
             trigger={
               <button
                 type="button"
-                className={styles.styleTrigger}
-                title={t.fontSize}
+                className={`${styles.styleTrigger} ${styles.styleTriggerStable}`}
+                title={state.fontSize || t.fontSize}
                 aria-label={t.fontSize}
                 disabled={!canEditFontSize}
                 onMouseDown={(e) => e.preventDefault()}
               >
-                <span className={styles.styleTriggerLabel}>
-                  {state.fontSize || t.fontSize}
+                <span className={`${styles.styleTriggerLabel} ${styles.styleTriggerLabelStable}`}>
+                  <span className={styles.styleTriggerSizer} aria-hidden="true">
+                    <span>{t.fontSize}</span>
+                    {FONT_SIZES.map((size) => (
+                      <span key={size}>{size}</span>
+                    ))}
+                  </span>
+                  <span className={styles.styleTriggerValue}>
+                    {state.fontSize || t.fontSize}
+                  </span>
                 </span>
                 <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
               </button>

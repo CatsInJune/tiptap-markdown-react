@@ -118,8 +118,8 @@ function HomePage() {
             <h2>{tx('就在这里试', 'Try it right here')}</h2>
             <p className="sectionLede">
               {tx(
-                '下面的面板就是真实的包。编辑、切换到渲染视图，或查看 Markdown 产物。',
-                'The panel below is the real package. Edit, switch to rendered reader, or peek at Markdown output.',
+                '下面的面板就是真实的包。编辑、看预览、看服务端渲染，或查看 Markdown 产物。',
+                'The panel below is the real package. Edit, switch to the preview, the server render, or peek at Markdown output.',
               )}
             </p>
           </div>

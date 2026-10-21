@@ -64,4 +64,37 @@ describe('颜色/字号 markdown 往返', () => {
     expect(hasSize).toBe(true);
     reparsed.destroy();
   });
+
+  it('字号 + 加粗一起导出后，重解析恢复两种 mark，正文不留下星号', () => {
+    const text = '启示一：IP的价值不在产品，而在意义';
+    const editor = build(text);
+    editor.chain().selectAll().setFontSize('24px').toggleBold().run();
+    const md = editor.getMarkdown();
+    expect(md).toContain('style="font-size:24px"');
+    expect(md).toContain(`**${text}**`);
+    editor.destroy();
+
+    const reparsed = build(md);
+    expect(reparsed.getText()).toBe(text);
+    let marks: string[] = [];
+    let fontSize: string | null = null;
+    reparsed.state.doc.descendants((node) => {
+      if (node.isText && node.text === text) {
+        marks = node.marks.map((m) => m.type.name);
+        const style = node.marks.find((m) => m.type.name === 'textStyle');
+        fontSize = (style?.attrs.fontSize as string) ?? null;
+      }
+      return true;
+    });
+    expect(marks).toContain('bold');
+    expect(marks).toContain('textStyle');
+    expect(fontSize).toBe('24px');
+    // 客户端编辑器 / 预览走同一套解析，DOM 里应是 strong，不能留下星号。
+    expect(reparsed.getHTML()).toContain(
+      `<span style="font-size: 24px;"><strong>${text}</strong></span>`,
+    );
+    expect(reparsed.getHTML()).not.toContain('**');
+    expect(reparsed.getMarkdown()).toContain(`**${text}**`);
+    reparsed.destroy();
+  });
 });

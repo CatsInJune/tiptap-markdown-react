@@ -266,30 +266,91 @@ export const PACKAGE_FEATURES = [
   { icon: '📊', title: 'Charts', body: 'Chart.js via HTML comment + GFM table. SSR placeholder + client hydrate.' },
 ];
 
-export const DEMO_MD = `# Meet the editor
+/** 首页示例用的脚注。编辑器、预览、服务端渲染共用，圆标才对得上。 */
+export const DEMO_SOURCES = [
+  {
+    index: '1',
+    url: 'https://tiptap.dev',
+    title: 'Tiptap',
+    excerpt: '编辑器与阅读页共用同一份 Markdown。',
+  },
+];
 
-This panel is **tiptap-markdown-react** running live. Everything is stored and exported as _Markdown_.
+/**
+ * 首页预置稿：覆盖工具栏能写进 Markdown 的操作。
+ * 预览（MarkdownPreview）和服务端渲染（renderReportHtml）读的是同一串。
+ */
+export const DEMO_MD = `# 编辑器能力
 
-## Rich, but markdown-native
+这一段把行内操作放在一起：**加粗**、*斜体*、++下划线++、~~删除线~~、\`行内代码\`，以及 [链接](https://tiptap.dev)。
 
-- Bullet, ordered, and task lists
-- Inline \`code\`, [links](https://tiptap.dev), highlights and colors
-- Tables, blockquotes, toggle blocks, dividers
+<span style="font-size:24px">**启示一：IP的价值不在产品，而在意义**</span>
+
+<span style="color:#ff6719">主题色文字</span>，==高亮==，水的化学式是 H<sub>2</sub>O，平方写作 x<sup>2</sup>。
+
+金额 $24.4B 不会变成公式。表情 :smile:。出处见文档[^1]。
+
+## 二级标题
+
+### 三级标题
+
+#### 四级标题
+
+##### 五级标题
+
+###### 六级标题
+
+<p style="text-align: center">这一段居中</p>
+
+<p style="text-align: right">这一段右对齐</p>
+
+<p style="text-align: justify">两端对齐需要足够长的一行文字，这样阅读页才会把词距拉开。这里再补几个字，避免短句看不出效果。</p>
+
+<p style="margin-left: 2em">这一段缩进一级</p>
+
+<p style="line-height: 2">这一段行高是 2。换行之后仍能看出行距变大，第二行就在这里。</p>
+
+## 列表
+
+- 无序第一项
+  - 嵌套的无序项
+- 无序第二项
+
+1. 有序甲
+2. 有序乙
+   1. 嵌套的有序项
+
+- [ ] 未完成的待办
+- [x] 已完成的待办
+
+<ol data-numbering-format="upper-alpha">
+
+1. 字母编号甲
+2. 字母编号乙
+
+</ol>
+
+## 引用、折叠与分隔
+
+> 这是一段引用。
 
 <details open>
-<summary>Toggle</summary>
+<summary>展开的折叠块</summary>
 
-This section folds. Markdown keeps it as HTML details.
+折叠块里可以继续写 **加粗**。
 
 </details>
 
-> Hover a cell: the row handle (left) and column handle (above) open the add / remove menus.
+<details>
+<summary>收起的折叠块</summary>
 
-Inline math: revenue is $$R = P \times Q$$. Block math:
+这段默认折叠，预览和阅读页都不展开。
 
-$$
-\sum_{i=1}^{n} x_i = X
-$$
+</details>
+
+---
+
+## 代码与公式
 
 \`\`\`ts
 function greet(name: string) {
@@ -297,10 +358,35 @@ function greet(name: string) {
 }
 \`\`\`
 
-| Feature      | Editor | Reader |
-| ------------ | :----: | :----: |
-| Markdown I/O |   ✅   |   ✅   |
-| SSR render   |   —    |   ✅   |
+行内公式 $$E = mc^2$$。块级公式：
+
+$$
+\\sum_{i=1}^{n} x_i = X
+$$
+
+## 表格
+
+| 功能 | 编辑器 | 阅读页 |
+| --- | :---: | ---: |
+| Markdown | 支持 | 支持 |
+| 服务端渲染 | — | 支持 |
+
+## 图片
+
+<figure>
+<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='160'%3E%3Crect width='640' height='160' rx='16' fill='%23fff4ec'/%3E%3Crect x='28' y='48' width='84' height='64' rx='8' fill='%23ff6719'/%3E%3C/svg%3E" alt="示意图" width="480" data-align="center">
+<figcaption>居中的图片，带描述</figcaption>
+</figure>
+
+## 图表
+
+<!-- {"chartType": "column", "x": "季度", "y": "营收", "title": "季度营收"} -->
+| 季度 | 营收 |
+| --- | --- |
+| Q1 | 12 |
+| Q2 | 18 |
+| Q3 | 15 |
+| Q4 | 21 |
 `;
 
 export const INGEST_MD = `# Markdown in: three ways

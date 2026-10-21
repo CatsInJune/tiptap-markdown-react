@@ -536,6 +536,7 @@ a {
 
 .demoTabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--line-soft);
@@ -566,7 +567,7 @@ a {
 
 .demoBody {
   padding: 22px 28px;
-  max-height: 480px;
+  max-height: 640px;
   overflow-y: auto;
   background: #fff;
 }

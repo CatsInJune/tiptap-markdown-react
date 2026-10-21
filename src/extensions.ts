@@ -22,7 +22,7 @@ import {
 } from '@tiptap/extension-text-style';
 // AnyExtension 从 @tiptap/react 取（它 re-export 自 core），避免新增 @tiptap/core 直接依赖
 import type { AnyExtension } from '@tiptap/react';
-import { mergeAttributes } from '@tiptap/core';
+import { mergeAttributes, type CommandProps } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
 import type {
@@ -90,15 +90,101 @@ export const lowlight = createLowlight(common);
 
 /**
  * 颜色 / 字号的 markdown 往返：markdown 没有原生颜色语法，序列化为行内 HTML
- * `<span style="...">`（marked 支持行内 HTML，Tiptap 解析端经 parseHTML 还原成
- * TextStyle/Color/FontSize mark）。否则 getMarkdown() 会把这些 mark 静默剥掉，
- * 保存后再预览颜色丢失。
+ * `<span style="...">`。否则 getMarkdown() 会把这些 mark 静默剥掉。
+ *
+ * 只靠 marked 的行内 HTML 不够：开标签和闭标签之间的内容（包括已经认出的
+ * `**加粗**`）会被拼回原始 HTML 再走 parseHTML。server 没有 DOMParser 时整段
+ * 退化成字面文本，页面上就是
+ * `<span style="font-size:24px">**启示……**</span>`。自建 tokenizer 把整段
+ * span 认领下来，内层再交给 inline lexer，加粗 / 链接等照常还原。
  *
  * 注意：Color / FontSize 通过 `types: [TextStyle.name]` 把 color / fontSize
  * 属性挂在 **textStyle** mark 的 attrs 上，文档里出现的 mark 类型名是
  * `textStyle`——所以 renderMarkdown 必须扩展在 TextStyle 上，序列化器才能按
  * mark 类型名查到 handler。
  */
+const FONT_SIZE_VALUE = /^\d+(?:\.\d+)?(?:px|em|rem|%)$/i;
+const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
+const RGB_COLOR =
+  /^rgba?\(\s*(?:\d{1,3}\s*,\s*){2}\d{1,3}(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+const HSL_COLOR =
+  /^hsla?\(\s*[\d.]+\s*,\s*[\d.]+%\s*,\s*[\d.]+%(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/;
+const NAMED_COLOR = /^[a-zA-Z]{1,30}$/;
+
+function isSafeColor(value: string): boolean {
+  if (/[<>"'\\{};]/.test(value)) return false;
+  return (
+    HEX_COLOR.test(value) ||
+    RGB_COLOR.test(value) ||
+    HSL_COLOR.test(value) ||
+    NAMED_COLOR.test(value)
+  );
+}
+
+/** style 串 → textStyle attrs。没有本库认识的键时返回 null（tokenizer 不认领）。 */
+function parseTextStyleAttrs(
+  style: string,
+): { color?: string; fontSize?: string } | null {
+  const attrs: { color?: string; fontSize?: string } = {};
+  for (const entry of style.split(';')) {
+    const index = entry.indexOf(':');
+    if (index < 0) continue;
+    const key = entry.slice(0, index).trim().toLowerCase();
+    const value = entry.slice(index + 1).trim();
+    if (key === 'color' && isSafeColor(value)) attrs.color = value;
+    else if (key === 'font-size' && FONT_SIZE_VALUE.test(value)) {
+      attrs.fontSize = value;
+    }
+  }
+  if (!attrs.color && !attrs.fontSize) return null;
+  return attrs;
+}
+
+function readStyleAttribute(attrs: string): string | undefined {
+  const match = /\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i.exec(
+    attrs,
+  );
+  if (!match) return undefined;
+  return (match[1] ?? match[2] ?? match[3] ?? '').trim();
+}
+
+/**
+ * 从 src 开头匹配一对带本库样式的 span。按嵌套深度找闭合标签，
+ * 避免内层 `<span style>` 被非贪婪正则提前截断。
+ */
+function matchTextStyleSpan(
+  src: string,
+): { raw: string; style: string; inner: string } | undefined {
+  const open = /^<span\b([^>]*)>/i.exec(src);
+  if (!open || /\/\s*$/.test(open[1])) return undefined;
+  const style = readStyleAttribute(open[1]);
+  if (style == null || !parseTextStyleAttrs(style)) return undefined;
+
+  const tagRe = /<\/?span\b[^>]*>/i;
+  let depth = 1;
+  let cursor = open[0].length;
+  while (cursor < src.length) {
+    const found = tagRe.exec(src.slice(cursor));
+    if (!found) return undefined;
+    const tag = found[0];
+    const at = cursor + found.index;
+    if (tag.startsWith('</')) {
+      depth -= 1;
+      if (depth === 0) {
+        return {
+          raw: src.slice(0, at + tag.length),
+          style,
+          inner: src.slice(open[0].length, at),
+        };
+      }
+    } else if (!/\/\s*>$/.test(tag)) {
+      depth += 1;
+    }
+    cursor = at + tag.length;
+  }
+  return undefined;
+}
+
 const MarkdownTextStyle = TextStyle.extend({
   renderMarkdown(
     node: { attrs?: Record<string, unknown> },
@@ -120,6 +206,146 @@ const MarkdownTextStyle = TextStyle.extend({
     // getMarkOpening 用占位符调用 renderChildren()（无需传节点），类型按签名兜底转换。
     const children = (helpers.renderChildren as () => string)();
     return `<span style="${styles.join(';')}">${children}</span>`;
+  },
+
+  markdownTokenizer: {
+    name: 'textStyle',
+    level: 'inline',
+    start(src: string) {
+      const match = /<span\b[^>]*\bstyle\s*=/i.exec(src);
+      return match ? match.index : -1;
+    },
+    tokenize(src, _tokens, lexer) {
+      const matched = matchTextStyleSpan(src);
+      if (!matched) return undefined;
+      return {
+        type: 'textStyle',
+        raw: matched.raw,
+        style: matched.style,
+        tokens: lexer.inlineTokens(matched.inner),
+      };
+    },
+  },
+
+  parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) => {
+    const attrs = parseTextStyleAttrs(String(token.style ?? ''));
+    const content = helpers.parseInline(token.tokens ?? []);
+    if (!attrs) return content;
+    return helpers.applyMark('textStyle', content, attrs);
+  },
+});
+
+/**
+ * 彩色高亮的 markdown 往返。官方 `==text==` 不带颜色，getMarkdown() 会把
+ * 选中的背景色丢掉；再读回来只剩浏览器默认的 `<mark>`（预览常被 UA 涂成
+ * 黑字黄底，服务端渲染则可能让文字颜色透出来，两边不一致）。
+ * 有颜色时改写成 `<mark data-color style="background-color">`，并认领整段、
+ * 继续解析内层 markdown。没颜色的 `==text==` 保持原样。
+ */
+function readHighlightColor(attrs: string): string | null {
+  const data = /\bdata-color\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(attrs);
+  const fromData = (data?.[1] ?? data?.[2] ?? '').trim();
+  if (fromData && isSafeColor(fromData)) return fromData;
+  const style = /\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(attrs);
+  const styleText = style?.[1] ?? style?.[2] ?? '';
+  for (const entry of styleText.split(';')) {
+    const index = entry.indexOf(':');
+    if (index < 0) continue;
+    const key = entry.slice(0, index).trim().toLowerCase();
+    const value = entry.slice(index + 1).trim();
+    if (key === 'background-color' && isSafeColor(value)) return value;
+  }
+  return null;
+}
+
+function matchHighlightMark(
+  src: string,
+): { raw: string; inner: string; color: string | null } | undefined {
+  const open = /^<mark\b([^>]*)>/i.exec(src);
+  if (!open || /\/\s*$/.test(open[1])) return undefined;
+  if (/data-comment-ids/i.test(open[1]) || /\btmr-comment\b/.test(open[1])) {
+    return undefined;
+  }
+  const color = readHighlightColor(open[1]);
+  const tagRe = /<\/?mark\b[^>]*>/i;
+  let depth = 1;
+  let cursor = open[0].length;
+  while (cursor < src.length) {
+    const found = tagRe.exec(src.slice(cursor));
+    if (!found) return undefined;
+    const tag = found[0];
+    const at = cursor + found.index;
+    if (tag.startsWith('</')) {
+      depth -= 1;
+      if (depth === 0) {
+        return {
+          raw: src.slice(0, at + tag.length),
+          inner: src.slice(open[0].length, at),
+          color,
+        };
+      }
+    } else if (!/\/\s*>$/.test(tag)) {
+      depth += 1;
+    }
+    cursor = at + tag.length;
+  }
+  return undefined;
+}
+
+const MarkdownHighlight = Highlight.extend({
+  renderMarkdown(node: JSONContent, helpers: MarkdownRendererHelpers) {
+    const children = helpers.renderChildren(node);
+    const color =
+      typeof node.attrs?.color === 'string' ? node.attrs.color : '';
+    if (!color || !isSafeColor(color)) return `==${children}==`;
+    const encoded = color
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+    return `<mark data-color="${encoded}" style="background-color:${encoded}">${children}</mark>`;
+  },
+
+  markdownTokenizer: {
+    name: 'highlight',
+    level: 'inline' as const,
+    start(src: string) {
+      const mark = /<mark\b/i.exec(src);
+      const eq = src.indexOf('==');
+      const indexes = [mark?.index, eq >= 0 ? eq : undefined].filter(
+        (index): index is number => index != null,
+      );
+      return indexes.length ? Math.min(...indexes) : -1;
+    },
+    tokenize(src, _tokens, lexer) {
+      if (src.startsWith('==')) {
+        const match = /^(==)([^=]+)(==)/.exec(src);
+        if (!match) return undefined;
+        const inner = match[2].trim();
+        return {
+          type: 'highlight',
+          raw: match[0],
+          text: inner,
+          tokens: lexer.inlineTokens(inner),
+        };
+      }
+      const matched = matchHighlightMark(src);
+      if (!matched) return undefined;
+      return {
+        type: 'highlight',
+        raw: matched.raw,
+        color: matched.color,
+        tokens: lexer.inlineTokens(matched.inner),
+      };
+    },
+  },
+
+  parseMarkdown: (token: MarkdownToken, helpers: MarkdownParseHelpers) => {
+    const content = helpers.parseInline(token.tokens ?? []);
+    const color = typeof token.color === 'string' ? token.color : '';
+    if (color && isSafeColor(color)) {
+      return helpers.applyMark('highlight', content, { color });
+    }
+    return helpers.applyMark('highlight', content);
   },
 });
 
@@ -248,8 +474,69 @@ export const MarkdownParagraph = Paragraph.extend({
   parseMarkdown: paragraphParseMarkdown,
 });
 
+/**
+ * 字号和加粗都属于正文修饰。标题自己有字号和字重，这两样留在文字上会盖住标题，
+ * 看起来就像没变成标题。设标题前把当前文本块里的字号和加粗清掉，颜色等其它 mark 保留。
+ */
+function clearFontSizeInTextblocks({ state, tr }: CommandProps) {
+  const markType = state.schema.marks.textStyle;
+  const boldType = state.schema.marks.bold;
+  const ranges: { from: number; to: number; attrs: Record<string, unknown> }[] = [];
+  const { from, to } = state.selection;
+  state.doc.nodesBetween(from, to, (node, pos) => {
+    if (!node.isTextblock) return;
+    const start = pos + 1;
+    const end = pos + node.nodeSize - 1;
+    if (boldType) tr.removeMark(start, end, boldType);
+    if (!markType) return false;
+    node.descendants((child, childPos) => {
+      if (!child.isText) return;
+      const mark = child.marks.find((item) => item.type === markType);
+      if (!mark?.attrs.fontSize) return;
+      const childStart = pos + 1 + childPos;
+      ranges.push({
+        from: childStart,
+        to: childStart + child.nodeSize,
+        attrs: { ...mark.attrs, fontSize: null },
+      });
+    });
+    return false;
+  });
+  for (const range of ranges) {
+    if (!markType) continue;
+    tr.removeMark(range.from, range.to, markType);
+    const keep = Object.values(range.attrs).some(
+      (value) => value != null && value !== '',
+    );
+    if (keep) tr.addMark(range.from, range.to, markType.create(range.attrs));
+  }
+}
+
 export const MarkdownHeading = Heading.extend({
   renderMarkdown: headingRenderMarkdown,
+
+  addCommands() {
+    const parent = this.parent?.();
+    return {
+      ...parent,
+      setHeading:
+        (attributes) =>
+        (props) => {
+          if (!this.options.levels.includes(attributes.level)) return false;
+          clearFontSizeInTextblocks(props);
+          return parent?.setHeading?.(attributes)?.(props) ?? false;
+        },
+      toggleHeading:
+        (attributes) =>
+        (props) => {
+          if (!this.options.levels.includes(attributes.level)) return false;
+          if (!props.editor.isActive(this.name, attributes)) {
+            clearFontSizeInTextblocks(props);
+          }
+          return parent?.toggleHeading?.(attributes)?.(props) ?? false;
+        },
+    };
+  },
 });
 
 /**
@@ -305,7 +592,7 @@ export const baseExtensions: AnyExtension[] = [
   // 正文字号：官方 FontSize（v3 起并入 text-style 包），以内联样式挂在 TextStyle
   // 的 <span> 上（如 style="font-size: 16px"），与 Color 同基座，三端共用。
   FontSize.configure({ types: [TextStyle.name] }),
-  Highlight.configure({ multicolor: true }),
+  MarkdownHighlight.configure({ multicolor: true }),
   MarkdownSuperscript,
   MarkdownSubscript,
   TableKit.configure({
