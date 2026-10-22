@@ -23,6 +23,8 @@ export const zh: LocaleBundle = {
     scriptNormal: '常规',
     superscript: '上标',
     subscript: '下标',
+    formatPainter: '格式刷。双击可连续使用，Esc 取消',
+    clearFormatting: '清除格式',
     link: '链接',
     align: '对齐',
     alignLeft: '左对齐',

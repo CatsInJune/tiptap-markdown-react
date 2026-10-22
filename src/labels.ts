@@ -24,6 +24,10 @@ export interface ToolbarLabels {
   scriptNormal: string;
   superscript: string;
   subscript: string;
+  /** 格式刷。双击锁定，Esc 取消。 */
+  formatPainter: string;
+  /** 卸掉选区里的排版，保留链接、评论、列表和代码块。 */
+  clearFormatting: string;
   link: string;
   /** 段落对齐下拉：触发器 title / aria-label。 */
   align: string;
@@ -231,6 +235,8 @@ export const defaultToolbarLabels: ToolbarLabels = {
   scriptNormal: 'Normal',
   superscript: 'Superscript',
   subscript: 'Subscript',
+  formatPainter: 'Format painter. Double-click to keep using it, Esc to cancel',
+  clearFormatting: 'Clear formatting',
   link: 'Link',
   align: 'Alignment',
   alignLeft: 'Align left',

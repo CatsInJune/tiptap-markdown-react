@@ -22,6 +22,7 @@ import {
   ChevronDownIcon,
   CodeIcon,
   DetailsIcon,
+  EraserIcon,
   ImageIcon,
   IndentDecreaseIcon,
   IndentIncreaseIcon,
@@ -31,6 +32,7 @@ import {
   ListChecksIcon,
   ListOrderedIcon,
   ListUnorderedIcon,
+  PaintbrushIcon,
   RedoIcon,
   SearchIcon,
   StrikethroughIcon,
@@ -57,6 +59,12 @@ import { hasImageUpload } from '../imageUpload';
 import { insertMarkdown } from '../insertMarkdown';
 import { subscribeMathClick, type MathKind } from '../math';
 import styles from '../styles/toolbar.module.css';
+import {
+  applyCapturedFormat,
+  captureFormat,
+  clearFormatting,
+  type CapturedFormat,
+} from '../formatBrush';
 import { ColorPalette } from './ColorPalette';
 import { ImageAlignTools } from './ImageAlignTools';
 import { LinkPopover } from './LinkPopover';
@@ -538,6 +546,66 @@ export function EditorToolbar({
     };
   }, [editor]);
 
+  // 格式刷：官方没有这个扩展。单击取样一次，双击锁定，Esc 取消。
+  // 取样后下一次在正文里松开鼠标才套用，避免点按钮本身的 mouseup 被当成落点。
+  const [painter, setPainter] = useState<'off' | 'once' | 'locked'>('off');
+  const [paintSample, setPaintSample] = useState<CapturedFormat | null>(null);
+  const painterClickAt = useRef(0);
+  const painterEditor = useRef(editor);
+  const disarmPainter = () => {
+    painterClickAt.current = 0;
+    setPainter('off');
+    setPaintSample(null);
+  };
+  useEffect(() => {
+    if (painterEditor.current === editor) return;
+    painterEditor.current = editor;
+    disarmPainter();
+  }, [editor]);
+  useEffect(() => {
+    if (editor.isDestroyed) return;
+    const dom = editor.view.dom;
+    dom.classList.toggle('tmr-format-painter', painter !== 'off');
+    return () => {
+      if (!editor.isDestroyed) dom.classList.remove('tmr-format-painter');
+    };
+  }, [editor, painter]);
+  useEffect(() => {
+    if (painter === 'off' || !paintSample || editor.isDestroyed) return;
+    const dom = editor.view.dom;
+    const apply = () => {
+      const handled = applyCapturedFormat(editor, paintSample);
+      if (handled && painter === 'once') disarmPainter();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      disarmPainter();
+    };
+    dom.addEventListener('mouseup', apply);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      dom.removeEventListener('mouseup', apply);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [editor, painter, paintSample]);
+  const onFormatPainterClick = () => {
+    const now = Date.now();
+    const quick = now - painterClickAt.current < 300;
+    painterClickAt.current = now;
+    if (painter !== 'off') {
+      if (quick && painter === 'once') {
+        setPainter('locked');
+        return;
+      }
+      disarmPainter();
+      return;
+    }
+    const captured = captureFormat(editor);
+    if (!captured) return;
+    setPaintSample(captured);
+    setPainter(quick ? 'locked' : 'once');
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chain = () => editor.chain().focus();
 
@@ -789,6 +857,19 @@ export function EditorToolbar({
             onClick={() => chain().redo().run()}
           >
             <RedoIcon />
+          </ToolbarButton>
+          <ToolbarButton
+            title={t.formatPainter}
+            active={painter !== 'off'}
+            onClick={onFormatPainterClick}
+          >
+            <PaintbrushIcon />
+          </ToolbarButton>
+          <ToolbarButton
+            title={t.clearFormatting}
+            onClick={() => clearFormatting(editor)}
+          >
+            <EraserIcon />
           </ToolbarButton>
 
           <Divider />

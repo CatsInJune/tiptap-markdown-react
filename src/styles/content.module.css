@@ -47,6 +47,11 @@
   left: -70px;
 }
 
+/* 格式刷武装期间，刷子光标跟在正文上。cursor 可继承。 */
+.editorContent:global(.tmr-format-painter) {
+  cursor: copy;
+}
+
 .editorContent {
   outline: none;
   padding: 0;
