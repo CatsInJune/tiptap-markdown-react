@@ -247,3 +247,119 @@ describe('样式按钮显示当前块级', () => {
     expect(value()).toBe('24px');
   });
 });
+
+describe('格式刷和清除格式', () => {
+  let host: HTMLDivElement;
+  let root: Root;
+  let editor: Editor;
+
+  const mount = async (markdown: string) => {
+    editor = new Editor({
+      extensions: [...baseExtensions, Markdown],
+      content: markdown,
+      contentType: 'markdown',
+    });
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    await act(async () => {
+      root.render(<EditorToolbar editor={editor} />);
+    });
+  };
+
+  const button = (label: string) =>
+    host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+
+  const select = (text: string) => {
+    let from = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (from >= 0 || !node.isText || !node.text) return;
+      const index = node.text.indexOf(text);
+      if (index >= 0) from = pos + index;
+    });
+    editor.commands.setTextSelection({ from, to: from + text.length });
+  };
+
+  afterEach(() => {
+    act(() => {
+      root.unmount();
+    });
+    host.remove();
+    editor.destroy();
+  });
+
+  it('清除格式按钮卸掉加粗，并且排在重做右边', async () => {
+    await mount('**bold**');
+    const labels = [...host.querySelectorAll('button')].map((button) =>
+      button.getAttribute('aria-label'),
+    );
+    const redoAt = labels.indexOf('Redo');
+    const painterAt = labels.indexOf(
+      'Format painter. Double-click to keep using it, Esc to cancel',
+    );
+    const clearAt = labels.indexOf('Clear formatting');
+    expect(painterAt).toBe(redoAt + 1);
+    expect(clearAt).toBe(redoAt + 2);
+
+    editor.commands.selectAll();
+    await act(async () => {
+      button('Clear formatting')?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      );
+    });
+    expect(editor.getMarkdown()).not.toContain('**');
+    expect(editor.getMarkdown()).toContain('bold');
+  });
+
+  it('单击格式刷套用一次，Esc 取消，双击后可以连续套', async () => {
+    await mount('**src**\n\none\n\ntwo');
+    const painter = () =>
+      button('Format painter. Double-click to keep using it, Esc to cancel');
+
+    select('src');
+    await act(async () => {
+      painter()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(painter()?.getAttribute('aria-pressed')).toBe('true');
+    expect(editor.view.dom.classList.contains('tmr-format-painter')).toBe(true);
+
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+    });
+    expect(painter()?.getAttribute('aria-pressed')).toBe('false');
+
+    select('src');
+    await act(async () => {
+      painter()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      painter()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(painter()?.getAttribute('aria-pressed')).toBe('true');
+
+    const paint = async (text: string) => {
+      select(text);
+      await act(async () => {
+        editor.view.dom.dispatchEvent(
+          new MouseEvent('mouseup', { bubbles: true }),
+        );
+      });
+    };
+    await paint('one');
+    expect(painter()?.getAttribute('aria-pressed')).toBe('true');
+    await paint('two');
+    expect(editor.getMarkdown()).toContain('**one**');
+    expect(editor.getMarkdown()).toContain('**two**');
+  });
+
+  it('locale=zh 使用格式刷和清除格式', async () => {
+    await mount('x');
+    await act(async () => {
+      root.render(<EditorToolbar editor={editor} locale="zh" />);
+    });
+    expect(button('格式刷。双击可连续使用，Esc 取消')).not.toBeNull();
+    expect(button('清除格式')).not.toBeNull();
+  });
+});

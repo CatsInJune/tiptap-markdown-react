@@ -36,6 +36,8 @@ export const CommentMark = Mark.create<CommentMarkOptions>({
 
   // 评论是「引用快照」：光标在区间边界输入不应自动扩展高亮。
   inclusive: false,
+  // 官方 unsetAllMarks 只卸 clearable 的 mark。评论不是排版，清除格式必须留下。
+  clearable: false,
   // 与加粗/斜体等格式可共存。
   excludes: '',
 
