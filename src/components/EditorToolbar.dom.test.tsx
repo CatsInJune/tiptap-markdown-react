@@ -474,6 +474,43 @@ describe('EditorToolbar 的全屏', () => {
     expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
   });
 
+  it('页面上常驻的导航菜单不拦住 Esc 退出全屏', async () => {
+    const sider = document.createElement('aside');
+    sider.className = 'ant-layout-sider';
+    const menu = document.createElement('ul');
+    menu.className = 'ant-menu ant-menu-root';
+    menu.setAttribute('role', 'menu');
+    sider.appendChild(menu);
+    document.body.appendChild(sider);
+    extras.push(sider);
+
+    await mount();
+    await openMore();
+    await click('Full screen');
+    await pressEscape();
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
+  });
+
+  it('弹出的菜单仍然先吃掉第一次 Esc', async () => {
+    const popup = document.createElement('div');
+    popup.className = 'ant-dropdown';
+    const menu = document.createElement('ul');
+    menu.setAttribute('role', 'menu');
+    popup.appendChild(menu);
+    document.body.appendChild(popup);
+    extras.push(popup);
+
+    await mount();
+    await openMore();
+    await click('Full screen');
+    await pressEscape();
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(true);
+
+    popup.style.display = 'none';
+    await pressEscape();
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
+  });
+
   it('locale=zh 使用全屏 / 退出全屏', async () => {
     await mount({ locale: 'zh' });
     await openMore('更多');

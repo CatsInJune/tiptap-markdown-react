@@ -17,6 +17,9 @@ const ROOT_ATTR = 'data-tmr-fullscreen-root';
  * 这些层自己消费 Esc（查找条、灯箱、公式、快捷键抽屉、斜杠 / 表情、表格菜单、
  * 块菜单、Radix 下拉）。捕获阶段它们还在，就让给它们；下一次 Esc 再退出全屏。
  * 不能靠 `defaultPrevented`：ProseMirror 对 Escape 几乎总会 preventDefault。
+ *
+ * `[role="menu"]` 要单独看：Ant Design Menu / ProLayout 侧栏的根节点一直是这个角色，
+ * 但它是页面导航，不是按 Esc 关掉的浮层。只有弹出层里的菜单才让路。
  */
 const ESCAPE_GUARDS = [
   '[data-radix-popper-content-wrapper]',
@@ -29,6 +32,43 @@ const ESCAPE_GUARDS = [
   '[role="listbox"]',
   '[role="menu"]',
 ].join(',');
+
+/** 门户里的弹出菜单。侧栏里的常驻 Menu 不在这里。 */
+const POPUP_MENU_ROOT =
+  '[data-radix-popper-content-wrapper], .ant-menu-submenu-popup, .ant-dropdown, .ant-select-dropdown, .ant-cascader-menus, .ant-picker-dropdown, .ant-popover';
+
+function isShown(el: Element): boolean {
+  let current: Element | null = el;
+  while (current && current !== document.documentElement) {
+    if (!(current instanceof HTMLElement)) return false;
+    if (current.hidden || current.getAttribute('aria-hidden') === 'true') return false;
+    const style = window.getComputedStyle(current);
+    if (style.display === 'none' || style.visibility === 'hidden') return false;
+    current = current.parentElement;
+  }
+  return true;
+}
+
+/**
+ * 这个节点是不是「还开着、该先吃掉 Esc」的浮层。
+ * 常驻导航菜单返回 false，这样全屏时 Esc 能退出。
+ */
+function isEscapeLayer(node: Element): boolean {
+  if (!isShown(node)) return false;
+  if (node.getAttribute('role') !== 'menu') return true;
+  if (node.closest(POPUP_MENU_ROOT)) return true;
+  if (
+    node.classList.contains('ant-menu-root') ||
+    node.closest('nav, [role="navigation"], aside, .ant-layout-sider')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function escapeLayerOpen(): boolean {
+  return [...document.querySelectorAll(ESCAPE_GUARDS)].some(isEscapeLayer);
+}
 
 /** 显式指定要铺满的节点。函数和 ref 都在点击时再读，方便 ref 晚一拍挂上。 */
 export type FullscreenTarget =
@@ -146,7 +186,7 @@ export function useToolbarFullscreen({
     if (!fullscreen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || isComposingKeyEvent(event)) return;
-      if (document.querySelector(ESCAPE_GUARDS)) return;
+      if (escapeLayerOpen()) return;
       if (
         !editor.isDestroyed &&
         editor.view.dom.classList.contains('tmr-format-painter')
