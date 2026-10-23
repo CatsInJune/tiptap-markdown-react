@@ -1,0 +1,48 @@
+/* 工具栏「全屏」打在包住工具栏和正文的容器上（见 fullscreen.ts）。
+   铺满视口，而不是 Fullscreen API：portal 到 body 的菜单在浏览器全屏层里会被裁掉。
+   选择器写两遍属性，压过宿主单类名上的 max-height / border（样式表谁后加载都一样）。
+   display 用 important：宿主常用内联 style 控制显隐，内联会盖过属性选择器。 */
+
+[data-tmr-fullscreen][data-tmr-fullscreen] {
+  position: fixed;
+  inset: 0;
+  z-index: var(--tmr-fullscreen-z, 900);
+  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--tmr-fullscreen-bg, #fff);
+  overflow: hidden;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+
+[data-tmr-fullscreen][data-tmr-fullscreen] > [data-tmr-toolbar] {
+  flex: none;
+}
+
+/* 工具栏以外的直接子节点（正文滚动区）吃掉剩余高度，并解开宿主的 max-height。
+   hidden 的 file input 排除在外。 */
+[data-tmr-fullscreen][data-tmr-fullscreen] > :not([data-tmr-toolbar]):not([hidden]) {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+
+/* 表格手柄 / 图片工具条 portal 到 body，平时 z-index 低于全屏层。
+   抬到全屏之上、菜单（1000）之下。变量设在 :root 上才跟得上，因为这些节点不在全屏容器里。 */
+:root[data-tmr-fullscreen-root] [data-table-handle],
+:root[data-tmr-fullscreen-root] [data-table-extend],
+:root[data-tmr-fullscreen-root] [data-table-menu],
+:root[data-tmr-fullscreen-root] [data-image-align] {
+  z-index: calc(var(--tmr-fullscreen-z, 900) + 10);
+}

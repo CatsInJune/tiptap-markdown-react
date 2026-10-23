@@ -23,6 +23,7 @@ import {
   CodeIcon,
   DetailsIcon,
   EraserIcon,
+  ExpandIcon,
   ImageIcon,
   IndentDecreaseIcon,
   IndentIncreaseIcon,
@@ -32,6 +33,7 @@ import {
   ListChecksIcon,
   ListOrderedIcon,
   ListUnorderedIcon,
+  MinimizeIcon,
   PaintbrushIcon,
   RedoIcon,
   SearchIcon,
@@ -39,6 +41,10 @@ import {
   UnderlineIcon,
   UndoIcon,
 } from '../icons';
+import {
+  useToolbarFullscreen,
+  type FullscreenTarget,
+} from '../fullscreen';
 import { getLocaleBundle, type LocaleCode } from '../i18n';
 import type { ToolbarLabels } from '../labels';
 import {
@@ -59,6 +65,9 @@ import { hasImageUpload } from '../imageUpload';
 import { insertMarkdown } from '../insertMarkdown';
 import { subscribeMathClick, type MathKind } from '../math';
 import styles from '../styles/toolbar.module.css';
+import '../styles/fullscreen.css';
+
+export type { FullscreenTarget } from '../fullscreen';
 import {
   applyCapturedFormat,
   captureFormat,
@@ -148,6 +157,20 @@ export interface EditorToolbarProps {
   onSearch?: () => void;
   /** 条子当前是否开着（驱动按钮的 aria-pressed / 高亮）。不传恒为未激活。 */
   searchActive?: boolean;
+  /**
+   * 是否在更多菜单里显示全屏，默认 `true`。点一下把容器铺满视口，再点或按 Esc 退出。
+   * 查找条、菜单、灯箱开着时，第一次 Esc 先关它们。
+   */
+  showFullscreen?: boolean;
+  /**
+   * 要铺满视口的元素。不传则从工具栏往上找「里面有编辑器」的那一层
+   * （工具栏和正文是兄弟时，就是它们的父元素）。工具栏单独挂在侧栏时，
+   * 传这一层：`fullscreenTarget={() => frameRef.current}`。
+   * 函数或 ref 在点击时再读。返回 null 时退回默认查找。
+   */
+  fullscreenTarget?: FullscreenTarget;
+  /** 全屏开合。Esc、再点一次、关掉按钮、卸载时都会收到 `false`。 */
+  onFullscreenChange?: (fullscreen: boolean) => void;
   /** 追加到 More 菜单末尾的自定义项。 */
   extraToolbarItems?: ExtraToolbarItem[];
   className?: string;
@@ -256,11 +279,14 @@ function MenuPopover({
 function MenuItem({
   selected,
   disabled,
+  label,
   onSelect,
   children,
 }: {
   selected?: boolean;
   disabled?: boolean;
+  /** 盖过子节点拼出来的无障碍名称。图标加文字时，读屏只念这一句。 */
+  label?: string;
   onSelect: () => void;
   children: ReactNode;
 }) {
@@ -269,6 +295,8 @@ function MenuItem({
     <button
       type="button"
       disabled={disabled}
+      aria-label={label}
+      aria-pressed={selected || undefined}
       className={`${styles.menuItem} ${selected ? styles.menuItemSelected : ''}`}
       onMouseDown={(e) => e.preventDefault()}
       onClick={() => {
@@ -493,10 +521,21 @@ export function EditorToolbar({
   locale = 'en',
   onSearch,
   searchActive = false,
+  showFullscreen = true,
+  fullscreenTarget,
+  onFullscreenChange,
   extraToolbarItems,
   className,
 }: EditorToolbarProps) {
   const t: ToolbarLabels = getLocaleBundle(locale).toolbar;
+  const toolbarRootRef = useRef<HTMLDivElement>(null);
+  const { fullscreen, toggleFullscreen } = useToolbarFullscreen({
+    enabled: showFullscreen,
+    target: fullscreenTarget,
+    toolbarRootRef,
+    editor,
+    onChange: onFullscreenChange,
+  });
 
   const state = useEditorState({
     editor,
@@ -838,6 +877,8 @@ export function EditorToolbar({
   return (
     <>
       <div
+        ref={toolbarRootRef}
+        data-tmr-toolbar=""
         className={
           className ? `${styles.toolbar} ${className}` : styles.toolbar
         }
@@ -1395,6 +1436,24 @@ export function EditorToolbar({
                   .run()
               }
             />
+            {showFullscreen ? (
+              <MenuItem
+                selected={fullscreen}
+                label={fullscreen ? t.exitFullscreen : t.fullscreen}
+                onSelect={toggleFullscreen}
+              >
+                <span className={styles.styleItem}>
+                  <span className={styles.styleIcon}>
+                    {fullscreen ? (
+                      <MinimizeIcon size={14} />
+                    ) : (
+                      <ExpandIcon size={14} />
+                    )}
+                  </span>
+                  {fullscreen ? t.exitFullscreen : t.fullscreen}
+                </span>
+              </MenuItem>
+            ) : null}
             {extraToolbarItems?.map((item) => (
               <MenuItem
                 key={item.key}

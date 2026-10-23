@@ -297,6 +297,12 @@ export const ZH_STRINGS: Record<string, string> = {
   'Built-in UI language': '内置界面语言',
   'Search entry (magnifier) at the far right; wire it to handle.openFind() — omit and no button renders': '最右端的搜索入口（放大镜）。接上 handle.openFind() 即可；不传就不渲染按钮',
   'Whether the bar is open; drives aria-pressed on the search entry': '浮动条是否开着；驱动搜索入口的 aria-pressed',
+  'Full screen item in the More menu. Fills the viewport with the frame that wraps the toolbar and the editor; open the menu again or press Esc to exit': '更多菜单里的全屏项。把包住工具栏和编辑器的那一层铺满视口；再打开菜单点一次，或按 Esc 退出',
+  'Element that should fill the viewport. Omit to walk up from the toolbar to the first ancestor that contains the editor. A function or ref is read on click': '要铺满视口的元素。不传则从工具栏往上找到第一个包住编辑器的祖先。函数和 ref 在点击时再读',
+  'HTMLElement | (() => HTMLElement | null) | { current: HTMLElement | null }': 'HTMLElement | (() => HTMLElement | null) | { current: HTMLElement | null }',
+  'ancestor that contains the editor': '包住编辑器的那一层',
+  'Fires when full screen opens or closes, including Esc, hiding the button, and unmount': '全屏打开或关闭时回调，包括 Esc、关掉按钮和卸载',
+  '(fullscreen: boolean) => void': '(fullscreen: boolean) => void',
   'Custom items in More menu': '更多菜单里的自定义项',
   'Extra root class': '根元素附加 class',
 

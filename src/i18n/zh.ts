@@ -77,6 +77,8 @@ export const zh: LocaleBundle = {
     taskList: '任务列表',
     more: '更多',
     search: '查找替换',
+    fullscreen: '全屏',
+    exitFullscreen: '退出全屏',
     codeBlock: '代码块',
     hr: '分隔线',
     importMarkdown: 'Markdown',

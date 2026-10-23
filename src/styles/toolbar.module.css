@@ -5,7 +5,12 @@
   --sb-muted: var(--tmr-toolbar-muted, #6b6b6b);
   --sb-border: var(--tmr-toolbar-border, #ececec);
 
+  box-sizing: border-box;
   width: 100%;
+  /* 放进 flex / grid 时默认 min-width:auto 会按按钮内容撑开这一列。
+     外层若 overflow:hidden，多出来的部分被裁掉，下面的横滚也滚不到头。 */
+  max-width: 100%;
+  min-width: 0;
   flex: none;
   border-bottom: 1px solid var(--sb-border);
   background: #fff;
@@ -17,14 +22,21 @@
   align-items: center;
   /* 溢出时 `safe` 让居中回退为起点对齐——否则两端内容会被裁掉且滚不到头 */
   justify-content: safe center;
-  /* 控件排满一行后横向滚动（2026-10-10 按用户要求从「换行」改为滚动）：
-     单行、不换行；macOS 的 overlay 滚动条平时隐藏，触控板 / Shift+滚轮 / 细滚动条可横向滚。 */
+  /* 控件排满一行后在栏内横向滚动（2026-10-10 按用户要求从「换行」改为滚动）：
+     单行、不换行。宽度跟操作栏走，不再用固定 1100px——按钮一多就会恒定溢出，
+     右端落在可视区外，macOS 的 overlay 滚动条平时又看不见。
+     窄于按钮行时才出现横滚。overflow-y 显式 hidden：只写 overflow-x:auto
+     时规范会把另一轴提升成 auto，亚像素会多出一根纵向滚动条。 */
   flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  max-width: 1100px;
-  margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
   padding: 8px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 
 /* 单行 + 溢出滚动时不允许把控件压扁（各控件本来就该保持自身宽度） */
@@ -141,8 +153,7 @@
   display: inline-flex;
   align-items: center;
   /* 紧凑口径：宽随文案、文字与箭头只隔 4px。旧版固定 76px + space-between 会把二者
-     拉开到 ~17px，且四枚固定宽把工具栏内层（max-width: 1100px）恒定撑出 40px 溢出，
-     末端「更多」的箭头被裁在滚动容器可视区外（2026-10-10 用户反馈）。
+     拉开到 ~17px，四枚固定宽还会把按钮行撑出一截看不见的溢出（2026-10-10 用户反馈）。
      max-width 兜住长文案：最宽不超过旧的固定宽。 */
   justify-content: flex-start;
   gap: 4px;

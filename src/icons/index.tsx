@@ -391,13 +391,23 @@ export const FitIcon = (p: IconProps) => (
   </Svg>
 );
 
-/** 四角展开，编辑器里的「图片预览」入口，path 取自 Lucide（ISC）。 */
+/** 四角展开，图片预览入口，工具栏「全屏」也用它。path 取自 Lucide（ISC）。 */
 export const ExpandIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M15 3h6v6" />
     <path d="m21 3-7 7" />
     <path d="M9 21H3v-6" />
     <path d="m3 21 7-7" />
+  </Svg>
+);
+
+/** 两角内收，工具栏「退出全屏」。path 取自 Lucide minimize-2（ISC）。 */
+export const MinimizeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <polyline points="4 14 10 14 10 20" />
+    <polyline points="20 10 14 10 14 4" />
+    <line x1="14" x2="21" y1="10" y2="3" />
+    <line x1="3" x2="10" y1="21" y2="14" />
   </Svg>
 );
 
