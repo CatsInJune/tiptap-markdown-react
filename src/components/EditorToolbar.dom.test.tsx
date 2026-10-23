@@ -363,3 +363,178 @@ describe('格式刷和清除格式', () => {
     expect(button('清除格式')).not.toBeNull();
   });
 });
+
+describe('EditorToolbar 的全屏', () => {
+  let host: HTMLDivElement;
+  let root: Root;
+  let editor: Editor;
+  const extras: HTMLElement[] = [];
+
+  const buildEditor = () =>
+    new Editor({
+      extensions: [...baseExtensions, Markdown],
+      content: 'hello',
+      contentType: 'markdown',
+    });
+
+  const mount = async (
+    props: Partial<EditorToolbarProps> = {},
+    parent: HTMLElement = document.body,
+  ) => {
+    editor = buildEditor();
+    host = document.createElement('div');
+    parent.appendChild(host);
+    root = createRoot(host);
+    await act(async () => {
+      root.render(<EditorToolbar editor={editor} {...props} />);
+    });
+  };
+
+  const button = (label: string) =>
+    document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+
+  const openMore = async (label = 'More') => {
+    await act(async () => {
+      host
+        .querySelector<HTMLButtonElement>(`button[title="${label}"]`)
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+  };
+
+  const click = async (label: string) => {
+    await act(async () => {
+      button(label)?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+  };
+
+  const pressEscape = async () => {
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+      );
+    });
+  };
+
+  afterEach(() => {
+    act(() => {
+      try {
+        root?.unmount();
+      } catch {
+        // 用例里已经卸过
+      }
+    });
+    host?.remove();
+    for (const node of extras.splice(0)) node.remove();
+    editor?.destroy();
+    document.documentElement.removeAttribute('data-tmr-fullscreen-root');
+    document.body.style.overflow = '';
+  });
+
+  it('全屏在更多菜单里，点一下铺满，再打开菜单退出', async () => {
+    document.body.style.overflow = 'scroll';
+    await mount();
+
+    expect(button('Full screen')).toBeNull();
+    await openMore();
+    expect(button('Full screen')?.getAttribute('aria-pressed')).toBeNull();
+    await click('Full screen');
+
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(true);
+    expect(document.documentElement.hasAttribute('data-tmr-fullscreen-root')).toBe(
+      true,
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(button('Full screen')).toBeNull();
+
+    await openMore();
+    expect(button('Exit full screen')?.getAttribute('aria-pressed')).toBe('true');
+    await click('Exit full screen');
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
+    expect(document.documentElement.hasAttribute('data-tmr-fullscreen-root')).toBe(
+      false,
+    );
+    expect(document.body.style.overflow).toBe('scroll');
+  });
+
+  it('Esc 退出；浮层还在时第一次 Esc 不退出', async () => {
+    await mount();
+    await openMore();
+    await click('Full screen');
+
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    document.body.appendChild(dialog);
+    extras.push(dialog);
+
+    await pressEscape();
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(true);
+
+    dialog.remove();
+    await pressEscape();
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
+  });
+
+  it('locale=zh 使用全屏 / 退出全屏', async () => {
+    await mount({ locale: 'zh' });
+    await openMore('更多');
+    expect(button('全屏')).not.toBeNull();
+    await click('全屏');
+    await openMore('更多');
+    expect(button('退出全屏')).not.toBeNull();
+  });
+
+  it('showFullscreen={false} 不渲染全屏项', async () => {
+    await mount({ showFullscreen: false });
+    await openMore();
+    expect(button('Full screen')).toBeNull();
+  });
+
+  it('fullscreenTarget 优先于默认父级', async () => {
+    const frame = document.createElement('section');
+    document.body.appendChild(frame);
+    extras.push(frame);
+    await mount({ fullscreenTarget: () => frame });
+
+    await openMore();
+    await click('Full screen');
+    expect(frame.hasAttribute('data-tmr-fullscreen')).toBe(true);
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
+  });
+
+  it('工具栏多包一层时，铺满同时包住编辑器的祖先', async () => {
+    const frame = document.createElement('div');
+    const slot = document.createElement('div');
+    const surface = document.createElement('div');
+    surface.className = 'ProseMirror';
+    frame.append(slot, surface);
+    document.body.appendChild(frame);
+    extras.push(frame);
+
+    await mount({}, slot);
+    await openMore();
+    await click('Full screen');
+    expect(frame.hasAttribute('data-tmr-fullscreen')).toBe(true);
+    expect(slot.hasAttribute('data-tmr-fullscreen')).toBe(false);
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
+  });
+
+  it('onFullscreenChange 在打开、Esc 和卸载时回调', async () => {
+    const onFullscreenChange = vi.fn();
+    await mount({ onFullscreenChange });
+
+    await openMore();
+    await click('Full screen');
+    expect(onFullscreenChange).toHaveBeenLastCalledWith(true);
+
+    await pressEscape();
+    expect(onFullscreenChange).toHaveBeenLastCalledWith(false);
+
+    await openMore();
+    await click('Full screen');
+    await act(async () => {
+      root.unmount();
+    });
+    expect(onFullscreenChange).toHaveBeenLastCalledWith(false);
+    expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
+  });
+});

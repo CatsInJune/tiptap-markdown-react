@@ -473,7 +473,7 @@ Images without a caption keep the plain `![alt](url)` form. Editor, preview and 
 
 ### `<EditorToolbar>` (client)
 
-The row stays centred and **scrolls horizontally** when the controls no longer fit — a single line, never wrapped (`justify-content: safe center` keeps both ends reachable once it overflows). The full set (search entry included) needs about 1045 px of container width; narrower containers scroll. `onSearch` renders the magnifier just left of the More menu.
+The row stays centred and **scrolls horizontally inside the toolbar** when the controls no longer fit — a single line, never wrapped (`justify-content: safe center` keeps both ends reachable once it overflows). The button row is as wide as the toolbar (`min-width: 0` so a flex or grid parent can shrink it); it does not use a fixed max width. Narrower toolbars scroll. `onSearch` renders the magnifier just left of the More menu.
 
 | Prop | Type | Description |
 | --- | --- | --- |

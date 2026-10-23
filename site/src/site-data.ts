@@ -144,6 +144,9 @@ export const TOOLBAR_API: ApiRow[] = [
   { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'onSearch', desc: 'Search entry (magnifier) left of the More menu; wire it to handle.toggleFind() — omit and no button renders', type: '() => void', defaultVal: '—' },
   { name: 'searchActive', desc: 'Whether the bar is open; drives aria-pressed on the search entry', type: 'boolean', defaultVal: 'false' },
+  { name: 'showFullscreen', desc: 'Full screen item in the More menu. Fills the viewport with the frame that wraps the toolbar and the editor; open the menu again or press Esc to exit', type: 'boolean', defaultVal: 'true' },
+  { name: 'fullscreenTarget', desc: 'Element that should fill the viewport. Omit to walk up from the toolbar to the first ancestor that contains the editor. A function or ref is read on click', type: 'HTMLElement | (() => HTMLElement | null) | { current: HTMLElement | null }', defaultVal: 'ancestor that contains the editor' },
+  { name: 'onFullscreenChange', desc: 'Fires when full screen opens or closes, including Esc, hiding the button, and unmount', type: '(fullscreen: boolean) => void', defaultVal: '—' },
   { name: 'extraToolbarItems', desc: 'Custom items in More menu', type: 'ExtraToolbarItem[]', defaultVal: '—' },
   { name: 'className', desc: 'Extra root class', type: 'string', defaultVal: '—' },
 ];

@@ -123,6 +123,10 @@ export interface ToolbarLabels {
    * （`<MarkdownWysiwygEditor>`），点击后由宿主调 `handle.openFind()`。
    */
   search: string;
+  /** 更多菜单里的全屏项。把包住工具栏和正文的容器铺满视口。 */
+  fullscreen: string;
+  /** 已处于全屏时，同一按钮的 title / aria-label。 */
+  exitFullscreen: string;
   codeBlock: string;
   hr: string;
   /** 导入下拉里的 Markdown 项。 */
@@ -289,6 +293,8 @@ export const defaultToolbarLabels: ToolbarLabels = {
   taskList: 'Task list',
   more: 'More',
   search: 'Find & replace',
+  fullscreen: 'Full screen',
+  exitFullscreen: 'Exit full screen',
   codeBlock: 'Code block',
   hr: 'Divider',
   importMarkdown: 'Markdown',

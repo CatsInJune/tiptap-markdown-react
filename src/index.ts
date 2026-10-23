@@ -26,6 +26,7 @@ export {
   EditorToolbar,
   type EditorToolbarProps,
   type ExtraToolbarItem,
+  type FullscreenTarget,
   type ImportDocumentContext,
   type ImportDocumentProgress,
   type ImportDocumentResult,
