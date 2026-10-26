@@ -248,6 +248,81 @@ describe('样式按钮显示当前块级', () => {
   });
 });
 
+describe('焦点在文档标题时', () => {
+  let host: HTMLDivElement;
+  let root: Root;
+  let editor: Editor;
+
+  afterEach(() => {
+    act(() => {
+      root.unmount();
+    });
+    host.remove();
+    editor.destroy();
+  });
+
+  async function mount() {
+    editor = new Editor({
+      extensions: [...baseExtensions, Markdown],
+      content: '正文',
+      contentType: 'markdown',
+    });
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    await act(async () => {
+      root.render(
+        <div>
+          <textarea data-document-title="" defaultValue="年度报告" />
+          <EditorToolbar editor={editor} locale="zh" />
+        </div>,
+      );
+    });
+  }
+
+  function title() {
+    return host.querySelector<HTMLTextAreaElement>('[data-document-title]')!;
+  }
+
+  async function focusTitle() {
+    await act(async () => {
+      title().focus();
+    });
+  }
+
+  it('在大标题里选 H，不会改到下面的正文', async () => {
+    await mount();
+    editor.chain().focus().toggleHeading({ level: 1 }).run();
+    await focusTitle();
+    const style = host.querySelector<HTMLButtonElement>('button[aria-label="样式"]');
+    expect(style?.querySelector('[class*="styleTriggerValue"]')?.textContent).toBe('正文');
+    await act(async () => {
+      style?.click();
+    });
+    const heading = [...document.body.querySelectorAll('button')].find((button) =>
+      button.textContent?.includes('标题 2'),
+    );
+    await act(async () => {
+      heading?.click();
+    });
+    expect(editor.isActive('heading', { level: 1 })).toBe(true);
+    expect(editor.isActive('heading', { level: 2 })).toBe(false);
+    expect(title().value).toBe('年度报告');
+    expect(document.activeElement).toBe(title());
+  });
+
+  it('加粗不会改到正文', async () => {
+    await mount();
+    await focusTitle();
+    await act(async () => {
+      host.querySelector<HTMLButtonElement>('button[aria-label="加粗"]')?.click();
+    });
+    expect(editor.isActive('bold')).toBe(false);
+    expect(editor.getText()).toBe('正文');
+    expect(document.activeElement).toBe(title());
+  });
+});
+
 describe('格式刷和清除格式', () => {
   let host: HTMLDivElement;
   let root: Root;
