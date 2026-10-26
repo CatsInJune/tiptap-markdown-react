@@ -225,6 +225,15 @@ function Divider() {
 /** 行高下拉的档位（对齐语雀 / Notion 的习惯值；不含"默认"）。 */
 const LINE_HEIGHTS = ['1', '1.15', '1.5', '2', '2.5', '3'] as const;
 
+/** 焦点是否在正文顶部的文档标题上。标题不是正文节点，工具栏不能给它套样式。 */
+function focusedDocumentTitle(): HTMLTextAreaElement | null {
+  const el = document.activeElement;
+  if (el instanceof HTMLTextAreaElement && el.hasAttribute('data-document-title')) {
+    return el;
+  }
+  return null;
+}
+
 /** 段落级样式读自段落或标题（光标所在处）——对齐 / 缩进 / 行高共用。 */
 function readParaAttr<T>(editor: Editor, name: string): T | null {
   return (
@@ -585,6 +594,34 @@ export function EditorToolbar({
     };
   }, [editor]);
 
+  // 焦点进过大标题后一直算「正在编辑标题」，直到点回正文。
+  // 工具栏按钮会 preventDefault，焦点可能短暂离开标题，但不能因此把 H 套到标题下面那一段。
+  const titleEditingRef = useRef(false);
+  const [titleFocused, setTitleFocused] = useState(false);
+  const setTitleEditing = useCallback((editing: boolean) => {
+    titleEditingRef.current = editing;
+    setTitleFocused(editing);
+  }, []);
+  useEffect(() => {
+    const sync = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.hasAttribute('data-document-title')) {
+        setTitleEditing(true);
+        return;
+      }
+      if (target.closest('.ProseMirror')) setTitleEditing(false);
+    };
+    const onEditorFocus = () => setTitleEditing(false);
+    document.addEventListener('focusin', sync);
+    editor.on('focus', onEditorFocus);
+    return () => {
+      document.removeEventListener('focusin', sync);
+      editor.off('focus', onEditorFocus);
+    };
+  }, [editor, setTitleEditing]);
+  const editingTitle = () => titleEditingRef.current || focusedDocumentTitle() !== null;
+
   // 格式刷：官方没有这个扩展。单击取样一次，双击锁定，Esc 取消。
   // 取样后下一次在正文里松开鼠标才套用，避免点按钮本身的 mouseup 被当成落点。
   const [painter, setPainter] = useState<'off' | 'once' | 'locked'>('off');
@@ -628,6 +665,7 @@ export function EditorToolbar({
     };
   }, [editor, painter, paintSample]);
   const onFormatPainterClick = () => {
+    if (editingTitle() && painter === 'off') return;
     const now = Date.now();
     const quick = now - painterClickAt.current < 300;
     painterClickAt.current = now;
@@ -647,6 +685,14 @@ export function EditorToolbar({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chain = () => editor.chain().focus();
+  // 正在编辑文档标题时，工具栏样式不落到标题上，也不改标题下面的正文。
+  const styleCommand = (
+    apply: (commands: ReturnType<Editor['chain']>) => { run: () => boolean },
+  ) => {
+    if (editingTitle()) return;
+    apply(editor.chain().focus()).run();
+  };
+  const markActive = (active: boolean) => (titleFocused ? false : active);
 
   // ── 表格工具条（右键召唤）：右键单元格时在鼠标处弹出，点别处/Esc 隐藏 ──
   // ── 图片：编辑器注册了 imageUpload 扩展就插上传占位块（块内拖拽/点选 → 进度 → 换图，
@@ -756,25 +802,26 @@ export function EditorToolbar({
   const importTitle = importing ? t.importDocumentBusy : t.importDocumentHint;
 
   const applyTextColor = (color: string | null) => {
-    if (color) chain().setColor(color).run();
-    else chain().unsetColor().run();
+    styleCommand((commands) =>
+      color ? commands.setColor(color) : commands.unsetColor(),
+    );
   };
   const applyHighlight = (color: string | null) => {
-    if (color) chain().setHighlight({ color }).run();
-    else chain().unsetHighlight().run();
+    styleCommand((commands) =>
+      color ? commands.setHighlight({ color }) : commands.unsetHighlight(),
+    );
   };
 
   const setBlockStyle = (level: number) => {
+    if (editingTitle()) return;
     if (level === 0) chain().setParagraph().run();
-    else
-      chain()
-        .toggleHeading({ level: level as 1 | 2 | 3 | 4 | 5 | 6 })
-        .run();
+    else chain().toggleHeading({ level: level as 1 | 2 | 3 | 4 | 5 | 6 }).run();
   };
 
   const applyFontSize = (size: string) => {
-    if (size) chain().setFontSize(size).run();
-    else chain().unsetFontSize().run();
+    styleCommand((commands) =>
+      size ? commands.setFontSize(size) : commands.unsetFontSize(),
+    );
   };
   const canEditFontSize = editorFocused && state.isParagraph;
 
@@ -868,7 +915,9 @@ export function EditorToolbar({
     setMathEdit(null);
   };
 
-  const scriptActive = state.superscript
+  const scriptActive = titleFocused
+    ? 'normal'
+    : state.superscript
     ? 'superscript'
     : state.subscript
       ? 'subscript'
@@ -908,7 +957,10 @@ export function EditorToolbar({
           </ToolbarButton>
           <ToolbarButton
             title={t.clearFormatting}
-            onClick={() => clearFormatting(editor)}
+            onClick={() => {
+              if (editingTitle()) return;
+              clearFormatting(editor);
+            }}
           >
             <EraserIcon />
           </ToolbarButton>
@@ -922,9 +974,9 @@ export function EditorToolbar({
                 type="button"
                 className={`${styles.styleTrigger} ${styles.styleTriggerStable}`}
                 title={
-                  state.headingLevel
-                    ? t.headingLabel(state.headingLevel)
-                    : t.normalText
+                  titleFocused || !state.headingLevel
+                    ? t.normalText
+                    : t.headingLabel(state.headingLevel)
                 }
                 aria-label={t.style}
                 onMouseDown={(e) => e.preventDefault()}
@@ -937,7 +989,9 @@ export function EditorToolbar({
                     ))}
                   </span>
                   <span className={styles.styleTriggerValue}>
-                    {state.headingLevel ? `H${state.headingLevel}` : t.normalText}
+                    {titleFocused || !state.headingLevel
+                      ? t.normalText
+                      : `H${state.headingLevel}`}
                   </span>
                 </span>
                 <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
@@ -945,7 +999,7 @@ export function EditorToolbar({
             }
           >
             <MenuItem
-              selected={(state.headingLevel ?? 0) === 0}
+              selected={!titleFocused && (state.headingLevel ?? 0) === 0}
               onSelect={() => setBlockStyle(0)}
             >
               <span className={styles.styleItem}>
@@ -956,7 +1010,7 @@ export function EditorToolbar({
             {HEADING_LEVELS.map((lv) => (
               <MenuItem
                 key={lv}
-                selected={state.headingLevel === lv}
+                selected={!titleFocused && state.headingLevel === lv}
                 onSelect={() => setBlockStyle(lv)}
               >
                 <span className={styles.styleItem}>
@@ -1021,36 +1075,36 @@ export function EditorToolbar({
           {/* 文字格式 */}
           <ToolbarButton
             title={t.bold}
-            active={state.bold}
-            onClick={() => chain().toggleBold().run()}
+            active={markActive(state.bold)}
+            onClick={() => styleCommand((commands) => commands.toggleBold())}
           >
             <BoldIcon />
           </ToolbarButton>
           <ToolbarButton
             title={t.italic}
-            active={state.italic}
-            onClick={() => chain().toggleItalic().run()}
+            active={markActive(state.italic)}
+            onClick={() => styleCommand((commands) => commands.toggleItalic())}
           >
             <ItalicIcon />
           </ToolbarButton>
           <ToolbarButton
             title={t.underline}
-            active={state.underline}
-            onClick={() => chain().toggleUnderline().run()}
+            active={markActive(state.underline)}
+            onClick={() => styleCommand((commands) => commands.toggleUnderline())}
           >
             <UnderlineIcon />
           </ToolbarButton>
           <ToolbarButton
             title={t.strike}
-            active={state.strike}
-            onClick={() => chain().toggleStrike().run()}
+            active={markActive(state.strike)}
+            onClick={() => styleCommand((commands) => commands.toggleStrike())}
           >
             <StrikethroughIcon />
           </ToolbarButton>
           <ToolbarButton
             title={t.code}
-            active={state.code}
-            onClick={() => chain().toggleCode().run()}
+            active={markActive(state.code)}
+            onClick={() => styleCommand((commands) => commands.toggleCode())}
           >
             <CodeIcon />
           </ToolbarButton>
@@ -1093,7 +1147,11 @@ export function EditorToolbar({
           >
             <MenuItem
               selected={scriptActive === 'normal'}
-              onSelect={() => chain().unsetSuperscript().unsetSubscript().run()}
+              onSelect={() =>
+                styleCommand((commands) =>
+                  commands.unsetSuperscript().unsetSubscript(),
+                )
+              }
             >
               <span className={styles.styleItem}>
                 <span className={styles.styleIcon}>A</span>
@@ -1102,7 +1160,11 @@ export function EditorToolbar({
             </MenuItem>
             <MenuItem
               selected={scriptActive === 'superscript'}
-              onSelect={() => chain().unsetSubscript().toggleSuperscript().run()}
+              onSelect={() =>
+                styleCommand((commands) =>
+                  commands.unsetSubscript().toggleSuperscript(),
+                )
+              }
             >
               <span className={styles.styleItem}>
                 <span className={`${styles.styleIcon} ${styles.scriptGlyph}`}>
@@ -1113,7 +1175,11 @@ export function EditorToolbar({
             </MenuItem>
             <MenuItem
               selected={scriptActive === 'subscript'}
-              onSelect={() => chain().unsetSuperscript().toggleSubscript().run()}
+              onSelect={() =>
+                styleCommand((commands) =>
+                  commands.unsetSuperscript().toggleSubscript(),
+                )
+              }
             >
               <span className={styles.styleItem}>
                 <span className={`${styles.styleIcon} ${styles.scriptGlyph}`}>
@@ -1187,8 +1253,8 @@ export function EditorToolbar({
           ) : null}
           <ToolbarButton
             title={t.blockquote}
-            active={state.blockquote}
-            onClick={() => chain().toggleBlockquote().run()}
+            active={markActive(state.blockquote)}
+            onClick={() => styleCommand((commands) => commands.toggleBlockquote())}
           >
             <span className={styles.txtIcon}>❝</span>
           </ToolbarButton>
@@ -1240,7 +1306,9 @@ export function EditorToolbar({
               <MenuItem
                 key={value}
                 selected={state.textAlign === value}
-                onSelect={() => chain().setTextAlign(value).run()}
+                onSelect={() =>
+                  styleCommand((commands) => commands.setTextAlign(value))
+                }
               >
                 <span className={styles.styleItem}>
                   <span className={styles.styleIcon}>
@@ -1266,7 +1334,11 @@ export function EditorToolbar({
               </button>
             }
           >
-            <MenuItem onSelect={() => chain().increaseIndent().run()}>
+            <MenuItem
+              onSelect={() =>
+                styleCommand((commands) => commands.increaseIndent())
+              }
+            >
               <span className={styles.styleItem}>
                 <span className={styles.styleIcon}>
                   <IndentIncreaseIcon size={14} />
@@ -1274,7 +1346,11 @@ export function EditorToolbar({
                 {t.indentIncrease}
               </span>
             </MenuItem>
-            <MenuItem onSelect={() => chain().decreaseIndent().run()}>
+            <MenuItem
+              onSelect={() =>
+                styleCommand((commands) => commands.decreaseIndent())
+              }
+            >
               <span className={styles.styleItem}>
                 <span className={styles.styleIcon}>
                   <IndentDecreaseIcon size={14} />
@@ -1300,7 +1376,9 @@ export function EditorToolbar({
           >
             <MenuItem
               selected={!state.lineHeight}
-              onSelect={() => chain().setLineHeight(null).run()}
+              onSelect={() =>
+                styleCommand((commands) => commands.setLineHeight(null))
+              }
             >
               <span className={styles.styleItem}>
                 <span className={styles.styleIcon}>—</span>
@@ -1311,7 +1389,11 @@ export function EditorToolbar({
               <MenuItem
                 key={value}
                 selected={state.lineHeight === Number(value)}
-                onSelect={() => chain().setLineHeight(Number(value)).run()}
+                onSelect={() =>
+                  styleCommand((commands) =>
+                    commands.setLineHeight(Number(value)),
+                  )
+                }
               >
                 <span className={styles.styleItem}>
                   <span className={styles.styleIcon}>≡</span>
