@@ -251,4 +251,5 @@ export const zh: LocaleBundle = {
     failed: '上传失败',
     fallbackAlt: '图片',
   },
+  titlePlaceholder: '标题',
 };

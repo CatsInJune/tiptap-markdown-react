@@ -102,6 +102,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'The core WYSIWYG editor. Markdown in, markdown out via ref methods. The left-edge outline stays off until toc is set.':
     '核心所见即所得编辑器。Markdown 进、Markdown 出（经 ref 方法）。左缘目录默认关闭，传入 toc 才显示。',
   'Full rich-text editing with Markdown serialization': '完整的富文本编辑 + Markdown 序列化',
+  'Document title at the top of the body. Optional to fill in, and kept out of the markdown':
+    '正文顶部的文档标题。可以留空，也不写进 markdown',
   'Ref API: getMarkdown(), getHTML(), getJSON(), getEditor()': 'Ref API：getMarkdown()、getHTML()、getJSON()、getEditor()',
   'Built-in left outline: hover the ticks to expand, click to jump':
     '内置左侧目录：悬停短横线展开，点击跳转',
@@ -250,6 +252,14 @@ export const ZH_STRINGS: Record<string, string> = {
   'Initial citation sources for [^n] (url/title on citationRef). Init-only': '[^n] 的初始引用来源（写入 citationRef 的 url/title）。仅初始化生效',
   'NodeView slot to wrap citation pills (Popover etc.). Init-only': '包住引用圆标的 NodeView 插槽（Popover 等）。仅初始化生效',
   'Empty-state placeholder': '空态占位文案',
+  'Document title above the body. Kept out of markdown and the outline. A string is controlled; false hides the field. Empty is allowed':
+    '正文上方的文档标题。不进 markdown，也不进目录。传字符串为受控；传 false 隐藏。可以留空',
+  'Initial title when documentTitle is not a string': 'documentTitle 不是字符串时的初始标题',
+  'Fires when the title changes, whether or not it is controlled': '标题变化时回调，受控与否都会触发',
+  'Title placeholder. Defaults with locale: Title / 标题': '标题占位。默认随语言：Title / 标题',
+  'Maximum title length': '标题最长字数',
+  'Current document title. Empty when the field is hidden. Not included in getMarkdown()':
+    '当前文档标题。字段隐藏时为空。不包含在 getMarkdown() 里',
   'Called when editor is ready / destroyed': '编辑器就绪 / 销毁时回调',
   'Optional. Fires when the heading list changes. The editor draws the outline itself':
     '可选。标题列表变化时回调。目录由编辑器自己画',

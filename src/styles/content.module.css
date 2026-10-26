@@ -27,6 +27,61 @@
   position: relative;
 }
 
+/* 文档标题和正文共用拖拽/目录留白，文字左缘对齐。
+   标题在时，原来 editorScroll 的上边距改由这一层承担，避免标题和正文之间再空一截。 */
+.titleStack {
+  margin-top: 24px;
+}
+
+.titleStack .editorScroll {
+  margin-top: 0;
+}
+
+.documentTitle {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 0.35em;
+  padding: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(
+    --tmr-body-font,
+    Spectral,
+    serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif
+  );
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--tmr-text, #363737);
+}
+
+.documentTitle::placeholder {
+  color: var(--tmr-placeholder, #b7b7b7);
+}
+
+.documentTitle:read-only {
+  cursor: default;
+}
+
+@media (max-width: 768px) {
+  .documentTitle {
+    font-size: 32px;
+  }
+}
+
 /* 块拖拽的左侧留白：可见按钮在块左缘外侧约 8px，评论气泡再靠外一截，
    两者都落在这段 padding 里，不会被滚动容器裁掉。手柄盒子另有一段透明热区
    伸进块左缘（见 blockDrag.module.css），不占这段留白。 */

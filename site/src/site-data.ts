@@ -99,6 +99,11 @@ export const EDITOR_API: ApiRow[] = [
   { name: 'sources', desc: 'Initial citation sources for [^n] (url/title on citationRef). Init-only', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'renderCitation', desc: 'NodeView slot to wrap citation pills (Popover etc.). Init-only', type: 'RenderCitation', defaultVal: '—' },
   { name: 'placeholder', desc: 'Empty-state placeholder', type: 'string', defaultVal: '—' },
+  { name: 'documentTitle', desc: 'Document title above the body. Kept out of markdown and the outline. A string is controlled; false hides the field. Empty is allowed', type: 'string | false', defaultVal: 'shown, empty' },
+  { name: 'defaultDocumentTitle', desc: 'Initial title when documentTitle is not a string', type: 'string', defaultVal: "''" },
+  { name: 'onDocumentTitleChange', desc: 'Fires when the title changes, whether or not it is controlled', type: '(title: string) => void', defaultVal: '—' },
+  { name: 'documentTitlePlaceholder', desc: 'Title placeholder. Defaults with locale: Title / 标题', type: 'string', defaultVal: 'locale' },
+  { name: 'documentTitleMaxLength', desc: 'Maximum title length', type: 'number', defaultVal: '200' },
   { name: 'onEditorReady', desc: 'Called when editor is ready / destroyed', type: '(editor: Editor | null) => void', defaultVal: '—' },
   { name: 'onTocChange', desc: 'Optional. Fires when the heading list changes. The editor draws the outline itself', type: '(items: TocItem[]) => void', defaultVal: '—' },
   { name: 'toc', desc: 'Built-in left outline. Ticks when there are headings; hover expands titles and click scrolls. Hidden under 768px', type: 'boolean', defaultVal: 'false' },
@@ -125,6 +130,7 @@ export const EDITOR_API: ApiRow[] = [
 
 export const EDITOR_REF_API: ApiRow[] = [
   { name: 'getMarkdown()', desc: 'Export current content as markdown', type: '() => string' },
+  { name: 'getDocumentTitle()', desc: 'Current document title. Empty when the field is hidden. Not included in getMarkdown()', type: '() => string' },
   { name: 'getHTML()', desc: 'Export current content as HTML', type: '() => string' },
   { name: 'getJSON()', desc: 'Export Tiptap JSON document', type: '() => Record<string, unknown>' },
   { name: 'getEditor()', desc: 'Underlying Tiptap Editor instance', type: '() => Editor | null' },
