@@ -30,6 +30,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type RefObject,
 } from 'react';
 import {
   enrichMarkdownCitations,
@@ -407,8 +408,13 @@ function editorOwnsKeyboard(editor: Editor): boolean {
 }
 
 export interface MarkdownWysiwygEditorHandle {
-  /** 取当前正文的 markdown 字符串。 */
+  /** 取当前正文的 markdown 字符串。不含文档标题。 */
   getMarkdown: () => string;
+  /**
+   * 正文顶部的文档标题。`documentTitle={false}` 时为空字符串。
+   * 标题不在 markdown 里。
+   */
+  getDocumentTitle: () => string;
   /** 取当前正文的 HTML 字符串。 */
   getHTML: () => string;
   /** 取当前正文的 Tiptap JSON。 */
@@ -481,6 +487,20 @@ export interface MarkdownWysiwygEditorProps {
    */
   renderCitation?: RenderCitation;
   placeholder?: string;
+  /**
+   * 正文顶部的文档标题。和 markdown 分开存：不进 `getMarkdown()`，也不进目录。
+   * 默认显示，可以留空。传字符串则为受控值；传 `false` 关掉
+   * （宿主已经在编辑器外画了标题时用）。
+   */
+  documentTitle?: string | false;
+  /** 非受控标题的初始值。`documentTitle` 为字符串时忽略。 */
+  defaultDocumentTitle?: string;
+  /** 标题变化。受控和非受控都会调用。 */
+  onDocumentTitleChange?: (title: string) => void;
+  /** 标题占位。不传则随 locale：英文 Title，中文「标题」。 */
+  documentTitlePlaceholder?: string;
+  /** 标题最长字数，默认 200。 */
+  documentTitleMaxLength?: number;
   /** editor 实例就绪 / 销毁时回调，供外部工具栏使用。 */
   onEditorReady?: (editor: Editor | null) => void;
   /**
@@ -659,6 +679,88 @@ function sameTocItems(a: TocItem[], b: TocItem[]): boolean {
   );
 }
 
+/** 光标在文档最开头（含嵌套列表的第一项）。上方向键从这里回到文档标题。 */
+function isAtDocumentStart(selection: {
+  empty: boolean;
+  from: number;
+  $from: {
+    depth: number;
+    parentOffset: number;
+    index: (depth: number) => number;
+  };
+}): boolean {
+  if (!selection.empty) return selection.from === 0;
+  const $from = selection.$from;
+  if ($from.parentOffset !== 0) return false;
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    if ($from.index(depth - 1) !== 0) return false;
+  }
+  return true;
+}
+
+function DocumentTitleField({
+  value,
+  placeholder,
+  maxLength,
+  readOnly,
+  inputRef,
+  onChange,
+  onMoveToBody,
+}: {
+  value: string;
+  placeholder: string;
+  maxLength: number;
+  readOnly: boolean;
+  inputRef: RefObject<HTMLTextAreaElement | null>;
+  onChange: (value: string) => void;
+  onMoveToBody: () => void;
+}) {
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    // scrollHeight 为 0 时保持 auto，避免空标题被收成 0 高。
+    if (el.scrollHeight > 0) el.style.height = `${el.scrollHeight}px`;
+  }, [inputRef, value]);
+
+  return (
+    <textarea
+      ref={inputRef}
+      className={styles.documentTitle}
+      data-document-title=""
+      value={value}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      rows={1}
+      aria-label={placeholder}
+      readOnly={readOnly}
+      onChange={(event) => onChange(event.target.value)}
+      onKeyDown={(event) => {
+        if (readOnly || isComposingKeyEvent(event.nativeEvent)) return;
+        if (event.key === 'Enter' && !event.shiftKey) {
+          event.preventDefault();
+          onMoveToBody();
+          return;
+        }
+        if (
+          event.key !== 'ArrowDown' ||
+          event.shiftKey ||
+          event.altKey ||
+          event.metaKey ||
+          event.ctrlKey
+        ) {
+          return;
+        }
+        const el = event.currentTarget;
+        if (el.selectionStart === el.value.length && el.selectionEnd === el.value.length) {
+          event.preventDefault();
+          onMoveToBody();
+        }
+      }}
+    />
+  );
+}
+
 /**
  * 所见即所得 Markdown 编辑器（基于 Tiptap v3 + 官方 @tiptap/markdown）。
  * 内容进出均为 markdown 字符串。工具栏由外部渲染——通过 onEditorReady 拿到 editor 实例。
@@ -674,6 +776,11 @@ export const MarkdownWysiwygEditor = forwardRef<
     sources,
     renderCitation,
     placeholder,
+    documentTitle,
+    defaultDocumentTitle = '',
+    onDocumentTitleChange,
+    documentTitlePlaceholder,
+    documentTitleMaxLength = 200,
     onEditorReady,
     onTocChange,
     toc = false,
@@ -718,7 +825,27 @@ export const MarkdownWysiwygEditor = forwardRef<
   const [findOpen, setFindOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [tocItems, setTocItems] = useState<TocItem[]>([]);
+  const [uncontrolledTitle, setUncontrolledTitle] = useState(defaultDocumentTitle);
   const findInputRef = useRef<HTMLInputElement | null>(null);
+  const titleInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const showDocumentTitleRef = useRef(false);
+  const titleValueRef = useRef('');
+  const onDocumentTitleChangeRef = useRef(onDocumentTitleChange);
+  onDocumentTitleChangeRef.current = onDocumentTitleChange;
+
+  const titleControlled = typeof documentTitle === 'string';
+  const titleControlledRef = useRef(titleControlled);
+  titleControlledRef.current = titleControlled;
+  const titleValue = titleControlled ? documentTitle : uncontrolledTitle;
+  const showDocumentTitle =
+    documentTitle !== false && (editable || titleValue.trim().length > 0);
+  showDocumentTitleRef.current = showDocumentTitle;
+  titleValueRef.current = titleValue;
+
+  const setDocumentTitle = useCallback((next: string) => {
+    if (!titleControlledRef.current) setUncontrolledTitle(next);
+    onDocumentTitleChangeRef.current?.(next);
+  }, []);
   const onTocChangeRef = useRef(onTocChange);
   onTocChangeRef.current = onTocChange;
   const tocItemsRef = useRef<TocItem[]>([]);
@@ -819,6 +946,27 @@ export const MarkdownWysiwygEditor = forwardRef<
     editorProps: {
       attributes: {
         class: styles.editorContent,
+      },
+      handleKeyDown: (_view, event) => {
+        if (!showDocumentTitleRef.current) return false;
+        if (
+          event.key !== 'ArrowUp' ||
+          event.shiftKey ||
+          event.altKey ||
+          event.metaKey ||
+          event.ctrlKey ||
+          isComposingKeyEvent(event)
+        ) {
+          return false;
+        }
+        if (!isAtDocumentStart(_view.state.selection)) return false;
+        const title = titleInputRef.current;
+        if (!title) return false;
+        event.preventDefault();
+        title.focus();
+        const end = title.value.length;
+        title.setSelectionRange(end, end);
+        return true;
       },
     },
   });
@@ -1039,6 +1187,8 @@ export const MarkdownWysiwygEditor = forwardRef<
     ref,
     () => ({
       getMarkdown: () => editor?.getMarkdown?.() ?? '',
+      getDocumentTitle: () =>
+        showDocumentTitleRef.current ? titleValueRef.current : '',
       getHTML: () => editor?.getHTML?.() ?? '',
       getJSON: () => (editor?.getJSON?.() as Record<string, unknown>) ?? {},
       getEditor: () => editor ?? null,
@@ -1118,6 +1268,27 @@ export const MarkdownWysiwygEditor = forwardRef<
       </button>
     ) : null;
 
+  const padDrag = showBlockDrag ? styles.withBlockDrag : '';
+  const padToc =
+    toc && !blockDragMobile && tocItems.length > 0 ? styles.withToc : '';
+  const editorSurface = (
+    <ImagePreviewHost locale={locale} activate={editable ? 'dblclick' : 'click'}>
+      <EditorContent
+        editor={editor}
+        className={
+          [
+            styles.editorScroll,
+            showDocumentTitle ? '' : padDrag,
+            showDocumentTitle ? '' : padToc,
+            className ?? '',
+          ]
+            .filter(Boolean)
+            .join(' ')
+        }
+      />
+    </ImagePreviewHost>
+  );
+
   return (
     <div
       className={styles.editorHost}
@@ -1137,21 +1308,25 @@ export const MarkdownWysiwygEditor = forwardRef<
           locale={locale}
         />
       ) : null}
-      <ImagePreviewHost locale={locale} activate={editable ? 'dblclick' : 'click'}>
-        <EditorContent
-          editor={editor}
-          className={
-            [
-              styles.editorScroll,
-              showBlockDrag ? styles.withBlockDrag : '',
-              toc && !blockDragMobile && tocItems.length > 0 ? styles.withToc : '',
-              className ?? '',
-            ]
-              .filter(Boolean)
-              .join(' ')
-          }
-        />
-      </ImagePreviewHost>
+      {showDocumentTitle ? (
+        <div className={[styles.titleStack, padDrag, padToc].filter(Boolean).join(' ')}>
+          <DocumentTitleField
+            value={titleValue}
+            placeholder={
+              documentTitlePlaceholder ??
+              getLocaleBundle(locale).titlePlaceholder
+            }
+            maxLength={documentTitleMaxLength}
+            readOnly={!editable}
+            inputRef={titleInputRef}
+            onChange={setDocumentTitle}
+            onMoveToBody={() => editor?.commands.focus('start')}
+          />
+          {editorSurface}
+        </div>
+      ) : (
+        editorSurface
+      )}
       {editor && showBlockDrag ? (
         <BlockDragHandle editor={editor} />
       ) : null}

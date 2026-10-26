@@ -32,4 +32,6 @@ export interface LocaleBundle {
   codeBlock: CodeBlockLabels;
   find: FindLabels;
   imageUpload: ImageUploadLabels;
+  /** 正文顶部文档标题的占位。 */
+  titlePlaceholder: string;
 }

@@ -32,6 +32,7 @@ const en: LocaleBundle = {
   codeBlock: defaultCodeBlockLabels,
   find: defaultFindLabels,
   imageUpload: defaultImageUploadLabels,
+  titlePlaceholder: 'Title',
 };
 
 const bundles: Record<LocaleCode, LocaleBundle> = { en, zh };

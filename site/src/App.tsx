@@ -221,6 +221,7 @@ function ComponentsPage() {
         importName="MarkdownWysiwygEditor"
         features={[
           'Full rich-text editing with Markdown serialization',
+          'Document title at the top of the body. Optional to fill in, and kept out of the markdown',
           'Ref API: getMarkdown(), getHTML(), getJSON(), getEditor()',
           'Built-in left outline: hover the ticks to expand, click to jump',
           'extraExtensions hook for custom Tiptap nodes',
