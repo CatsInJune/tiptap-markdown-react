@@ -207,6 +207,18 @@ export interface ChartLabels {
   tableLabel: string;
   /** Modal dialog title. */
   editTitle: string;
+  /** 选中图表后的图型按钮。当前图型未知时用这句。 */
+  changeType: string;
+  /** 把图表节点还原成数据表。 */
+  toTable: string;
+  typeLabels: {
+    column: string;
+    bar: string;
+    line: string;
+    area: string;
+    pie: string;
+    donut: string;
+  };
 }
 
 export const defaultChartLabels: ChartLabels = {
@@ -216,6 +228,16 @@ export const defaultChartLabels: ChartLabels = {
   configLabel: 'Chart config (JSON)',
   tableLabel: 'Data table (Markdown)',
   editTitle: 'Edit chart',
+  changeType: 'Chart type',
+  toTable: 'Back to table',
+  typeLabels: {
+    column: 'Column',
+    bar: 'Bar',
+    line: 'Line',
+    area: 'Area',
+    pie: 'Pie',
+    donut: 'Donut',
+  },
 };
 
 export const defaultToolbarLabels: ToolbarLabels = {

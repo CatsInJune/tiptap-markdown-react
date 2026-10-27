@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { getLocaleBundle, type LocaleCode } from '../i18n';
 import styles from '../styles/editorToc.module.css';
 import type { TocItem } from '../toc/extractToc';
@@ -54,18 +54,40 @@ function headingHasArrived(heading: HTMLElement, rootTop: number): boolean {
   return heading.getBoundingClientRect().top <= line;
 }
 
+/** 短横线在视口里占的盒子。宿主用 right 判断窄栏会不会滑到目录下面。 */
+export interface TocRailBox {
+  left: number;
+  right: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 export interface EditorTocProps {
   items: TocItem[];
   /** 编辑器正文根节点，用来找标题和滚动容器。 */
   editorDom: HTMLElement;
   locale?: LocaleCode;
+  /**
+   * 正文真正滚动的那一层。传了之后短横线钉在它的左缘（再留 16px），
+   * 顶对齐正文静止时的位置，不再跟着正文滚走。
+   */
+  pinContainer?: HTMLElement | null;
+  /** 钉住之后报一次短横线的盒子；卸掉或没有目录时报 null。 */
+  onRailChange?: (rail: TocRailBox | null) => void;
 }
 
 /**
  * 编辑器内目录（Notion 式，贴在左缘）。
  * 收起是一列短横线；悬停或聚焦向右展开标题，点击滚到对应标题。
  */
-export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
+export function EditorToc({
+  items,
+  editorDom,
+  locale = 'en',
+  pinContainer = null,
+  onRailChange,
+}: EditorTocProps) {
   const t = getLocaleBundle(locale).toc;
   const [open, setOpen] = useState(false);
   const [activeId, setActiveId] = useState(items[0]?.id ?? '');
@@ -82,6 +104,11 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
   /** 按下后等到松开再开始计时，按住不放时不会提前交还高亮。 */
   const cancelPointerWait = useRef<(() => void) | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const onRailChangeRef = useRef(onRailChange);
+  onRailChangeRef.current = onRailChange;
+
+  const scrollerOf = () => pinContainer ?? findScrollParent(editorDom);
 
   const clearHide = () => {
     if (hideTimer.current !== null) {
@@ -124,7 +151,7 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
       .filter((el): el is HTMLElement => el !== null);
     if (!headings.length) return;
 
-    const scrollParent = findScrollParent(editorDom);
+    const scrollParent = pinContainer ?? findScrollParent(editorDom);
     const viewport = isViewportScroller(scrollParent);
 
     const scrollPos = () =>
@@ -184,7 +211,7 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     return () => {
       scrollTarget.removeEventListener('scroll', onScroll);
     };
-  }, [items, editorDom]);
+  }, [items, editorDom, pinContainer]);
 
   // 目录没被键盘占用时，下一个 Tab 落在当前章节上。
   useEffect(() => {
@@ -272,7 +299,7 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
   /** 立刻高亮这一项，并清掉上一次的解锁计时。 */
   const pinHighlight = (item: TocItem) => {
     cancelPinWatch.current?.();
-    const scroller = findScrollParent(editorDom);
+    const scroller = scrollerOf();
     pinnedId.current = item.id;
     pinScroll.current = null;
     setActiveId(item.id);
@@ -312,8 +339,65 @@ export function EditorToc({ items, editorDom, locale = 'en' }: EditorTocProps) {
     itemRefs.current[next]?.focus();
   };
 
+  useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    let lastKey = '';
+    const report = (rail: TocRailBox | null) => {
+      const key = rail
+        ? [rail.left, rail.right, rail.top, rail.width, rail.height]
+            .map((n) => Math.round(n))
+            .join(',')
+        : '';
+      if (key === lastKey) return;
+      lastKey = key;
+      onRailChangeRef.current?.(rail);
+    };
+    if (!pinContainer || !anchor) {
+      report(null);
+      return;
+    }
+    const place = () => {
+      const left = pinContainer.getBoundingClientRect().left + 16;
+      const top = editorDom.getBoundingClientRect().top + pinContainer.scrollTop;
+      anchor.style.setProperty('--tmr-toc-pin-top', `${top}px`);
+      anchor.style.setProperty('--tmr-toc-pin-left', `${left}px`);
+      const rail = anchor.querySelector<HTMLElement>('[data-editor-toc]');
+      if (!rail) {
+        report(null);
+        return;
+      }
+      const box = rail.getBoundingClientRect();
+      report({
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        width: box.width,
+        height: box.height,
+      });
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(pinContainer);
+    pinContainer.addEventListener('scroll', place, { passive: true });
+    window.addEventListener('resize', place);
+    return () => {
+      ro.disconnect();
+      pinContainer.removeEventListener('scroll', place);
+      window.removeEventListener('resize', place);
+      anchor.style.removeProperty('--tmr-toc-pin-top');
+      anchor.style.removeProperty('--tmr-toc-pin-left');
+      lastKey = '';
+      onRailChangeRef.current?.(null);
+    };
+  }, [pinContainer, editorDom, items]);
+
   return (
-    <div className={styles.anchor}>
+    <div
+      ref={anchorRef}
+      className={
+        pinContainer ? `${styles.anchor} ${styles.anchorPinned}` : styles.anchor
+      }
+    >
       <nav
         ref={navRef}
         className={styles.nav}

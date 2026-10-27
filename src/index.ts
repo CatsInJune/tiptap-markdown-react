@@ -16,6 +16,7 @@ export {
   type MarkdownWysiwygEditorHandle,
   type MarkdownWysiwygEditorProps,
 } from './components/MarkdownWysiwygEditor';
+export type { TocRailBox } from './components/EditorToc';
 export {
   MarkdownPreview,
   type MarkdownPreviewProps,
