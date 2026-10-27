@@ -250,8 +250,10 @@ export function EditorToc({
   }, [open, activeId, items]);
 
   /**
-   * 滚动停稳后再记下位置。停稳前 pinScroll 一直是 null，滚动监听只能维持钉住的项。
-   * 阅读页的平滑滚动常常超过库内那 400ms，不能用固定延时提前解锁。
+   * 滚动停稳后再记下位置。停稳前 pinScroll 一直是 null，滚动监听只能维持钉住的项，
+   * 不会跟着平滑滚动把中间每一节逐个点亮。
+   * 不能听 scrollend：逐帧改 scrollTop 时，每一帧都可能被当成一次滚动结束，
+   * 高亮会在动画中途交还给滚动监听。安静 100ms 再解锁，时长不受动画长短限制。
    */
   const watchPinRelease = (itemId: string, scroller: HTMLElement) => {
     cancelPinWatch.current?.();
@@ -263,7 +265,6 @@ export function EditorToc({
       if (settled) return;
       settled = true;
       scrollTarget.removeEventListener('scroll', arm);
-      scrollTarget.removeEventListener('scrollend', lock);
       if (pinTimer.current !== null) {
         window.clearTimeout(pinTimer.current);
         pinTimer.current = null;
@@ -283,7 +284,6 @@ export function EditorToc({
       if (settled) return;
       settled = true;
       scrollTarget.removeEventListener('scroll', arm);
-      scrollTarget.removeEventListener('scrollend', lock);
       if (pinTimer.current !== null) {
         window.clearTimeout(pinTimer.current);
         pinTimer.current = null;
@@ -292,7 +292,6 @@ export function EditorToc({
     };
     cancelPinWatch.current = cancel;
     scrollTarget.addEventListener('scroll', arm, { passive: true });
-    scrollTarget.addEventListener('scrollend', lock);
     arm();
   };
 

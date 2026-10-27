@@ -14,7 +14,10 @@
   flex: none;
   border-bottom: 1px solid var(--sb-border);
   background: #fff;
-  z-index: 8;
+  /* 表格手柄 portal 到 body、fixed、z-index 20（菜单 30）。工具栏不定位的话
+     手柄会画在按钮上。抬到手柄之上、菜单面板（1000）之下。 */
+  position: relative;
+  z-index: 35;
 }
 
 .inner {

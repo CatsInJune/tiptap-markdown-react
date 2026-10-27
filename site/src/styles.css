@@ -572,6 +572,12 @@ a {
   background: #fff;
 }
 
+/* 编辑态开了目录：大标题会把拖拽/目录留白拉出正文左缘（104px）。
+   留白落在卡片里，短横线才不会被 .window 的 overflow 裁掉。 */
+.demoBody.demoBodyEditor {
+  padding-inline-start: 132px;
+}
+
 .markdownOut {
   margin: 0;
   padding: 22px 26px;

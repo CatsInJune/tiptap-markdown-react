@@ -705,13 +705,14 @@ export function HeroDemo() {
             searchActive={findOpen}
           />
         )}
-        <div className="demoBody">
+        <div className="demoBody demoBodyEditor">
           <MarkdownWysiwygEditor
             ref={editorRef}
             locale={locale}
             initialMarkdown={DEMO_MD}
             sources={DEMO_SOURCES}
             placeholder="Write something…"
+            toc
             // 图片上传挂在编辑器上（官方 ImageUploadNode 同款）：工具栏按钮 → 拖拽/点选
             // 占位块 → 进度就地显示 → 成功就地换图；占位块不进 Markdown 产物
             imageUpload={{ upload: demoImageUpload }}
