@@ -76,4 +76,14 @@ describe('全文统计', () => {
     await mount({ characterCount: true, editable: false });
     expect(bar()?.getAttribute('data-words')).toBe('2');
   });
+
+  it('headless 不画条，词数交给回调', async () => {
+    const words: number[] = [];
+    await mount({
+      characterCount: 'headless',
+      onCharacterCountChange: (count) => words.push(count),
+    });
+    expect(bar()).toBeNull();
+    expect(words.at(-1)).toBe(2);
+  });
 });

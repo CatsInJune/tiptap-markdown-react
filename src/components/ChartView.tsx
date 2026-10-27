@@ -15,6 +15,7 @@ import {
 import { destroyChart, renderOrUpdateChart } from '../chart/renderChart';
 import type { ChartPayload, ChartTheme } from '../chart/types';
 import { useEditorBundle } from '../i18n/store';
+import { ChartSelectionBar } from './ChartSelectionBar';
 import '../styles/chart.css';
 
 function tabLabel(
@@ -143,6 +144,14 @@ export function ChartView({
             </button>
           ))}
         </div>
+      ) : null}
+      {selected && canSelect && config ? (
+        <ChartSelectionBar
+          editor={editor}
+          getPos={getPos}
+          config={config}
+          multiple={configs.length > 1}
+        />
       ) : null}
       <div className="tmr-chart-canvas-host" style={{ height }}>
         <canvas ref={canvasRef} />

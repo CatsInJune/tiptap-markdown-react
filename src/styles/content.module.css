@@ -7,6 +7,23 @@
   position: relative;
 }
 
+/* 有文档标题时，拖拽 / 目录留白拉到文字列外面：标题和正文的字对齐容器左缘，
+   手柄和短横线落在栏外。没有标题时留白仍吃在正文里（窄面板不会把字顶出容器）。 */
+.editorHost[data-gutter='60'] {
+  margin-inline-start: -60px;
+  width: calc(100% + 60px);
+}
+
+.editorHost[data-gutter='76'] {
+  margin-inline-start: -76px;
+  width: calc(100% + 76px);
+}
+
+.editorHost[data-gutter='104'] {
+  margin-inline-start: -104px;
+  width: calc(100% + 104px);
+}
+
 /* 浮动条的粘性锚点：高度 0，不占布局、不推挤正文；sticky 让浮动条在「最近的滚动容器」
    里粘住（宿主的外层滚动容器或页面本身），正文滚动时不会把条子卷上去。
    注意：锚点必须在 DOM 里排在正文之前——排在后面的话它的自然位置在正文底部，粘性范围就错了。 */
@@ -23,14 +40,14 @@
 }
 
 .editorScroll {
-  margin-top: 24px;
+  margin-top: var(--tmr-editor-gap, 24px);
   position: relative;
 }
 
 /* 文档标题和正文共用拖拽/目录留白，文字左缘对齐。
    标题在时，原来 editorScroll 的上边距改由这一层承担，避免标题和正文之间再空一截。 */
 .titleStack {
-  margin-top: 24px;
+  margin-top: var(--tmr-editor-gap, 24px);
 }
 
 .titleStack .editorScroll {

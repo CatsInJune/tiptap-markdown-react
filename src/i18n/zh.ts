@@ -136,6 +136,16 @@ export const zh: LocaleBundle = {
     configLabel: '图表配置（JSON）',
     tableLabel: '数据表（Markdown）',
     editTitle: '编辑图表',
+    changeType: '换图型',
+    toTable: '还原成表格',
+    typeLabels: {
+      column: '柱状图',
+      bar: '条形图',
+      line: '折线图',
+      area: '面积图',
+      pie: '饼图',
+      donut: '环形图',
+    },
   },
   blockDrag: {
     dragHandle: '拖动以移动',

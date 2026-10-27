@@ -15,6 +15,14 @@
   pointer-events: none;
 }
 
+/* 宿主把滚动容器交过来之后：钉在那个容器的左缘，不跟着正文滚走。 */
+.anchorPinned {
+  position: fixed;
+  top: var(--tmr-toc-pin-top, 0px);
+  left: var(--tmr-toc-pin-left, 0px);
+  margin-inline-start: 0;
+}
+
 .nav {
   --toc-accent: var(--tmr-accent, #ff6719);
   --toc-text: var(--tmr-text, #363737);

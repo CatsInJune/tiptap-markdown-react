@@ -100,7 +100,7 @@ import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
 import { CodeBlockView } from './CodeBlockView';
 import { BlockDragHandle } from './BlockDragHandle';
-import { EditorToc } from './EditorToc';
+import { EditorToc, type TocRailBox } from './EditorToc';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 // 带语言选择器的代码块（自定义 React NodeView）。base 不含代码块，此增强版由编辑器注入。
@@ -359,9 +359,13 @@ function findBarOffsetStyle(offset: FindBarOffset): CSSProperties {
 function CharacterCountStatus({
   editor,
   locale,
+  onChange,
+  hidden = false,
 }: {
   editor: Editor;
   locale: LocaleCode;
+  onChange?: (words: number) => void;
+  hidden?: boolean;
 }) {
   const t = getLocaleBundle(locale).characterCount;
   const counts = useEditorState({
@@ -375,6 +379,13 @@ function CharacterCountStatus({
       };
     },
   });
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current?.(counts.words);
+  }, [counts.words]);
+
+  if (hidden) return null;
 
   return (
     <div
@@ -513,6 +524,14 @@ export interface MarkdownWysiwygEditorProps {
    * 点击滚到对应标题。宽度小于 768px 时不显示。
    */
   toc?: boolean;
+  /**
+   * 把左缘目录钉在这层滚动容器上（左缘再留 16px，顶对齐正文静止时的位置）。
+   * 给元素或返回元素的函数。不传则目录 sticky 在编辑器里，会跟着正文滚走。
+   * 窄栏滑到短横线下面时给正文让位，仍由宿主做，尺寸看 {@link onTocRailChange}。
+   */
+  tocContainer?: HTMLElement | null | (() => HTMLElement | null);
+  /** 目录钉住之后报短横线的视口盒子；卸掉时报 null。 */
+  onTocRailChange?: (rail: TocRailBox | null) => void;
   /**
    * 粘贴纯文本时启发式检测 markdown 并自动转富文本(Shift+粘贴保持纯文本)。
    * 默认 true。仅初始化时生效。
@@ -661,12 +680,16 @@ export interface MarkdownWysiwygEditorProps {
    */
   imageResize?: boolean | ImageResizeOptions;
   /**
-   * 全文统计（默认关）：传 `true` 才注册 MIT 包 `@tiptap/extensions` 的 CharacterCount
-   * （开源扩展，不是付费的 `@tiptap-pro`），在编辑器底部实时显示字符数与词数。
-   * 统计条是本库自绘。词数把每个汉字算作 1 个词（该扩展默认按空格切，整段中文会是 1）。
-   * 数字也可从 `editor.storage.characterCount` 读取。仅初始化时生效。
+   * 全文统计（默认关）：传 `true` 或 `'headless'` 才注册 MIT 包 `@tiptap/extensions`
+   * 的 CharacterCount（开源扩展，不是付费的 `@tiptap-pro`）。
+   * `true` 在编辑器底部画统计条；`'headless'` 不画条，把词数交给
+   * {@link onCharacterCountChange}（也可读 `editor.storage.characterCount`）。
+   * 词数把每个汉字算作 1 个词（该扩展默认按空格切，整段中文会是 1）。
+   * 仅初始化时生效。
    */
-  characterCount?: boolean;
+  characterCount?: boolean | 'headless';
+  /** 词数变化。`characterCount` 开着才回调。 */
+  onCharacterCountChange?: (words: number) => void;
 }
 
 function sameTocItems(a: TocItem[], b: TocItem[]): boolean {
@@ -812,6 +835,9 @@ export const MarkdownWysiwygEditor = forwardRef<
     imageUpload,
     imageResize = true,
     characterCount = false,
+    onCharacterCountChange,
+    tocContainer,
+    onTocRailChange,
   },
   ref,
 ) {
@@ -1240,8 +1266,14 @@ export const MarkdownWysiwygEditor = forwardRef<
   const [shortcutFabTarget, setShortcutFabTarget] = useState<HTMLElement | null>(
     null,
   );
+  const [tocPinTarget, setTocPinTarget] = useState<HTMLElement | null>(null);
   const useIsoLayoutEffect =
     typeof window === 'undefined' ? useEffect : useLayoutEffect;
+  useIsoLayoutEffect(() => {
+    const target =
+      typeof tocContainer === 'function' ? tocContainer() : (tocContainer ?? null);
+    setTocPinTarget((prev) => (prev === target ? prev : target));
+  });
   useIsoLayoutEffect(() => {
     const target =
       typeof shortcutFabContainer === 'function'
@@ -1269,8 +1301,18 @@ export const MarkdownWysiwygEditor = forwardRef<
     ) : null;
 
   const padDrag = showBlockDrag ? styles.withBlockDrag : '';
-  const padToc =
-    toc && !blockDragMobile && tocItems.length > 0 ? styles.withToc : '';
+  const showTocPad = Boolean(toc && !blockDragMobile && tocItems.length > 0);
+  const padToc = showTocPad ? styles.withToc : '';
+  const gutter = !showDocumentTitle
+    ? undefined
+    : showBlockDrag && showTocPad
+      ? '104'
+      : showBlockDrag
+        ? '76'
+        : showTocPad
+          ? '60'
+          : undefined;
+  const showCountBar = characterCount === true;
   const editorSurface = (
     <ImagePreviewHost locale={locale} activate={editable ? 'dblclick' : 'click'}>
       <EditorContent
@@ -1293,6 +1335,7 @@ export const MarkdownWysiwygEditor = forwardRef<
     <div
       className={styles.editorHost}
       data-block-drag-gutter={showBlockDrag ? '' : undefined}
+      data-gutter={gutter}
     >
       {/* 粘性锚点排在正文之前：浮动条跟着最近的滚动容器走，正文滚动时不会被卷上去 */}
       {findBarNode && !findBarTarget ? (
@@ -1306,6 +1349,8 @@ export const MarkdownWysiwygEditor = forwardRef<
           items={tocItems}
           editorDom={editor.view.dom}
           locale={locale}
+          pinContainer={tocPinTarget}
+          onRailChange={onTocRailChange}
         />
       ) : null}
       {showDocumentTitle ? (
@@ -1333,13 +1378,30 @@ export const MarkdownWysiwygEditor = forwardRef<
       {/* 统计开着时，计数与键盘悬浮键共用一条贴在右下的 sticky 底栏。
           统计关着时悬浮键保持自己的粘性定位，不套这层——外层再包一个不粘的盒子会让 sticky 失效。 */}
       {editor && characterCount ? (
-        <div className={styles.editorStatus}>
-          <CharacterCountStatus editor={editor} locale={locale} />
-          {shortcutFabNode && !shortcutFabTarget ? shortcutFabNode : null}
-        </div>
-      ) : shortcutFabNode && !shortcutFabTarget ? (
-        shortcutFabNode
+        showCountBar ? (
+          <div className={styles.editorStatus}>
+            <CharacterCountStatus
+              editor={editor}
+              locale={locale}
+              onChange={onCharacterCountChange}
+            />
+            {shortcutFabNode && !shortcutFabTarget ? shortcutFabNode : null}
+          </div>
+        ) : (
+          <CharacterCountStatus
+            editor={editor}
+            locale={locale}
+            onChange={onCharacterCountChange}
+            hidden
+          />
+        )
       ) : null}
+      {editor && characterCount && !showCountBar && shortcutFabNode && !shortcutFabTarget
+        ? shortcutFabNode
+        : null}
+      {!characterCount && shortcutFabNode && !shortcutFabTarget
+        ? shortcutFabNode
+        : null}
       {/* 快捷键抽屉入口：宿主给了 shortcutFabContainer 就 portal 进去，定位归宿主。只读态隐藏 */}
       {shortcutFabNode && shortcutFabTarget
         ? createPortal(shortcutFabNode, shortcutFabTarget)

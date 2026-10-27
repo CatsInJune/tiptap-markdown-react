@@ -17,6 +17,10 @@
   border-radius: 0;
   box-shadow: none;
   background: var(--tmr-fullscreen-bg, #fff);
+  /* 盖过宿主写在同一层上的 height / width（例如 calc(100dvh - 顶栏)）。
+     否则 top+bottom 和 height 同时在，视口底下会留一截空白。 */
+  width: auto;
+  height: auto;
   overflow: hidden;
   padding:
     env(safe-area-inset-top, 0px)
@@ -29,13 +33,33 @@
   flex: none;
 }
 
-/* 工具栏以外的直接子节点（正文滚动区）吃掉剩余高度，并解开宿主的 max-height。
+/* 没标正文层时：工具栏以外的直接子节点吃掉剩余高度（单栏编辑器）。
+   标了 data-tmr-fullscreen-body 之后，只有那一层伸展，其余直接子节点
+   （操作栏、底栏、对话框挂载点）保持自身高度，不再各自滚动。
    hidden 的 file input 排除在外。 */
-[data-tmr-fullscreen][data-tmr-fullscreen] > :not([data-tmr-toolbar]):not([hidden]) {
+[data-tmr-fullscreen][data-tmr-fullscreen]:not(:has(> [data-tmr-fullscreen-body])) > :not([data-tmr-toolbar]):not([data-tmr-fullscreen-chrome]):not([hidden]) {
   flex: 1 1 auto;
   min-height: 0;
   max-height: none;
   overflow: auto;
+}
+
+[data-tmr-fullscreen][data-tmr-fullscreen] > [data-tmr-fullscreen-chrome] {
+  flex: none;
+  overflow: visible;
+  max-height: none;
+}
+
+[data-tmr-fullscreen][data-tmr-fullscreen] > [data-tmr-fullscreen-body] {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+[data-tmr-fullscreen][data-tmr-fullscreen]:has(> [data-tmr-fullscreen-body]) > :not([data-tmr-fullscreen-body]):not([hidden]) {
+  flex: none;
+  overflow: visible;
+  max-height: none;
 }
 
 /* 表格手柄 / 图片工具条 portal 到 body，平时 z-index 低于全屏层。
