@@ -235,6 +235,31 @@ const comments: CommentRef[] = [
   Capture them from a document with the same text model (see `commentMapper` /
   `blockTextHash`) so re-anchoring is exact.
 
+### 4b. Version history
+
+The library does not store snapshots. Mount the panel once: it draws a floating button and, when opened, a fixed dialog. The button matches the keyboard shortcut (same circle) and sits 12px above it, right edges aligned. The selected version is on the left; the list, grouped by week, is on the right.
+
+```tsx
+<div ref={frameRef} style={{ position: 'relative' }}>
+  <MarkdownWysiwygEditor ref={ref} onEditorReady={setEditor} />
+  {editor && (
+    <VersionHistoryPanel
+      editor={editor}
+      versions={versions}
+      // Default is fixed to the viewport. Move it, or hand the button to your own box:
+      buttonOffset={{ bottom: 24, right: 88 }}
+      buttonContainer={() => frameRef.current}
+      onRestore={(version) => saveTitle(version.documentTitle)}
+    />
+  )}
+</div>
+```
+
+- **View**: the dialog previews the selected version. A snapshot with no text shows an empty state.
+- **Compare**: the preview is the record selected on the left. Choose another record after “with”. Green is text only in the selected record; strikethrough is text only in the other record. Marks such as bold or color are not highlighted.
+- **Restore draft**: closes the dialog, then writes that version's stored markdown in one undo step. The document title is not inside the editor transaction — apply `version.documentTitle` yourself in `onRestore`. The row that matches the editor is badged "Current version".
+- Comments are not in markdown, so they do not appear in a version.
+
 ### 5. Equations (KaTeX)
 
 Insert from the toolbar **More** menu (`Inline equation` / `Block equation`). Click an existing formula to edit: the rendered KaTeX stays in the document (highlighted), and a pill input anchors **below** it. Typing updates that same formula in place — there is no second preview in the popover. Empty inserts still show a chip / hint bar. Inline confirms with Enter, block with ⌘/Ctrl+Enter. There is no typing shortcut and `$` / `$$` does **not** convert to math.
@@ -471,9 +496,30 @@ In markdown a captioned image serializes to a `<figure>` block (standard HTML se
 
 Images without a caption keep the plain `![alt](url)` form. Editor, preview and server renderer share the same tokenizer, so captions round-trip everywhere — including SSR. Tooling for custom UIs: `setImageCaption(editor, text)` / `setImageCaptionAtPos(editor, pos, text)`; hover-toolbar caption text follows `locale`. The official side has nothing for this (`@tiptap/extension-figure` does not exist on npm), so the whole path is native to this library.
 
+### `<VersionHistoryPanel>` (client)
+
+Mount it once next to the editor. It does not persist versions. A floating button opens a fixed dialog: preview on the left, the version list on the right.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `editor` | `Editor` | Restore writes into this editor. "Current document" compares against its markdown. |
+| `versions` | `DocumentVersion[]` | Host order, rendered as given. Each item needs `id`, `title`, and `markdown`. Optional `createdAt` (list headline and week group), `detail` (author; missing shows "unknown"), `documentTitle`. |
+| `selectedId` | `string` | Controlled selection. Omit and the panel keeps its own, starting at the first version. |
+| `onSelectedIdChange` | `(id: string) => void` | Fired when a row is clicked. |
+| `open` / `onOpenChange` | `boolean` / `(open: boolean) => void` | Controlled dialog. Omit and the floating button owns it. |
+| `onRestore` | `(version: DocumentVersion) => void` | Fired after the markdown is already in the editor. Put `documentTitle` back here if you store one. |
+| `onClose` | `() => void` | Backdrop, Cancel, the × button, or Esc. |
+| `buttonOffset` | `HistoryButtonOffset` | Floating-button insets. Omit and the button sits 12px above the keyboard shortcut, right edges aligned. A `left` drops the default `right`; a `top` drops the default `bottom`. |
+| `buttonContainer` | `HTMLElement \| (() => HTMLElement \| null)` | Mount the button here instead of `document.body`. It becomes absolutely positioned, and the offset is relative to this box (give the box a non-static `position`). The dialog still covers the viewport. |
+| `locale` | `'en' \| 'zh'` | Built-in copy (default `en`). |
+| `sources` | `SourceRef[]` | Footnote sources for the preview, same as `MarkdownPreview`. |
+| `className` | `string` | Extra class on the dialog. |
+
+Stable selectors: `[data-version-action="open"]` on the button, `[data-version-history]`, `[data-version-id]`, `[data-version-current]`, `[data-version-preview]`, `select[data-version-target]`, `[data-version-action="restore|close|compare"]`, `[data-diff="insert|delete"]`.
+
 ### `<EditorToolbar>` (client)
 
-The row stays centred and **scrolls horizontally inside the toolbar** when the controls no longer fit — a single line, never wrapped (`justify-content: safe center` keeps both ends reachable once it overflows). The button row is as wide as the toolbar (`min-width: 0` so a flex or grid parent can shrink it); it does not use a fixed max width. Narrower toolbars scroll. `onSearch` renders the magnifier just left of the More menu.
+The row stays centred and **scrolls horizontally inside the toolbar** when the controls no longer fit — a single line, never wrapped (`justify-content: safe center` keeps both ends reachable once it overflows). The button row is as wide as the toolbar (`min-width: 0` so a flex or grid parent can shrink it); it does not use a fixed max width. Narrower toolbars scroll. `onHistory` and `onSearch` render the clock and the magnifier just left of the More menu.
 
 | Prop | Type | Description |
 | --- | --- | --- |
@@ -487,6 +533,8 @@ The row stays centred and **scrolls horizontally inside the toolbar** when the c
 | `locale` | `'en' \| 'zh'` | Built-in toolbar copy, including import, equations, the link popover, table handles and image alignment (default `en`). |
 | `onSearch` | `() => void` | Search entry (magnifier) left of the More menu. Wire it to `handle.toggleFind()` (or `openFind()` if you'd rather it only ever open); omit it and no button renders. Worth passing only when the editor owns a bar (`findBar` on) — a host-placed bar has nothing for it to open. Search works read-only, so the button never greys out. |
 | `searchActive` | `boolean` | Whether the bar is open; drives `aria-pressed` and the active highlight of the search entry (default `false`). Feed it from the editor's `onFindOpenChange`. |
+| `onHistory` | `() => void` | Version-history entry (clock) beside the magnifier. Omit it and no button renders. The panel itself is `<VersionHistoryPanel>`, which you place. |
+| `historyActive` | `boolean` | Whether the history panel is open; drives `aria-pressed` on the clock (default `false`). |
 | `extraToolbarItems` | `ExtraToolbarItem[]` | Custom items appended to the "More" menu. |
 
 #### Table editing (hover handles)

@@ -25,6 +25,7 @@ export const COMPONENT_NAV: NavGroup[] = [
       { id: 'editor', label: 'MarkdownWysiwygEditor', href: '#/components?editor' },
       { id: 'toolbar', label: 'EditorToolbar', href: '#/components?toolbar' },
       { id: 'find', label: 'Find & replace', href: '#/components?find' },
+      { id: 'history', label: 'Version history', href: '#/components?history' },
       { id: 'i18n', label: 'Internationalization', href: '#/components?i18n' },
       { id: 'equations', label: 'Equations', href: '#/components?equations' },
       { id: 'charts', label: 'Charts', href: '#/components?charts' },
@@ -150,6 +151,8 @@ export const TOOLBAR_API: ApiRow[] = [
   { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'onSearch', desc: 'Search entry (magnifier) left of the More menu; wire it to handle.toggleFind() — omit and no button renders', type: '() => void', defaultVal: '—' },
   { name: 'searchActive', desc: 'Whether the bar is open; drives aria-pressed on the search entry', type: 'boolean', defaultVal: 'false' },
+  { name: 'onHistory', desc: 'Version-history entry (clock) beside the magnifier. Omit and no button renders; the panel is placed by the host', type: '() => void', defaultVal: '—' },
+  { name: 'historyActive', desc: 'Whether the history panel is open; drives aria-pressed on the clock', type: 'boolean', defaultVal: 'false' },
   { name: 'showFullscreen', desc: 'Full screen item in the More menu. Fills the viewport with the frame that wraps the toolbar and the editor; open the menu again or press Esc to exit', type: 'boolean', defaultVal: 'true' },
   { name: 'fullscreenTarget', desc: 'Element that should fill the viewport. Omit to walk up from the toolbar to the first ancestor that contains the editor. A function or ref is read on click', type: 'HTMLElement | (() => HTMLElement | null) | { current: HTMLElement | null }', defaultVal: 'ancestor that contains the editor' },
   { name: 'onFullscreenChange', desc: 'Fires when full screen opens or closes, including Esc, hiding the button, and unmount', type: '(fullscreen: boolean) => void', defaultVal: '—' },
@@ -527,6 +530,23 @@ export const CITATION_SOURCES = [
     title: '2025Q3 财报',
     excerpt: '营业收入：108,300,000,000美元',
   },
+];
+
+export const HISTORY_API: ApiRow[] = [
+  { name: 'editor', desc: 'Editor the restore action writes into, and the document compared as current', type: 'Editor' },
+  { name: 'versions', desc: 'Snapshots in host order. The panel does not sort or store them', type: 'DocumentVersion[]' },
+  { name: 'selectedId / onSelectedIdChange', desc: 'Controlled selection. Omit both and the panel keeps its own, starting at the first version', type: 'string / (id: string) => void', defaultVal: 'first version' },
+  { name: 'onRestore', desc: 'Called after the markdown is written back. Apply version.documentTitle yourself; the panel cannot reach the editor title', type: '(version: DocumentVersion) => void', defaultVal: '—' },
+  { name: 'onClose', desc: 'Backdrop, Cancel, the close button, or Esc', type: '() => void', defaultVal: '—' },
+  { name: 'open / onOpenChange', desc: 'Controlled dialog. Omit and the floating button owns open state', type: 'boolean / (open: boolean) => void', defaultVal: 'button' },
+  { name: 'buttonOffset', desc: 'Floating-button insets. Omit and the button sits 12px above the keyboard shortcut. left replaces right; top replaces bottom', type: 'HistoryButtonOffset', defaultVal: 'above shortcut' },
+  { name: 'buttonContainer', desc: 'Mount the button here and position it yourself. The dialog still covers the viewport', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'document.body' },
+  { name: 'locale', desc: 'Built-in UI language for the history panel', type: "'en' | 'zh'", defaultVal: 'en' },
+  { name: 'sources', desc: 'Footnote sources for the preview, same as MarkdownPreview', type: 'SourceRef[]', defaultVal: '—' },
+  { name: 'className', desc: 'Extra class on the panel root', type: 'string', defaultVal: '—' },
+  { name: 'DocumentVersion', desc: 'id, title, markdown, plus optional createdAt, detail, and documentTitle', type: 'interface', defaultVal: '—' },
+  { name: 'data-version-* / data-diff', desc: 'Stable selectors: data-version-history, -id, -preview, -action (restore, close, compare), and data-diff (insert, delete, format)', type: 'data attributes', defaultVal: '—' },
+  { name: 'EditorToolbar onHistory / historyActive', desc: 'Toolbar clock. Omit onHistory and no button renders; historyActive drives aria-pressed', type: '() => void / boolean', defaultVal: '—' },
 ];
 
 export const FIND_API: ApiRow[] = [

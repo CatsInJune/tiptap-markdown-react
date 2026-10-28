@@ -1294,6 +1294,7 @@ export const MarkdownWysiwygEditor = forwardRef<
         title={shortcutT.panelTitle}
         aria-label={shortcutT.panelTitle}
         aria-expanded={shortcutsOpen}
+        data-shortcut-fab=""
         onClick={() => setShortcutsOpen((v) => !v)}
       >
         <KeyboardIcon size={18} />
@@ -1334,6 +1335,7 @@ export const MarkdownWysiwygEditor = forwardRef<
   return (
     <div
       className={styles.editorHost}
+      data-editor-host=""
       data-block-drag-gutter={showBlockDrag ? '' : undefined}
       data-gutter={gutter}
     >

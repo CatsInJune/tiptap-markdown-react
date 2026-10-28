@@ -8,6 +8,7 @@ import {
   EditorTocDemo,
   FindReplaceDemo,
   FindBarContainerDemo,
+  VersionHistoryDemo,
   HostPlacedFindDemo,
   I18nDemo,
   HeroDemo,
@@ -31,6 +32,7 @@ import {
   EDITOR_API,
   EDITOR_REF_API,
   FIND_API,
+  HISTORY_API,
   LINK_API,
   I18N_API,
   INSERT_MARKDOWN_API,
@@ -273,6 +275,32 @@ function ComponentsPage() {
           </>
         }
         api={FIND_API}
+      />
+
+      <ComponentSection
+        id="history"
+        title="Version history"
+        description="A floating button opens a fixed dialog: the selected version on the left, the list on the right, grouped by week. The button matches the keyboard shortcut and sits just above it; buttonOffset moves it, and buttonContainer hands placement to you. Pass badge to mark a row, such as Published or Draft. The preview is the selected record: green is text only in it, strikethrough is text only in the record chosen after “with”. An empty snapshot shows an empty state instead of a blank page. Restore closes the dialog, then writes that version back as one undo step. The document title is not part of that write — put version.documentTitle back in onRestore."
+        importName="VersionHistoryPanel"
+        features={[
+          'Floating button, fixed dialog: preview on the left, versions on the right',
+          'The button matches the keyboard shortcut and sits just above it; buttonOffset or buttonContainer moves it',
+          'Compare with the current document or a second version',
+          'Added and removed text are marked; formatting-only changes are not',
+          'Table-alignment spaces are not treated as changes',
+          'Restore is one undo step back to the document from just before',
+          'Toolbar clock appears only when onHistory is set',
+          'Stable data-version-* and data-diff selectors',
+        ]}
+        demo={
+          <DemoBlock
+            title="Three saved versions"
+            description="The clock button sits above the keyboard shortcut. Open it to read an older snapshot, compare it with the current document, or restore the draft."
+          >
+            <VersionHistoryDemo />
+          </DemoBlock>
+        }
+        api={HISTORY_API}
       />
 
       <ComponentSection

@@ -7,6 +7,8 @@ import {
   EditorToolbar,
   FindReplaceBar,
   MarkdownPreview,
+  VersionHistoryPanel,
+  type DocumentVersion,
   MarkdownWysiwygEditor,
   ReportContentInteractive,
   ReportContentWithCharts,
@@ -748,6 +750,56 @@ const FIND_MD = `# 查找替换演示
 \`\`\`text
 营收 也在代码块里（textblock，能搜到）
 \`\`\``;
+
+const HISTORY_VERSIONS: DocumentVersion[] = [
+  {
+    id: 'draft',
+    title: '初稿',
+    createdAt: '2026-03-01T09:00:00.000Z',
+    detail: 'Ada',
+    markdown: '# 季度纪要\n\n营收保持增长。\n\n- 渠道\n- 产品\n',
+  },
+  {
+    id: 'notes',
+    title: '补充结论',
+    createdAt: '2026-03-02T15:30:00.000Z',
+    detail: 'Bao',
+    markdown: '# 季度纪要\n\n营收保持**稳健**增长。\n\n- 渠道\n- 产品\n- 海外\n',
+  },
+  {
+    id: 'final',
+    title: '定稿',
+    createdAt: '2026-03-04T11:00:00.000Z',
+    markdown: '# 季度纪要\n\n营收保持**稳健**增长，利润改善。\n\n- 渠道\n- 产品\n- 海外\n',
+    documentTitle: '季度纪要',
+  },
+];
+
+export function VersionHistoryDemo() {
+  const locale = useLang().lang;
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const buttonContainer = useCallback(() => frameRef.current, []);
+  return (
+    <div className="editorDemo">
+      <div className="editorDemoBody" ref={frameRef} style={{ position: 'relative' }}>
+        {editor ? (
+          <VersionHistoryPanel
+            editor={editor}
+            versions={HISTORY_VERSIONS}
+            locale={locale}
+            buttonContainer={buttonContainer}
+          />
+        ) : null}
+        <MarkdownWysiwygEditor
+          locale={locale}
+          initialMarkdown={HISTORY_VERSIONS[2].markdown}
+          onEditorReady={setEditor}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function FindReplaceDemo() {
   const locale = useLang().lang;

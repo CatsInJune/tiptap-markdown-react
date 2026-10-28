@@ -39,6 +39,12 @@ export {
   FindReplaceBar,
   type FindReplaceBarProps,
 } from './components/FindReplaceBar';
+export {
+  VersionHistoryPanel,
+  type DocumentVersion,
+  type HistoryButtonOffset,
+  type VersionHistoryPanelProps,
+} from './components/VersionHistoryPanel';
 export { LinkPopover, type LinkPopoverProps } from './components/LinkPopover';
 export {
   ImageAlignTools,

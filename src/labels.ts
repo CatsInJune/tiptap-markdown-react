@@ -123,6 +123,8 @@ export interface ToolbarLabels {
    * （`<MarkdownWysiwygEditor>`），点击后由宿主调 `handle.openFind()`。
    */
   search: string;
+  /** 工具栏的历史版本入口。只在宿主传了 `onHistory` 时才渲染。 */
+  history: string;
   /** 更多菜单里的全屏项。把包住工具栏和正文的容器铺满视口。 */
   fullscreen: string;
   /** 已处于全屏时，同一按钮的 title / aria-label。 */
@@ -315,6 +317,7 @@ export const defaultToolbarLabels: ToolbarLabels = {
   taskList: 'Task list',
   more: 'More',
   search: 'Find & replace',
+  history: 'Version history',
   fullscreen: 'Full screen',
   exitFullscreen: 'Exit full screen',
   codeBlock: 'Code block',
@@ -643,6 +646,78 @@ export const defaultFindLabels: FindLabels = {
   counter: (current, total) => `${current} / ${total}`,
   invalidRegex: 'Invalid pattern',
   readOnly: 'Read-only',
+};
+
+/** 历史版本面板。版本数据归宿主，这里只是界面文案。 */
+export interface HistoryLabels {
+  /** 面板无障碍名，也是列表标题。 */
+  title: string;
+  /** 一条版本都没有。 */
+  empty: string;
+  /** 对比下拉的无障碍名，也是对比按钮。 */
+  compare: string;
+  /** 下拉占位：还没选对比对象。 */
+  compareNone: string;
+  /** 下拉里的当前正文。 */
+  compareCurrent: string;
+  /** 「甲 与 乙」中间的字。 */
+  compareWith: string;
+  /** 把所选版本写回编辑器。页脚主按钮。 */
+  restore: string;
+  /** 页脚次按钮，关掉弹窗。 */
+  cancel: string;
+  close: string;
+  /** 悬浮按钮的无障碍名。 */
+  open: string;
+  /** 和当前编辑器正文一致的那一条。 */
+  currentBadge: string;
+  /** 这一版没有正文。 */
+  emptyVersion: string;
+  /** 空版本下面的一行提示。 */
+  emptyVersionHint: string;
+  /** 没有作者时的占位。 */
+  unknownAuthor: string;
+  /** 列表分组：本周。 */
+  groupThisWeek: string;
+  /** 列表分组：上周。 */
+  groupLastWeek: string;
+  /** 列表分组：更早的月份，参数是已经格式化好的「月 + 年」。 */
+  groupMonth: (month: string) => string;
+  /** 没有时间的版本。 */
+  groupUndated: string;
+  /** 问号按钮。 */
+  help: string;
+  /** 问号展开后的说明。 */
+  helpBody: string;
+  /** 图例：右侧对比对象里多出来的文字。 */
+  legendInsert: string;
+  /** 图例：左侧所选记录里有、右侧没有的文字。 */
+  legendDelete: string;
+}
+
+export const defaultHistoryLabels: HistoryLabels = {
+  title: 'History',
+  empty: 'No versions yet',
+  compare: 'Compare',
+  compareNone: 'Choose a record',
+  compareCurrent: 'Current document',
+  compareWith: 'with',
+  restore: 'Restore this record',
+  cancel: 'Cancel',
+  close: 'Close',
+  open: 'Version history',
+  currentBadge: 'Current version',
+  emptyVersion: 'This version is empty',
+  emptyVersionHint: 'Please select another version',
+  unknownAuthor: 'unknown',
+  groupThisWeek: 'From this week',
+  groupLastWeek: 'From last week',
+  groupMonth: (month) => `From ${month}`,
+  groupUndated: 'Undated',
+  help: 'About version history',
+  helpBody: 'Pick a record on the left. Choose another record and press Compare to mark added and removed text. Restore writes the selected record back; undo once returns to the text you had.',
+  legendInsert: 'Added',
+  legendDelete: 'Removed',
 };
 
 /** 图片上传占位块（`<MarkdownWysiwygEditor imageUpload={{…}}>`）文案。 */

@@ -6,6 +6,7 @@ import {
   defaultColorPaletteLabels,
   defaultEmojiSuggestionLabels,
   defaultFindLabels,
+  defaultHistoryLabels,
   defaultImageUploadLabels,
   defaultLinkPopoverLabels,
   defaultShortcutLabels,
@@ -31,6 +32,7 @@ const en: LocaleBundle = {
   toc: defaultTocLabels,
   codeBlock: defaultCodeBlockLabels,
   find: defaultFindLabels,
+  history: defaultHistoryLabels,
   imageUpload: defaultImageUploadLabels,
   titlePlaceholder: 'Title',
 };
