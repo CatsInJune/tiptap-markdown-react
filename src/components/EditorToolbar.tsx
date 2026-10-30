@@ -35,6 +35,7 @@ import {
   ListUnorderedIcon,
   MinimizeIcon,
   PaintbrushIcon,
+  HistoryIcon,
   RedoIcon,
   SearchIcon,
   StrikethroughIcon,
@@ -157,6 +158,13 @@ export interface EditorToolbarProps {
   onSearch?: () => void;
   /** 条子当前是否开着（驱动按钮的 aria-pressed / 高亮）。不传恒为未激活。 */
   searchActive?: boolean;
+  /**
+   * 历史版本入口（时钟）。**不传就不渲染**——面板本身归宿主，这里只给一道门：
+   * `onHistory={() => setHistoryOpen(true)}`。
+   */
+  onHistory?: () => void;
+  /** 历史面板当前是否开着（驱动按钮的 aria-pressed / 高亮）。不传恒为未激活。 */
+  historyActive?: boolean;
   /**
    * 是否在更多菜单里显示全屏，默认 `true`。点一下把容器铺满视口，再点或按 Esc 退出。
    * 查找条、菜单、灯箱开着时，第一次 Esc 先关它们。
@@ -530,6 +538,8 @@ export function EditorToolbar({
   locale = 'en',
   onSearch,
   searchActive = false,
+  onHistory,
+  historyActive = false,
   showFullscreen = true,
   fullscreenTarget,
   onFullscreenChange,
@@ -1461,6 +1471,15 @@ export function EditorToolbar({
           {/* 查找替换入口：条子归编辑器，这里只开一道门。宿主接 onSearch 时才出现。
               位置在 More 左侧——More 是「其余都以它收口」的兜底菜单，惯例留在最右；
               而且行内本来就排满，谁在最后谁就先被挤到下一行。 */}
+          {onHistory ? (
+            <ToolbarButton
+              title={t.history}
+              active={historyActive}
+              onClick={onHistory}
+            >
+              <HistoryIcon />
+            </ToolbarButton>
+          ) : null}
           {onSearch ? (
             <ToolbarButton
               title={t.search}

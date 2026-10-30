@@ -6,6 +6,7 @@ import type {
   ColorPaletteLabels,
   EmojiSuggestionLabels,
   FindLabels,
+  HistoryLabels,
   ImageUploadLabels,
   LinkPopoverLabels,
   ShortcutLabels,
@@ -31,6 +32,7 @@ export interface LocaleBundle {
   toc: TocLabels;
   codeBlock: CodeBlockLabels;
   find: FindLabels;
+  history: HistoryLabels;
   imageUpload: ImageUploadLabels;
   /** 正文顶部文档标题的占位。 */
   titlePlaceholder: string;

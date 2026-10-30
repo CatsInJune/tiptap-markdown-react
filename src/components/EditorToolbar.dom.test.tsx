@@ -87,6 +87,23 @@ describe('EditorToolbar 的搜索入口', () => {
     await mount({ onSearch: () => {}, locale: 'zh' });
     expect(searchButton('查找替换')).not.toBeNull();
   });
+
+  it('不传 onHistory 就不渲染历史入口', async () => {
+    await mount();
+    expect(host.querySelector('button[aria-label="Version history"]')).toBeNull();
+  });
+
+  it('传了 onHistory：按钮出现，historyActive 驱动 aria-pressed', async () => {
+    const onHistory = vi.fn();
+    await mount({ onHistory, historyActive: true });
+    const button = host.querySelector<HTMLButtonElement>('button[aria-label="Version history"]');
+    expect(button).not.toBeNull();
+    expect(button?.getAttribute('aria-pressed')).toBe('true');
+    await act(async () => {
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onHistory).toHaveBeenCalledTimes(1);
+  });
 });
 
 /**

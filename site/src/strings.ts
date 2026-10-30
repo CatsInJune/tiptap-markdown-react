@@ -35,6 +35,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'data-link-popover / -field / -action / -invalid': 'data-link-popover / -field / -action / -invalid',
   'Stable selectors for host CSS (internals are hashed CSS-module classes)': '给宿主 CSS 的稳定选择器（内部是哈希过的 CSS Modules 类名）',
   'Find & replace': '查找替换',
+  'Version history': '历史版本',
   LinkPopover: '链接浮层',
   Internationalization: '国际化',
   'Comment Anchors': '评论锚点',
@@ -295,6 +296,50 @@ export const ZH_STRINGS: Record<string, string> = {
   'Bar open/close notification (fires only when the bar actually shows or hides, plus once on unmount)': '浮动条开合通知（只在真的显示 / 收起时回调，卸载时补一次 false）',
   'Ways out of the bar. Esc works from anywhere that belongs to the editor and is consumed; clicking into the document or another input deliberately does not close it': '关闭入口。Esc 在属于本编辑器的任何位置都有效且会吃掉这次按键；点回正文或别的输入框刻意不关',
   'Search entry (magnifier) left of the More menu; wire it to handle.toggleFind() — omit and no button renders': '最右组里、More 左侧的搜索入口（放大镜）。接 handle.toggleFind()；不传就不渲染按钮',
+  'Version-history entry (clock) beside the magnifier. Omit and no button renders; the panel is placed by the host': '放大镜旁边的历史版本入口（时钟）。不传就不渲染按钮；面板由宿主自己摆',
+  'Whether the history panel is open; drives aria-pressed on the clock': '历史面板是否开着；驱动时钟按钮的 aria-pressed',
+  'The library does not store snapshots. Pass the versions you already saved. The panel lists them in your order, previews one with the same read-only renderer as MarkdownPreview, and can diff it against the current document or another version. Restore writes that version\'s markdown back as a single undo step. The document title is not part of the editor transaction — put version.documentTitle back in onRestore. Comments are not in markdown, so they do not appear here.':
+    '库不保存快照。把你已经存好的版本传进来。面板按你的顺序排列，用和 MarkdownPreview 相同的只读渲染看某一版，也可以拿它和当前文档或另一版对比。恢复把那一版的 markdown 写回去，单独占一步撤销。文档标题不在这次编辑器事务里——请在 onRestore 里自己写回 version.documentTitle。评论不在 markdown 里，所以这里看不到。',
+  'Host-owned list: id, title, markdown, optional createdAt, detail, documentTitle':
+    '列表归宿主：id、title、markdown，可选 createdAt、detail、documentTitle',
+  'View a version without changing the editor': '查看某一版，不改当前编辑器',
+  'Compare with the current document or a second version': '和当前文档或另一版对比',
+  'Added and removed text are marked; formatting-only changes are not': '只标出增加和删除的文字，单纯的格式变化不高亮',
+  'Table-alignment spaces are not treated as changes': '表格对齐用的空格不算修改',
+  'Restore is one undo step back to the document from just before': '恢复单独占一步撤销，撤一次回到刚才的正文',
+  'Toolbar clock appears only when onHistory is set': '只有传了 onHistory，工具栏才出现时钟',
+  'Stable data-version-* and data-diff selectors': '稳定的 data-version-* 和 data-diff 选择器',
+  'Three saved versions': '三条已保存的版本',
+  'The editor starts on the latest snapshot. Pick an older one to read it, compare it with the current document, or restore it.':
+    '编辑器打开时是最新一版。选一条更早的来阅读、和当前文档对比，或恢复它。',
+  'Editor the restore action writes into, and the document compared as current': '恢复写进的编辑器；「当前文档」也拿它的 markdown 来比',
+  'Snapshots in host order. The panel does not sort or store them': '快照按宿主顺序。面板不排序，也不负责存储',
+  'Controlled selection. Omit both and the panel keeps its own, starting at the first version': '受控的选中项。两个都不传时面板自己记，默认第一条',
+  'Called after the markdown is written back. Apply version.documentTitle yourself; the panel cannot reach the editor title':
+    'markdown 写回之后调用。文档标题请自己用 version.documentTitle 写回；面板够不着编辑器标题',
+  'Close button and Esc while focus is inside the panel. Omit and there is no close button': '关闭按钮，以及焦点在面板里时的 Esc。不传就没有关闭按钮',
+  'Built-in UI language for the history panel': '历史面板的内置界面语言',
+  'Footnote sources for the preview, same as MarkdownPreview': '预览脚注的来源，语义同 MarkdownPreview',
+  'Extra class on the panel root': '面板根节点上的附加 class',
+  'id, title, markdown, plus optional createdAt, detail, and documentTitle': 'id、title、markdown，以及可选的 createdAt、detail、documentTitle',
+  'Stable selectors: data-version-history, -id, -preview, -action (restore, close, compare), and data-diff (insert, delete, format)':
+    '稳定选择器：data-version-history、-id、-preview、-action（restore、close、compare），以及 data-diff（insert、delete、format）',
+  'Toolbar clock. Omit onHistory and no button renders; historyActive drives aria-pressed':
+    '工具栏时钟。不传 onHistory 就不渲染按钮；historyActive 驱动 aria-pressed',
+  'A floating button opens a fixed dialog: the selected version on the left, the list on the right, grouped by week. The button matches the keyboard shortcut and sits just above it; buttonOffset moves it, and buttonContainer hands placement to you. Pass badge to mark a row, such as Published or Draft. The preview is the selected record: green is text only in it, strikethrough is text only in the record chosen after “with”. An empty snapshot shows an empty state instead of a blank page. Restore closes the dialog, then writes that version back as one undo step. The document title is not part of that write — put version.documentTitle back in onRestore.':
+    '悬浮按钮打开固定弹窗：左边是所选版本，右边按周分组列出。按钮和快捷键悬浮钮同一套样式，默认叠在它上方；buttonOffset 改偏移，buttonContainer 把按钮交给宿主摆。用 badge 给条目打标记，例如已发布或草稿。预览是左侧选中的那一版：绿色是只在这一版里的文字，删除线是只在「与」后面那一版里的文字。空快照显示空状态。恢复会先关掉弹窗，再把那一版写回去，单独占一步撤销。文档标题不在这次写入里——请在 onRestore 里自己写回 version.documentTitle。',
+  'Floating button, fixed dialog: preview on the left, versions on the right':
+    '悬浮按钮，固定弹窗：左边预览，右边版本列表',
+  'The button matches the keyboard shortcut and sits just above it; buttonOffset or buttonContainer moves it':
+    '按钮和快捷键悬浮钮同一套样式，默认叠在它上方；buttonOffset 或 buttonContainer 可以改位置',
+  'The clock button sits above the keyboard shortcut. Open it to read an older snapshot, compare it with the current document, or restore the draft.':
+    '时钟按钮叠在快捷键上方。点开阅读更早的快照，和当前文档对比，或恢复草稿。',
+  'Backdrop, Cancel, the close button, or Esc': '点遮罩、取消、关闭按钮或 Esc',
+  'Controlled dialog. Omit and the floating button owns open state': '受控弹窗。不传则由悬浮按钮自己开关',
+  'Floating-button insets. Omit and the button sits 12px above the keyboard shortcut. left replaces right; top replaces bottom':
+    '悬浮按钮的偏移。不传则叠在快捷键悬浮钮上方 12px，右缘对齐。传 left 就不再钉右边，传 top 就不再钉下边',
+  'Mount the button here and position it yourself. The dialog still covers the viewport':
+    '把按钮挂到这里，位置归宿主。弹窗仍然盖住整个视口',
   'Close the bar, clear highlights and refocus the editor': '关闭浮动条、清除高亮并把焦点还给编辑器',
 
   // ── API 表（TOOLBAR_API） ──
