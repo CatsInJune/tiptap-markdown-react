@@ -8,6 +8,7 @@ import {
 import Heading from '@tiptap/extension-heading';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
+import { ListItem } from '@tiptap/extension-list';
 import Paragraph from '@tiptap/extension-paragraph';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
@@ -540,6 +541,58 @@ export const MarkdownHeading = Heading.extend({
 });
 
 /**
+ * 列表项第一个块必须是段落（schema：`paragraph block*`）。官方 parseMarkdown 遇到
+ * `- ## 标题`、列表项里的 setext 标题（`- 文字\n  ---`，包括流式输出到一半的 `- 文字\n  -`）
+ * 时，会把 heading 放在第一个块——markdown 解析不校验 schema，产出的就是一份非法文档；
+ * TableOfContents 给标题补 id 走 setNodeMarkup，重建外层 listItem 时才抛
+ * `TransformError: Invalid content for node listItem`，整页白屏。这里把首个 heading
+ * 降成同内容段落（其余块与 heading 上的对齐/缩进等 attrs 保留）。
+ *
+ * 官方兜底分支（首块既不是 paragraph 也不是 text）同样会把 inline token 原样塞进来，
+ * `- ## 标题\n  正文` 的正文就是裸 text 节点。一并包成段落，否则文档仍不合法。
+ *
+ * 首块是引用 / 表格 / 代码块时（`- > 引用`、`- |表格|`、`- ```js`）同样违反 schema。
+ * 这类内容是合法 markdown，不能像标题那样降级——试过补空前导段落，序列化时引用和
+ * 表格会被挤出列表项、代码块内容直接丢失，数据直接坏掉。所以把 schema 放到 `block+`：
+ * 首块允许这些块级内容，解析和序列化原样往返。标题仍然降级（见上），不放宽。
+ */
+const listItemParseMarkdown = ListItem.config.parseMarkdown!;
+
+export const MarkdownListItem = ListItem.extend({
+  // `block+` 而非点名具体类型：baseExtensions 不含 codeBlock 时点名的节点类型
+  // 会让 schema 构建直接失败，而 `block` 是 ProseMirror 的组名，随注册内容伸缩。
+  content: 'block+',
+
+  parseMarkdown: (token, helpers) => {
+    const parsed = listItemParseMarkdown(token, helpers);
+    if (Array.isArray(parsed) || !('type' in parsed)) return parsed;
+    const raw = parsed.content;
+    if (!raw?.length) return parsed;
+
+    let changed = false;
+    const content = raw.map((item) => {
+      // 块级 token 解析出的节点都有 type；text 是明显的 inline 泄漏
+      if (item.type !== 'text') return item;
+      changed = true;
+      return { type: 'paragraph', content: [item] };
+    });
+
+    const [first, ...rest] = content;
+    if (first.type !== 'heading') return changed ? { ...parsed, content } : parsed;
+
+    // heading 的内容是 inline，段落可直接接管；level 属于标题层级，不能留在段落上
+    const { level: _level, ...attrs } = first.attrs ?? {};
+    return {
+      ...parsed,
+      content: [
+        { type: 'paragraph', attrs, content: first.content ?? [] },
+        ...rest,
+      ],
+    };
+  },
+});
+
+/**
  * 官方 Details（MIT）：摘要 + 可折叠正文。三个节点必须一起注册。
  * `persist` 把展开状态写进文档；默认展开，这样新建的块能直接接着写，
  * 阅读页的原生 `<details open>` 也不会把正文藏起来。
@@ -574,11 +627,14 @@ export const baseExtensions: AnyExtension[] = [
     heading: false,
     // 有序列表改用带编号格式的版本。同名不能注册两份。
     orderedList: false,
+    // 列表项改用把首个标题降成段落的版本（见 MarkdownListItem）。同名不能注册两份。
+    listItem: false,
     // 块拖拽的落点指示。颜色用主题变量（拖拽光标插在编辑器里，能读到 --tmr-accent）。
     dropcursor: { color: 'var(--tmr-accent, #ff6719)', width: 2 },
   }),
   MarkdownParagraph,
   MarkdownHeading,
+  MarkdownListItem,
   OrderedListWithNumbering,
   // 段落级样式：文字对齐用官方扩展（免费）；缩进 / 行高自研（官方无此扩展）。
   // 三者都往节点 style 上写片段，tiptap 的 mergeAttributes 对 style 做拼接合并。
