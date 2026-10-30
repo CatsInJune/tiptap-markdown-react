@@ -594,7 +594,7 @@ The commands are exported for headless or self-drawn UIs: `applyLink`, `removeLi
 
 | Export | Description |
 | --- | --- |
-| `renderReportHtml(markdown, options?)` | `{ html, toc, ok }` — markdown → HTML。`includeToc` 默认 true；卡片预览传 false。`stabilize` 给流式半成品补未闭合围栏。解析失败 `ok: false`，不把已有 HTML 吞成空串。 |
+| `renderReportHtml(markdown, options?)` | `{ html, toc, ok, tocDegraded? }` — markdown → HTML。`includeToc` 默认 true；卡片预览传 false。`stabilize` 给流式半成品补未闭合围栏。解析失败 `ok: false`，不把已有 HTML 吞成空串。`tocDegraded: true` 表示正文已出但锚点/目录缺失（TOC 管线降级），用来区分「文档没有标题」和「目录丢了」。 |
 | `stabilizeMarkdown(markdown)` | 给未闭合 ` ``` ` / `~~~` 补闭合。 |
 | `ReportContent` | Static HTML shell with editor content styles. No outline. The `./reader` export of the same name draws the left outline. |
 | `extractToc`, `makeTocGetId` | TOC helpers. |

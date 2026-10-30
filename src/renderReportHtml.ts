@@ -42,6 +42,13 @@ export interface RenderedReport {
    * parse / render 抛错时为 false；调用方可保留上一帧 HTML。
    */
   ok: boolean;
+  /**
+   * 正文已渲染，但标题锚点 / 目录缺失。仅在 generateTocIds 失败时出现。
+   *
+   * 此时 `ok` 仍是 true（正文可用）、`toc` 为空——只看这两个字段无法区分「文档本来
+   * 没有标题」和「目录丢了」。宿主可据此告警、跳过目录 UI 或回退到客户端重新解析。
+   */
+  tocDegraded?: boolean;
 }
 
 export interface RenderReportHtmlOptions {
@@ -200,13 +207,14 @@ export function renderReportHtml(
     return { html, toc: extractToc(jsonWithIds, lockedTitles), ok: true };
   } catch (e) {
     // 某些 markdown 经 parse 产出的 JSON 可能在 heading 内嵌套 block 级子节点，
-    // 导致 generateTocIds 的 setNodeMarkup 校验失败。降级为无 TOC 仍产出正文。
+    // 导致 generateTocIds 的 setNodeMarkup 校验失败。降级为无 TOC 仍产出正文，
+    // 并用 tocDegraded 告诉宿主「这次不是没有标题，是目录丢了」。
     console.error(
       '[renderReportHtml] TOC pipeline failed, rendering without heading ids:',
       (e as Error).message,
     );
     try {
-      return { html: htmlFromJson(json), toc: [], ok: true };
+      return { html: htmlFromJson(json), toc: [], ok: true, tocDegraded: true };
     } catch (e2) {
       console.error(
         '[renderReportHtml] Tiptap pipeline failed:',
