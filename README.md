@@ -4,6 +4,8 @@ A batteries-included, self-styled **Markdown WYSIWYG editor + reader** suite bui
 
 **[Live demo →](https://catsinjune.github.io/tiptap-markdown-react/)** — the docs site with runnable editor demos (source in [`site/`](./site)). Auto-deployed from `main`.
 
+**[Wiki →](https://github.com/CatsInJune/tiptap-markdown-react/wiki)** — deep docs (in Chinese): markdown round-trip rules, architecture & entries, performance benchmarks, design decisions, changelog.
+
 - **Markdown-first**: content goes in and comes out as markdown (`getMarkdown()`), with `getHTML()` / `getJSON()` also exposed.
 - **Equations**: toolbar inserts inline / block math (KaTeX). Markdown round-trip uses `$$…$$` (inline) and newline-wrapped `$$` (block). Typing `$` / `$$` stays as text so dollar amounts are safe.
 - **Charts**: LLM-friendly data charts (`<!-- {"chartType":…} -->` + GFM table). Chart.js renders in editor / preview / reader (SSR placeholder → client hydrate). MVP: line, bar, column, pie, donut, area.
