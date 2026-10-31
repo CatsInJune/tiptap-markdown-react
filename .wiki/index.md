@@ -4,7 +4,7 @@
 
 **项目**：Markdown 优先的所见即所得编辑器 + 阅读器套件（Tiptap v3），Markdown 进 / Markdown 出，编辑器 + 客户端预览 + 服务端渲染三端一致。
 **版本节奏**：高频小版本发布（见 `.wiki/decisions.md` 与 GitHub Wiki 的 Changelog）。
-**最后更新**：2026-10-31
+**最后更新**：2026-11-01
 
 ## 页面索引
 
@@ -13,7 +13,7 @@
 | [architecture.md](architecture.md) | 三入口分层、`src/` 代码地图、共享 tokenizer、测试布局 | 动任何代码前；找不到某功能在哪个文件时 |
 | [conventions.md](conventions.md) | 硬约束（依赖锁版本、禁用词）、markdown 往返约束、i18n 双份同步、验收方法 | 改代码 / 加功能 / 改文案 / 改样式前 |
 | [decisions.md](decisions.md) | 架构决策记录（为什么 `$` 是货币符、为什么没有合并单元格……） | 想改某个「看起来不合理」的行为前，先确认它是决策不是缺陷 |
-| [perf-backlog.md](perf-backlog.md) | 性能瓶颈实证清单与候选优化（未排期） | 做性能工作前 |
+| [perf-backlog.md](perf-backlog.md) | 性能实测档案（10–50 万字前后对比）、剩余瓶颈归因、候选优化 | 做性能工作前 |
 
 ## 外部文档分工
 

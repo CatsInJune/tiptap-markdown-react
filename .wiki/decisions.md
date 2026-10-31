@@ -12,5 +12,7 @@
 | D6 | 零 UI 框架、Radix + 内联 SVG、`--tmr-*` 主题 | 库的卖点；宿主可能带任何框架 | `components/`、`styles/` | 长期 |
 | D7 | 移植逻辑不 vendor 源码 | LinkPopover 按官方 MIT 组件逻辑重写（修了官方两个 bug），无 Tailwind/额外依赖 | `components/LinkPopover.tsx` | 模式惯例 |
 | D8 | tag/GitHub Release 停用 | 发布只走 npm + GitHub Wiki Changelog | 发布流程（GitHub Wiki: Release-Process） | 长期 |
+| D9 | 目录扩展按需注册：`toc \|\| onTocChange` 传入才注册 TableOfContents | 官方扩展每内容事务全文档遍历两遍，不开目录的宿主不该付税（20 万字打字 P50 32.3→11.8ms）；扩展注册只在初始化，onTocChange 契约不变 | `components/MarkdownWysiwygEditor.tsx` | 已落地（feat/perf-large-docs）；对使用者可见，**待同步 GitHub Wiki** |
+| D10 | 官方 Emoji 的 addStorage 按引用缓存（WeakMap） | 官方 `Extension.storage` 是无缓存 getter，事务路径反复触发几千 emoji 的 O(N²) 重算（大事务自耗时 ~15%）；按 `options.emojis` 引用缓存，自定义 emojis 配置互不串 | `emoji/markdownEmoji.ts` | 已落地（同上） |
 
 新增决策时：在本表加行；若对使用者可见，同步 GitHub Wiki 对应页。
