@@ -938,24 +938,34 @@ export const MarkdownWysiwygEditor = forwardRef<
       ...(characterCount
         ? [CharacterCount.configure({ wordCounter: countWords })]
         : []),
-      TableOfContents.configure({
-        getId: makeTocGetId(),
-        // 官方扩展在滚动时也会 onUpdate（只为刷新 isActive）。目录项没变就不通知，
-        // 否则每次滚动都 setState。回调走 ref：扩展只在创建时绑一次。
-        onUpdate: (anchors) => {
-          const next = anchors
-            .filter((a) => a.originalLevel <= 6 && a.textContent.trim())
-            .map((a) => ({
-              id: a.id,
-              level: a.originalLevel,
-              text: a.textContent,
-            }));
-          if (sameTocItems(tocItemsRef.current, next)) return;
-          tocItemsRef.current = next;
-          setTocItems(next);
-          onTocChangeRef.current?.(next);
-        },
-      }),
+      // 目录：按需注册。官方 TableOfContents 每个内容变更事务会全文档遍历两遍
+      // （appendTransaction 生成 data-toc-id + onTransaction 重算 anchors），
+      // 超大文档下是每事务的固定税——不开目录、也不收 onTocChange 的宿主就不付
+      // 这笔钱。注册只在初始化时发生，传 onTocChange 的宿主行为不变。
+      ...(toc || onTocChange
+        ? [
+            TableOfContents.configure({
+              getId: makeTocGetId(),
+              // 官方扩展在滚动时也会 onUpdate（只为刷新 isActive）。目录项没变就不通知，
+              // 否则每次滚动都 setState。回调走 ref：扩展只在创建时绑一次。
+              onUpdate: (anchors) => {
+                const next = anchors
+                  .filter((a) => a.originalLevel <= 6 && a.textContent.trim())
+                  .map((a) => ({
+                    id: a.id,
+                    level: a.originalLevel,
+                    text: a.textContent,
+                  }));
+                if (sameTocItems(tocItemsRef.current, next)) return;
+                tocItemsRef.current = next;
+                // 官方指南：Tiptap 事务回调里同步 setState 会与 PM 的 DOM 变更
+                // 同帧竞争（flushSync 类问题）。推迟到微任务，渲染仍在一帧内。
+                queueMicrotask(() => setTocItems(next));
+                onTocChangeRef.current?.(next);
+              },
+            }),
+          ]
+        : []),
       ...(markdownPaste ? [MarkdownPaste] : []),
       ...(markdownFileDrop ? [MarkdownFileDrop] : []),
       // 斜杠菜单（键入 / 唤起）：默认开，只读态由 suggestion 状态机自身短路
