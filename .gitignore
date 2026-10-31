@@ -7,3 +7,4 @@ site/dist
 site/node_modules
 *.log
 .vercel
+site/bench-results

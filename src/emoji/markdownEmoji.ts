@@ -4,7 +4,13 @@ import type {
   MarkdownToken,
   MarkdownTokenizer,
 } from '@tiptap/core';
-import { Emoji, emojiToShortcode, emojis, shortcodeToEmoji } from '@tiptap/extension-emoji';
+import {
+  Emoji,
+  emojiToShortcode,
+  emojis,
+  shortcodeToEmoji,
+  type EmojiStorage,
+} from '@tiptap/extension-emoji';
 import emojiRegex from 'emoji-regex';
 import type { Mark } from '@tiptap/pm/model';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
@@ -137,8 +143,31 @@ const emojiMarkdownTokenizer: MarkdownTokenizer = {
  * 建议列表的 React 弹层不在这里：server / 预览共用这份 schema，弹层由编辑器
  * configure 贴上去。
  */
+
+/**
+ * addStorage 的按引用缓存。官方 Emoji.addStorage 每次访问都全量重算（几千个
+ * emoji 的去重 + O(N²) 查找），而 tiptap 的 Extension.storage 是无缓存 getter，
+ * 事务路径（getAttributesFromExtensions）会反复触发——超大文档的全文档操作
+ * CPU profile 里这部分占自耗时约 15%。按 options.emojis 数组引用缓存父级返回
+ * 值：同配置只算一次；宿主 configure 自定义 emojis 时各缓存各的，互不串。
+ */
+const emojiStorageCache = new WeakMap<object, EmojiStorage>();
+
 export const MarkdownEmoji = Emoji.extend({
   markdownTokenizer: emojiMarkdownTokenizer,
+
+  addStorage() {
+    const emojis = (this.options as { emojis?: unknown }).emojis;
+    if (emojis && typeof emojis === 'object') {
+      const cached = emojiStorageCache.get(emojis);
+      if (cached) return cached;
+      // parent 一定指到官方 Emoji 的 addStorage（本扩展由它 extend 而来）
+      const storage = this.parent?.() as EmojiStorage;
+      emojiStorageCache.set(emojis, storage);
+      return storage;
+    }
+    return this.parent?.() as EmojiStorage;
+  },
 
   parseMarkdown(token: MarkdownToken, helpers: MarkdownParseHelpers) {
     const typed = typeof token.name === 'string' ? token.name : '';
