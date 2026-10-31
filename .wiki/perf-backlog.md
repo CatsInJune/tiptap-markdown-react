@@ -5,7 +5,7 @@
 > **产物**：`site/bench-results/`（本地未入库，含 .cpuprofile）。
 > **官方资料**：[性能指南](https://tiptap.dev/docs/guides/performance)（只覆盖 React 渲染层，不覆盖装载）；[20 万词示例](https://tiptap.dev/docs/examples/basics/long-texts)（裸编辑器、JSON 直灌、无 markdown 层——官方对大 markdown 装载没有现成方案）。
 
-## 已修复（2026-11-01，feat/perf-large-docs 分支）
+## 已修复（1.9.2，2026-11-01）
 
 | 修复 | 内容 | 实测收益 |
 | --- | --- | --- |
