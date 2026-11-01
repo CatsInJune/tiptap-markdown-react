@@ -56,6 +56,7 @@ import type {
   CommentRef,
 } from '../commentAnchor/commentTypes';
 import { baseExtensions, lowlight } from '../extensions';
+import { getCjkEmphasisMarked } from '../cjkEmphasis';
 import { isComposingKeyEvent } from '../findReplace';
 import { FindReplaceBar } from './FindReplaceBar';
 import { ImagePreviewHost } from './ImageLightbox';
@@ -919,7 +920,8 @@ export const MarkdownWysiwygEditor = forwardRef<
         showGutter: showCommentGutter,
         interactive: commentInteractive,
       }),
-      Markdown,
+      // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
+      Markdown.configure({ marked: getCjkEmphasisMarked() }),
       pendingAnchorExtension,
       // 官方查找替换：只出命令 / storage / 装饰，UI 自绘（见 FindReplaceBar）。
       // - injectCSS 关掉：它默认会往页面插一个 <style>，绕开宿主的 --tmr-* 主题与 style.css，

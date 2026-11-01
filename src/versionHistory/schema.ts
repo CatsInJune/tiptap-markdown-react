@@ -7,6 +7,7 @@ import {
   enrichMarkdownCitations,
   type SourceRef,
 } from '../citationUtils';
+import { getCjkEmphasisMarked } from '../cjkEmphasis';
 import { baseExtensions, pureChart, pureCodeBlock, pureImage } from '../extensions';
 
 /**
@@ -83,6 +84,8 @@ let sharedManager: MarkdownManager | null = null;
 
 function getManager(): MarkdownManager {
   sharedManager ??= new MarkdownManager({
+    // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
+    marked: getCjkEmphasisMarked(),
     extensions: [...baseExtensions, pureCodeBlock, pureImage, pureChart, CitationRef],
   });
   return sharedManager;

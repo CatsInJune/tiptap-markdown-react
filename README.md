@@ -279,6 +279,22 @@ $$
 
 Single `$` is always a dollar sign (`$24.4B`, `US$`, even `$24.4B$`). Importing markdown that already uses `$$` still renders as math. SSR (`renderReportHtml`) emits KaTeX HTML so reading pages work without the editor NodeView.
 
+### 6. CJK emphasis (bold/italic next to punctuation)
+
+CommonMark's flanking rules reject a closing `**` that directly follows a punctuation character and is directly followed by text: `**多出的50元，不是多赚的净利润。**图中15元` renders with literal asterisks. Chinese typography puts punctuation inside emphasis all the time, so this bites often (`**…75%**看作` too; Latin `**bold.**next` has the same shape).
+
+All library parse entries (editor, preview, `renderReportHtml`, `normalizeMarkdown`, version diff) install marked's official `hooks.emStrongMask` on a dedicated marked instance: punctuation/symbol characters sitting directly before a `*`/`_` run are masked length-preservingly for delimiter scanning only, so `punctuation**text` closes correctly. Raw text is never modified and `getMarkdown()` still emits `**…**`.
+
+Custom setups that build their own `Markdown` extension or `MarkdownManager` opt in the same way:
+
+```ts
+import { Markdown, MarkdownManager } from '@tiptap/markdown';
+import { getCjkEmphasisMarked } from 'tiptap-markdown-react';
+
+Markdown.configure({ marked: getCjkEmphasisMarked() });
+new MarkdownManager({ extensions, marked: getCjkEmphasisMarked() });
+```
+
 ## Theming
 
 Override any of these CSS variables on an ancestor (e.g. `:root` or the editor container):
