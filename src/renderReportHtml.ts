@@ -16,6 +16,7 @@ import { renderMathElementHtml } from './math';
 import { stabilizeMarkdown } from './stabilizeMarkdown';
 import { extractToc, type TocItem } from './toc/extractToc';
 import { makeTocGetId } from './toc/tocSlug';
+import { getCjkEmphasisMarked } from './cjkEmphasis';
 
 /**
  * server 端把 markdown 渲成 HTML 字符串 + 目录（纯函数，无 editor / 无 window）。
@@ -72,6 +73,8 @@ export interface RenderReportHtmlOptions {
 // 全局累积扩展，parse 逐次变慢。parse 只用 schema、与 TOC 的 getId 无关，可跨调用
 // 安全复用；getId 相关的锚点注入放在 generateTocIds 阶段、用每篇新建的 extensions 处理。
 const sharedManager = new MarkdownManager({
+  // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
+  marked: getCjkEmphasisMarked(),
   extensions: [
     ...baseExtensions,
     pureCodeBlock,

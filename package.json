@@ -106,6 +106,7 @@
     "emoji-regex": "10.6.0",
     "katex": "^0.16.47",
     "lowlight": "3.3.0",
+    "marked": "^17.0.1",
     "y-protocols": "1.0.6",
     "yjs": "13.6.29"
   },

@@ -20,6 +20,7 @@ import {
 import type { RenderCitation } from '../citationTypes';
 import { createCitationRef } from '../createCitationRef';
 import { baseExtensions, pureCodeBlock, pureImage } from '../extensions';
+import { getCjkEmphasisMarked } from '../cjkEmphasis';
 import { CodeBlockView } from './CodeBlockView';
 import { ImagePreviewHost } from './ImageLightbox';
 import '../styles/chart.css';
@@ -95,7 +96,8 @@ export function MarkdownPreview({
       pureImage,
       createChart({ editable: false }),
       createCitationRef({ renderCitation }),
-      Markdown,
+      // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
+      Markdown.configure({ marked: getCjkEmphasisMarked() }),
       TableOfContents.configure({
         getId: makeTocGetId(),
         onUpdate: (anchors) => {

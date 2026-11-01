@@ -201,6 +201,10 @@ export { useIsMobile } from './hooks/useIsMobile';
 export * from './icons';
 
 export { insertMarkdown } from './insertMarkdown';
+export {
+  cjkEmphasisHook,
+  getCjkEmphasisMarked,
+} from './cjkEmphasis';
 export { findRangeByAnchor, type AnchorRange } from './anchorRange';
 export {
   getMarkdownForRange,

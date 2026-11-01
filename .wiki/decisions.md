@@ -14,5 +14,6 @@
 | D8 | tag/GitHub Release 停用 | 发布只走 npm + GitHub Wiki Changelog | 发布流程（GitHub Wiki: Release-Process） | 长期 |
 | D9 | 目录扩展按需注册：`toc \|\| onTocChange` 传入才注册 TableOfContents | 官方扩展每内容事务全文档遍历两遍，不开目录的宿主不该付税（20 万字打字 P50 32.3→11.8ms）；扩展注册只在初始化，onTocChange 契约不变 | `components/MarkdownWysiwygEditor.tsx` | 已发布（1.9.2）；对使用者可见，**待同步 GitHub Wiki** |
 | D10 | 官方 Emoji 的 addStorage 按引用缓存（WeakMap） | 官方 `Extension.storage` 是无缓存 getter，事务路径反复触发几千 emoji 的 O(N²) 重算（大事务自耗时 ~15%）；按 `options.emojis` 引用缓存，自定义 emojis 配置互不串 | `emoji/markdownEmoji.ts` | 已发布（1.9.2） |
+| D11 | CJK 粗体边界用 `hooks.emStrongMask` 掩码修，不改 `Lexer.rules`、不压平文本 | CommonMark flanking 不认「标点**文字」闭合（`**多出的50元，不是多赚的净利润。**图中…` 出字面星号）；官方掩码钩子在定界扫描前把紧贴 `*`/`_` run 的标点字符做**长度保持**替换，raw 文本不变、序列化仍出 `**…**`；静态正则跨实例污染且 breaks/pedantic 是快照，掩码实例级隔离。注入点收口在 `getCjkEmphasisMarked()`（编辑器/预览/renderReportHtml/normalize/版本 diff 五处同源） | `cjkEmphasis.ts` + 五个解析创建点；`cjkEmphasis.test.ts` 15 例（先红后绿） | 待发布（1.9.3） |
 
 新增决策时：在本表加行；若对使用者可见，同步 GitHub Wiki 对应页。
