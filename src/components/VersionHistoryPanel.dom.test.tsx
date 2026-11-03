@@ -202,6 +202,8 @@ describe('VersionHistoryPanel', () => {
     expect(dialog.querySelector('[data-version-id="b"]')?.textContent).not.toContain('版本乙');
     expect([...dialog.querySelectorAll('[data-diff="insert"]')].map((el) => el.textContent).join('')).toContain('乙');
     expect(dialog.querySelector('button[data-version-action="compare"]')).toBeNull();
+    // 多于一条记录才有对比状态栏。
+    expect(dialog.querySelector('[data-version-stage]')).not.toBeNull();
     expect(dialog.textContent).toContain('Compare');
     expect(dialog.textContent).not.toContain('Choose a record');
     expect(dialog.textContent).not.toContain('Current document');
@@ -332,6 +334,8 @@ describe('VersionHistoryPanel', () => {
     editor = buildEditor('当前正文');
     await mount({ versions: [{ id: 'empty', title: '空', markdown: '   ' }] });
     await openDialog();
+    // 只有一条记录：没有对比对象，顶部状态栏整条不展示。
+    expect(document.querySelector('[data-version-stage]')).toBeNull();
     expect(document.querySelector('[data-version-preview]')?.textContent).toContain('This version is empty');
     expect(document.querySelector<HTMLButtonElement>('[data-version-action="restore"]')?.disabled).toBe(true);
   });
@@ -341,6 +345,7 @@ describe('VersionHistoryPanel', () => {
     await mount({ versions: [] });
     await openDialog();
     expect(document.querySelector('[data-version-id]')).toBeNull();
+    expect(document.querySelector('[data-version-stage]')).toBeNull();
     expect(document.querySelector('[data-version-history]')?.textContent).toContain('No versions yet');
   });
 });

@@ -88,7 +88,7 @@ type ContentMap = Record<string, string>;
  * 恢复单独占一步撤销，撤销一次回到恢复前。
  *
  * 稳定选择器：弹窗 `data-version-history`，悬浮按钮 `data-version-action="open"`，
- * 条目 `data-version-id`，预览区 `data-version-preview`，
+ * 条目 `data-version-id`，对比状态栏 `data-version-stage`，预览区 `data-version-preview`，
  * 对比对象 `select[data-version-target]`，
  * 按钮 `data-version-action="restore|close|compare"`，
  * 恢复提示 `data-version-notice`，高亮 `data-diff="insert|delete"`。
@@ -451,56 +451,57 @@ export function VersionHistoryPanel({
             ))}
           </aside>
           <div className={styles.stage}>
-            <div className={styles.stageBar}>
-              <span className={styles.chip}>{selected ? versionLabel(selected, locale) : ''}</span>
-              {compareVersion ? (
-                <>
-                  <span className={styles.with}>{t.compareWith}</span>
-                  <Popover.Root open={targetOpen} onOpenChange={setTargetOpen}>
-                    <Popover.Trigger asChild>
-                      <button type="button" className={styles.compare} data-version-target="">
-                        <span>{versionLabel(compareVersion, locale)}</span>
-                        <ChevronDownIcon size={12} />
-                      </button>
-                    </Popover.Trigger>
-                    <Popover.Portal>
-                      <Popover.Content
-                        className={styles.menu}
-                        sideOffset={4}
-                        align="start"
-                        onOpenAutoFocus={(event) => event.preventDefault()}
-                      >
-                        {others.map((version) => (
-                          <button
-                            key={version.id}
-                            type="button"
-                            className={[
-                              styles.menuItem,
-                              version.id === compareVersion.id ? styles.menuItemSelected : '',
-                            ].filter(Boolean).join(' ')}
-                            data-version-target-id={version.id}
-                            aria-pressed={version.id === compareVersion.id}
-                            onClick={() => {
-                              setCompareId(version.id);
-                              setTargetOpen(false);
-                            }}
-                          >
-                            {versionLabel(version, locale)}
-                          </button>
-                        ))}
-                      </Popover.Content>
-                    </Popover.Portal>
-                  </Popover.Root>
-                  <span className={styles.compareWord}>{t.compare}</span>
-                </>
-              ) : null}
-              {showDiff ? (
-                <span className={styles.legend}>
-                  <span className={styles.legendAdd}>{t.legendInsert}</span>
-                  <span className={styles.legendRemove}>{t.legendDelete}</span>
+            {/* 少于两条记录时没有「与谁对比」：整条状态栏不展示。 */}
+            {compareVersion ? (
+              <div className={styles.stageBar} data-version-stage="">
+                <span className={styles.chip}>
+                  {selected ? versionLabel(selected, locale) : ''}
                 </span>
-              ) : null}
-            </div>
+                <span className={styles.with}>{t.compareWith}</span>
+                <Popover.Root open={targetOpen} onOpenChange={setTargetOpen}>
+                  <Popover.Trigger asChild>
+                    <button type="button" className={styles.compare} data-version-target="">
+                      <span>{versionLabel(compareVersion, locale)}</span>
+                      <ChevronDownIcon size={12} />
+                    </button>
+                  </Popover.Trigger>
+                  <Popover.Portal>
+                    <Popover.Content
+                      className={styles.menu}
+                      sideOffset={4}
+                      align="start"
+                      onOpenAutoFocus={(event) => event.preventDefault()}
+                    >
+                      {others.map((version) => (
+                        <button
+                          key={version.id}
+                          type="button"
+                          className={[
+                            styles.menuItem,
+                            version.id === compareVersion.id ? styles.menuItemSelected : '',
+                          ].filter(Boolean).join(' ')}
+                          data-version-target-id={version.id}
+                          aria-pressed={version.id === compareVersion.id}
+                          onClick={() => {
+                            setCompareId(version.id);
+                            setTargetOpen(false);
+                          }}
+                        >
+                          {versionLabel(version, locale)}
+                        </button>
+                      ))}
+                    </Popover.Content>
+                  </Popover.Portal>
+                </Popover.Root>
+                <span className={styles.compareWord}>{t.compare}</span>
+                {showDiff ? (
+                  <span className={styles.legend}>
+                    <span className={styles.legendAdd}>{t.legendInsert}</span>
+                    <span className={styles.legendRemove}>{t.legendDelete}</span>
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
             <div
               className={styles.preview}
               data-version-preview=""
