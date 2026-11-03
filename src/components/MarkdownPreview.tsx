@@ -20,6 +20,7 @@ import {
 import type { RenderCitation } from '../citationTypes';
 import { createCitationRef } from '../createCitationRef';
 import { baseExtensions, pureCodeBlock, pureImage } from '../extensions';
+import { stripBlockIdComments } from '../blockId/id';
 import { getCjkEmphasisMarked } from '../cjkEmphasis';
 import { CodeBlockView } from './CodeBlockView';
 import { ImagePreviewHost } from './ImageLightbox';
@@ -72,7 +73,12 @@ export function MarkdownPreview({
   const prepared = useMemo(
     () =>
       prepareChartMarkdown(
-        enrichMarkdownCitations(markdown, sources ?? []),
+        enrichMarkdownCitations(
+          // 只读预览不挂 BlockIdMarkdown：显式剥掉块 ID 注释，避免依赖共享 marked
+          // 是否已被某个编辑器注册过 ID tokenizer（否则同一行会被当未知 token 丢弃）。
+          stripBlockIdComments(markdown),
+          sources ?? [],
+        ),
       ),
     [markdown, sources],
   );

@@ -77,6 +77,8 @@ export {
 // ── 扩展（供组合 extraExtensions 或自建管线） ──
 export {
   baseExtensions,
+  blockIdBackfill,
+  blockIdExtension,
   lowlight,
   pureCodeBlock,
   pureImage,
@@ -212,6 +214,30 @@ export {
   type MarkdownRange,
 } from './markdownRange';
 export { normalizeMarkdown } from './normalizeMarkdown';
+
+// ── 块 ID（身份层基础，RFC §7.1-7.2）──
+export { BlockIdMarkdown } from './blockId/BlockIdMarkdown';
+export {
+  BLOCK_ID_ATTR,
+  BLOCK_ID_LINE_RE,
+  createBlockId,
+  formatBlockIdLine,
+  normalizeBlockId,
+  readBlockIdLine,
+  stripBlockIdComments,
+} from './blockId/id';
+export { BLOCK_ID_BACKFILL_META } from './blockId/uniqueId';
+export { blockIdTopLevelTypes } from './extensions';
+
+// ── 分章（纯函数，RFC §7.3-7.4）──
+export { splitIntoChapters } from './chapters/splitIntoChapters';
+export { serializeChapterMarkdown } from './chapters/chapterMarkdown';
+export {
+  alignChapters,
+  type ChapterBaseline,
+  type ChapterDraft,
+  type ChapterDelta,
+} from './chapters/alignChapters';
 export {
   PENDING_ANCHOR_CLASS,
   type PendingAnchor,

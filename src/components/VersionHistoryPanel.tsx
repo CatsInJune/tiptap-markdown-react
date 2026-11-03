@@ -18,6 +18,8 @@ export type { DocumentVersion };
 
 const CURRENT_DIFF_DEBOUNCE_MS = 200;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+/** 恢复提示（例如「章已不存在，插到光标处」）停留时长。 */
+const NOTICE_MS = 6000;
 
 /** 悬浮按钮相对定位边。数字是 px。不传时叠在快捷键悬浮钮上方。 */
 export interface HistoryButtonOffset {
@@ -30,11 +32,16 @@ export interface HistoryButtonOffset {
 export interface VersionHistoryPanelProps {
   /** 要恢复进的编辑器。对比「当前文档」时也读它的 markdown。 */
   editor: Editor;
-  /** 按宿主给定的顺序渲染，不重排。 */
+  /** 按宿主给定的顺序渲染，不重排（宿主按时间倒序平铺全部快照）。 */
   versions: DocumentVersion[];
-  /** 受控的选中版本。不传则面板自己记住，默认第一条。 */
+  /** 受控的选中版本。不传则面板自己记住，默认第一条（最新一版）。 */
   selectedId?: string;
   onSelectedIdChange?: (id: string) => void;
+  /**
+   * 列表行不带全文（`markdown` 为空）时，选中/对比该版本前调用它取全文。
+   * 宿主接单条快照接口；面板会缓存结果并在加载期间显示加载态。
+   */
+  onLoadVersionContent?: (id: string) => Promise<string>;
   /**
    * 正文已经写回编辑器之后调用。文档标题不在编辑器事务里，
    * 宿主要用 `version.documentTitle` 自己写回。
@@ -64,26 +71,34 @@ export interface VersionHistoryPanelProps {
   buttonContainer?: HTMLElement | null | (() => HTMLElement | null);
 }
 
+type ContentMap = Record<string, string>;
+
 /**
  * 历史版本弹窗，版式对齐 Substack：左边读这一版，右边按时间列版本。
  * 组件自己带一枚悬浮按钮，点开才出现弹窗。
  *
+ * 面板数据是报告全部快照的平铺列表（时间倒序、无章概念，含已删章的孤儿快照）。
+ * 列表行可以只带元数据，正文由 `onLoadVersionContent` 按需取。
+ *
  * 不对比时用只读预览。对比时画布仍是这一版：绿色是只在这一版里的，
  * 删除线是只在比较对象里的，另一底色是文字相同但标记变了。
  *
- * 恢复写的是所选版本存下来的 markdown，一次撤销就能回到恢复前。
+ * 恢复按版本所属章的首块 ID 定位：章还在 → 只替换该章范围；
+ * 章已删 → 内容插到光标处并提示。旧快照没有块 ID 时整篇写回。
+ * 恢复单独占一步撤销，撤销一次回到恢复前。
  *
  * 稳定选择器：弹窗 `data-version-history`，悬浮按钮 `data-version-action="open"`，
- * 条目 `data-version-id`，当前正文那条 `data-version-current`，
- * 预览区 `data-version-preview`，对比对象 `select[data-version-target]`，
+ * 条目 `data-version-id`，对比状态栏 `data-version-stage`，预览区 `data-version-preview`，
+ * 对比对象 `select[data-version-target]`，
  * 按钮 `data-version-action="restore|close|compare"`，
- * 高亮 `data-diff="insert|delete"`。
+ * 恢复提示 `data-version-notice`，高亮 `data-diff="insert|delete"`。
  */
 export function VersionHistoryPanel({
   editor,
   versions,
   selectedId: selectedIdProp,
   onSelectedIdChange,
+  onLoadVersionContent,
   onRestore,
   onClose,
   open: openProp,
@@ -97,8 +112,9 @@ export function VersionHistoryPanel({
   const t = getLocaleBundle(locale).history;
   const [mounted, setMounted] = useState(false);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
-  const [uncontrolledId, setUncontrolledId] = useState<string | null>(() =>
-    matchingVersionId(versions, editor.getMarkdown?.() ?? '') ?? versions[0]?.id ?? null,
+  // 默认选中最新一版（宿主已按时间倒序）；不再做「当前稿对齐」全文比对。
+  const [uncontrolledId, setUncontrolledId] = useState<string | null>(
+    () => versions[0]?.id ?? null,
   );
   const [compareId, setCompareId] = useState<string | null>(null);
   const [targetOpen, setTargetOpen] = useState(false);
@@ -106,6 +122,12 @@ export function VersionHistoryPanel({
   const [trackedStyle, setTrackedStyle] = useState<CSSProperties | null>(null);
   const [currentMarkdown, setCurrentMarkdown] = useState(() => editor.getMarkdown?.() ?? '');
   const [debouncedMarkdown, setDebouncedMarkdown] = useState(currentMarkdown);
+  const [loadedContent, setLoadedContent] = useState<ContentMap>({});
+  const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
+  const [loadErrorIds, setLoadErrorIds] = useState<Record<string, boolean>>({});
+  const [notice, setNotice] = useState<string | null>(null);
+  const loadedContentRef = useRef<ContentMap>({});
+  const pendingLoadRef = useRef<Set<string>>(new Set());
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const isOpen = openProp ?? uncontrolledOpen;
@@ -219,6 +241,12 @@ export function VersionHistoryPanel({
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
   const storedId = selectedIdProp !== undefined ? selectedIdProp : uncontrolledId;
   const selected =
     versions.find((version) => version.id === storedId) ??
@@ -226,7 +254,61 @@ export function VersionHistoryPanel({
 
   const others = versions.filter((version) => version.id !== selected?.id);
   const compareVersion = others.find((version) => version.id === compareId) ?? others[0] ?? null;
-  const showDiff = Boolean(selected && compareVersion);
+
+  // 选中/对比的正文：列表行自带 markdown 优先，否则用按需加载的缓存。
+  const contentOf = (version: DocumentVersion | null): string | null => {
+    if (!version) return null;
+    if (version.markdown !== undefined) return version.markdown;
+    const loaded = loadedContent[version.id];
+    return loaded === undefined ? null : loaded;
+  };
+
+  const selectedContent = contentOf(selected);
+  const compareContent = contentOf(compareVersion);
+  const selectedLoading = Boolean(selected && selectedContent == null && loadingIds[selected.id]);
+  const selectedLoadFailed = Boolean(
+    selected && selectedContent == null && loadErrorIds[selected.id],
+  );
+  const showDiff = Boolean(selected && compareVersion && selectedContent != null && compareContent != null);
+
+  // 需要时才取全文：面板打开 + 选中/对比变化。结果按 id 缓存。
+  useEffect(() => {
+    if (!isOpen || !onLoadVersionContent) return;
+
+    const load = (version: DocumentVersion | null) => {
+      if (!version || version.markdown !== undefined) return;
+      const cached = loadedContentRef.current[version.id];
+      if (cached !== undefined) {
+        setLoadedContent((prev) =>
+          prev[version.id] === cached ? prev : { ...prev, [version.id]: cached },
+        );
+        return;
+      }
+      if (pendingLoadRef.current.has(version.id)) return;
+      pendingLoadRef.current.add(version.id);
+      setLoadingIds((prev) => ({ ...prev, [version.id]: true }));
+      setLoadErrorIds((prev) => ({ ...prev, [version.id]: false }));
+      onLoadVersionContent(version.id)
+        .then((markdown) => {
+          loadedContentRef.current = {
+            ...loadedContentRef.current,
+            [version.id]: markdown,
+          };
+          setLoadedContent((prev) => ({ ...prev, [version.id]: markdown }));
+        })
+        .catch((error) => {
+          console.error(`load version ${version.id} failed:`, error);
+          setLoadErrorIds((prev) => ({ ...prev, [version.id]: true }));
+        })
+        .finally(() => {
+          pendingLoadRef.current.delete(version.id);
+          setLoadingIds((prev) => ({ ...prev, [version.id]: false }));
+        });
+    };
+
+    load(selected);
+    load(compareVersion);
+  }, [isOpen, onLoadVersionContent, selected, compareVersion]);
 
   const setOpen = (next: boolean) => {
     onOpenChange?.(next);
@@ -240,16 +322,29 @@ export function VersionHistoryPanel({
     setCompareId((current) => (current === id ? null : current));
   };
 
-  const same = selected ? isSameVersionMarkdown(currentMarkdown, selected.markdown) : true;
-  const blank = selected ? selected.markdown.trim() === '' : true;
-  const currentVersionId = newestMatchingVersionId(versions, currentMarkdown);
+  const same =
+    selected && selectedContent != null
+      ? isSameVersionMarkdown(debouncedMarkdown, selectedContent)
+      : true;
+  const blank = selectedContent != null ? selectedContent.trim() === '' : true;
+  const canRestore = Boolean(
+    selected && selectedContent != null && !selectedLoading && !same && !blank,
+  );
 
   const restore = () => {
-    if (!selected || same || blank) return;
+    if (!selected || selectedContent == null || !canRestore) return;
     const version = selected;
+    const markdown = selectedContent;
     flushSync(() => setOpen(false));
-    restoreVersionMarkdown(editor, version.markdown);
-    onRestore?.(version);
+    const result = restoreVersionMarkdown(editor, markdown, {
+      leadBlockId: version.leadBlockId ?? null,
+      // 整篇批次历史（一次保存一条）：整篇替换并保留块 ID。
+      scope: version.scope ?? 'chapter',
+    });
+    if (result.mode === 'insert-at-cursor') {
+      setNotice(t.restoredToCursor);
+    }
+    onRestore?.({ ...version, markdown });
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -313,7 +408,7 @@ export function VersionHistoryPanel({
             type="button"
             className={`${styles.textBtn} ${styles.restore}`}
             data-version-action="restore"
-            disabled={!selected || same || blank}
+            disabled={!canRestore}
             onClick={restore}
           >
             {t.restore}
@@ -334,82 +429,79 @@ export function VersionHistoryPanel({
               <section key={group.label}>
                 <h3 className={styles.groupLabel}>{group.label}</h3>
                 <ul className={styles.items}>
-                  {group.versions.map((version) => {
-                    const current = version.id === currentVersionId;
-                    return (
-                      <li key={version.id}>
-                        <button
-                          type="button"
-                          className={styles.item}
-                          data-version-id={version.id}
-                          data-version-current={current ? '' : undefined}
-                          aria-current={version.id === selected?.id ? 'true' : undefined}
-                          onClick={() => choose(version.id)}
-                        >
-                          <span className={styles.itemBody}>
-                            <span className={styles.itemTitle}>{versionLabel(version, locale)}</span>
-                            {version.detail ? <span className={styles.itemMeta}>{version.detail}</span> : null}
-                          </span>
-                          {version.badge ? <span className={styles.kind}>{version.badge}</span> : null}
-                        </button>
-                      </li>
-                    );
-                  })}
+                  {group.versions.map((version) => (
+                    <li key={version.id}>
+                      <button
+                        type="button"
+                        className={styles.item}
+                        data-version-id={version.id}
+                        aria-current={version.id === selected?.id ? 'true' : undefined}
+                        onClick={() => choose(version.id)}
+                      >
+                        <span className={styles.itemBody}>
+                          <span className={styles.itemTitle}>{versionLabel(version, locale)}</span>
+                          {version.detail ? <span className={styles.itemMeta}>{version.detail}</span> : null}
+                        </span>
+                        {version.badge ? <span className={styles.kind}>{version.badge}</span> : null}
+                      </button>
+                    </li>
+                  ))}
                 </ul>
               </section>
             ))}
           </aside>
           <div className={styles.stage}>
-            <div className={styles.stageBar}>
-              <span className={styles.chip}>{selected ? versionLabel(selected, locale) : ''}</span>
-              {compareVersion ? (
-                <>
-                  <span className={styles.with}>{t.compareWith}</span>
-                  <Popover.Root open={targetOpen} onOpenChange={setTargetOpen}>
-                    <Popover.Trigger asChild>
-                      <button type="button" className={styles.compare} data-version-target="">
-                        <span>{versionLabel(compareVersion, locale)}</span>
-                        <ChevronDownIcon size={12} />
-                      </button>
-                    </Popover.Trigger>
-                    <Popover.Portal>
-                      <Popover.Content
-                        className={styles.menu}
-                        sideOffset={4}
-                        align="start"
-                        onOpenAutoFocus={(event) => event.preventDefault()}
-                      >
-                        {others.map((version) => (
-                          <button
-                            key={version.id}
-                            type="button"
-                            className={[
-                              styles.menuItem,
-                              version.id === compareVersion.id ? styles.menuItemSelected : '',
-                            ].filter(Boolean).join(' ')}
-                            data-version-target-id={version.id}
-                            aria-pressed={version.id === compareVersion.id}
-                            onClick={() => {
-                              setCompareId(version.id);
-                              setTargetOpen(false);
-                            }}
-                          >
-                            {versionLabel(version, locale)}
-                          </button>
-                        ))}
-                      </Popover.Content>
-                    </Popover.Portal>
-                  </Popover.Root>
-                  <span className={styles.compareWord}>{t.compare}</span>
-                </>
-              ) : null}
-              {showDiff ? (
-                <span className={styles.legend}>
-                  <span className={styles.legendAdd}>{t.legendInsert}</span>
-                  <span className={styles.legendRemove}>{t.legendDelete}</span>
+            {/* 少于两条记录时没有「与谁对比」：整条状态栏不展示。 */}
+            {compareVersion ? (
+              <div className={styles.stageBar} data-version-stage="">
+                <span className={styles.chip}>
+                  {selected ? versionLabel(selected, locale) : ''}
                 </span>
-              ) : null}
-            </div>
+                <span className={styles.with}>{t.compareWith}</span>
+                <Popover.Root open={targetOpen} onOpenChange={setTargetOpen}>
+                  <Popover.Trigger asChild>
+                    <button type="button" className={styles.compare} data-version-target="">
+                      <span>{versionLabel(compareVersion, locale)}</span>
+                      <ChevronDownIcon size={12} />
+                    </button>
+                  </Popover.Trigger>
+                  <Popover.Portal>
+                    <Popover.Content
+                      className={styles.menu}
+                      sideOffset={4}
+                      align="start"
+                      onOpenAutoFocus={(event) => event.preventDefault()}
+                    >
+                      {others.map((version) => (
+                        <button
+                          key={version.id}
+                          type="button"
+                          className={[
+                            styles.menuItem,
+                            version.id === compareVersion.id ? styles.menuItemSelected : '',
+                          ].filter(Boolean).join(' ')}
+                          data-version-target-id={version.id}
+                          aria-pressed={version.id === compareVersion.id}
+                          onClick={() => {
+                            setCompareId(version.id);
+                            setTargetOpen(false);
+                          }}
+                        >
+                          {versionLabel(version, locale)}
+                        </button>
+                      ))}
+                    </Popover.Content>
+                  </Popover.Portal>
+                </Popover.Root>
+                <span className={styles.compareWord}>{t.compare}</span>
+                {showDiff ? (
+                  <span className={styles.legend}>
+                    <span className={styles.legendAdd}>{t.legendInsert}</span>
+                    <span className={styles.legendRemove}>{t.legendDelete}</span>
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
             <div
               className={styles.preview}
               data-version-preview=""
@@ -422,22 +514,36 @@ export function VersionHistoryPanel({
                 <div className={styles.emptyVersion}>
                   <p className={styles.emptyTitle}>{t.empty}</p>
                 </div>
+              ) : selectedLoading ? (
+                <div className={styles.emptyVersion} data-version-loading="">
+                  <p className={styles.emptyTitle}>{t.loadingVersion}</p>
+                </div>
+              ) : selectedLoadFailed ? (
+                <div className={styles.emptyVersion}>
+                  <p className={styles.emptyTitle}>{t.loadVersionFailed}</p>
+                </div>
               ) : blank && !compareVersion ? (
                 <div className={styles.emptyVersion}>
                   <FileIcon />
                   <p className={styles.emptyTitle}>{t.emptyVersion}</p>
                   <p className={styles.emptyHint}>{t.emptyVersionHint}</p>
                 </div>
-              ) : selected && compareVersion ? (
+              ) : showDiff && selectedContent != null && compareContent != null ? (
                 <VersionDiffView
-                  selected={selected.markdown}
-                  other={compareVersion.markdown}
+                  selected={selectedContent}
+                  other={compareContent}
                   sources={sources}
                   locale={locale}
                 />
-              ) : selected ? (
-                <MarkdownPreview markdown={selected.markdown} sources={sources} locale={locale} />
-              ) : null}
+              ) : selectedContent != null ? (
+                <MarkdownPreview markdown={selectedContent} sources={sources} locale={locale} />
+              ) : (
+                <div className={styles.emptyVersion}>
+                  <FileIcon />
+                  <p className={styles.emptyTitle}>{t.emptyVersion}</p>
+                  <p className={styles.emptyHint}>{t.emptyVersionHint}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -445,10 +551,17 @@ export function VersionHistoryPanel({
     </div>
   ) : null;
 
+  const noticeToast = notice ? (
+    <div className={styles.notice} role="status" data-version-notice="">
+      {notice}
+    </div>
+  ) : null;
+
   return (
     <>
       {createPortal(fab, buttonHost ?? document.body)}
       {dialog ? createPortal(dialog, document.body) : null}
+      {noticeToast ? createPortal(noticeToast, document.body) : null}
     </>
   );
 }
@@ -512,24 +625,6 @@ function fabStyle(offset: HistoryButtonOffset | undefined): CSSProperties {
 function cssPx(value: number | string | undefined): string | undefined {
   if (value == null) return undefined;
   return typeof value === 'number' ? `${value}px` : value;
-}
-
-function matchingVersionId(versions: DocumentVersion[], markdown: string): string | null {
-  return newestMatchingVersionId(versions, markdown);
-}
-
-function newestMatchingVersionId(versions: DocumentVersion[], markdown: string): string | null {
-  let best: DocumentVersion | null = null;
-  let bestTime = Number.NEGATIVE_INFINITY;
-  for (const version of versions) {
-    if (!isSameVersionMarkdown(markdown, version.markdown)) continue;
-    const time = toDate(version.createdAt ?? '')?.getTime() ?? Number.NEGATIVE_INFINITY;
-    if (!best || time > bestTime) {
-      best = version;
-      bestTime = time;
-    }
-  }
-  return best?.id ?? null;
 }
 
 function toDate(value: Date | number | string): Date | null {

@@ -6,7 +6,7 @@ import Typography from '@tiptap/extension-typography';
 import Image from '@tiptap/extension-image';
 import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { CharacterCount, Placeholder, Selection } from '@tiptap/extensions';
-import { Markdown } from '@tiptap/markdown';
+import { BlockIdMarkdown } from '../blockId/BlockIdMarkdown';
 import {
   EditorContent,
   ReactNodeViewRenderer,
@@ -55,7 +55,12 @@ import type {
   CommentClickPayload,
   CommentRef,
 } from '../commentAnchor/commentTypes';
-import { baseExtensions, lowlight } from '../extensions';
+import {
+  baseExtensions,
+  blockIdBackfill,
+  blockIdExtension,
+  lowlight,
+} from '../extensions';
 import { getCjkEmphasisMarked } from '../cjkEmphasis';
 import { isComposingKeyEvent } from '../findReplace';
 import { FindReplaceBar } from './FindReplaceBar';
@@ -921,7 +926,10 @@ export const MarkdownWysiwygEditor = forwardRef<
         interactive: commentInteractive,
       }),
       // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
-      Markdown.configure({ marked: getCjkEmphasisMarked() }),
+      // 块 ID：UniqueID（attr + 自动分配）+ 初始回填 + markdown 注释往返层都只挂在编辑管线。
+      blockIdExtension,
+      blockIdBackfill,
+      BlockIdMarkdown.configure({ marked: getCjkEmphasisMarked() }),
       pendingAnchorExtension,
       // 官方查找替换：只出命令 / storage / 装饰，UI 自绘（见 FindReplaceBar）。
       // - injectCSS 关掉：它默认会往页面插一个 <style>，绕开宿主的 --tmr-* 主题与 style.css，

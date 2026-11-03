@@ -11,6 +11,7 @@ import {
 } from './citationUtils';
 import { CitationRef } from './CitationRef';
 import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
+import { stripBlockIdComments } from './blockId/id';
 import { baseExtensions, pureChart, pureCodeBlock, pureImage } from './extensions';
 import { renderMathElementHtml } from './math';
 import { stabilizeMarkdown } from './stabilizeMarkdown';
@@ -154,7 +155,8 @@ export function renderReportHtml(
   const sources = options.sources ?? [];
   const includeToc = options.includeToc !== false;
   const stabilized = options.stabilize ? stabilizeMarkdown(markdown) : markdown;
-  const input = prepareChartMarkdown(stabilized);
+  // 正文渲染剥离块 ID 注释（决策 block-id-anchoring「剥离策略」）；fence 内的保留。
+  const input = prepareChartMarkdown(stripBlockIdComments(stabilized));
 
   let json: JSONContent;
   try {

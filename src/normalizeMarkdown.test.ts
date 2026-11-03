@@ -113,6 +113,53 @@ describe('normalizeMarkdown：已知会被规范化的结构', () => {
   });
 });
 
+describe('normalizeMarkdown：块 ID 注释（RFC §7.2）', () => {
+  it('行首独立 ID 注释行被剥掉，正文与标题保留', () => {
+    const md = [
+      '<!--b:b_one-->',
+      '## 标题',
+      '',
+      '<!--b:b_two-->',
+      '正文',
+    ].join('\n');
+    const out = normalizeMarkdown(md);
+    expect(out).not.toContain('<!--b:');
+    expect(out).toContain('## 标题');
+    expect(out).toContain('正文');
+    expectIdempotent(out);
+  });
+
+  it('fence 内的伪 ID 注释保留（是内容）', () => {
+    const md = [
+      '<!--b:b_real-->',
+      '正文',
+      '',
+      '```md',
+      '<!--b:b_fake-->',
+      '```',
+    ].join('\n');
+    const out = normalizeMarkdown(md);
+    expect(out).not.toContain('<!--b:b_real-->');
+    expect(out).toContain('<!--b:b_fake-->');
+    expectIdempotent(out);
+  });
+
+  it('图表配置注释保留，不受 ID 剥离影响', () => {
+    const md = [
+      '<!--b:b_chart-->',
+      '<!-- {"chartType":"column","x":"项目","y":"金额"} -->',
+      '',
+      '| 项目 | 金额 |',
+      '| --- | --- |',
+      '| 收入 | 100 |',
+    ].join('\n');
+    const out = normalizeMarkdown(md);
+    expect(out).not.toContain('<!--b:b_chart-->');
+    expect(out).toContain('"chartType":"column"');
+    expectIdempotent(out);
+  });
+});
+
 describe('normalizeMarkdown：边界', () => {
   it('空串原样返回；纯空白的正文会被规整成空串', () => {
     expect(normalizeMarkdown('')).toBe('');

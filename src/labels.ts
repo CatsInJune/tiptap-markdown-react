@@ -675,6 +675,12 @@ export interface HistoryLabels {
   emptyVersion: string;
   /** 空版本下面的一行提示。 */
   emptyVersionHint: string;
+  /** 列表只带元数据时，按需取全文的加载态。 */
+  loadingVersion: string;
+  /** 按需取全文失败。 */
+  loadVersionFailed: string;
+  /** 恢复时章节已不在文档中：内容插到光标处后的提示。 */
+  restoredToCursor: string;
   /** 没有作者时的占位。 */
   unknownAuthor: string;
   /** 列表分组：本周。 */
@@ -709,6 +715,9 @@ export const defaultHistoryLabels: HistoryLabels = {
   currentBadge: 'Current version',
   emptyVersion: 'This version is empty',
   emptyVersionHint: 'Please select another version',
+  loadingVersion: 'Loading this version…',
+  loadVersionFailed: 'Could not load this version',
+  restoredToCursor: 'That chapter is no longer in the document. Its content was inserted at the cursor.',
   unknownAuthor: 'unknown',
   groupThisWeek: 'From this week',
   groupLastWeek: 'From last week',
