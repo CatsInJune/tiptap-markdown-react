@@ -2,6 +2,7 @@ import { MarkdownManager } from '@tiptap/markdown';
 import { CitationRef } from './CitationRef';
 import { getCjkEmphasisMarked } from './cjkEmphasis';
 import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
+import { stripBlockIdComments } from './blockId/id';
 import { baseExtensions, pureChart, pureCodeBlock, pureImage } from './extensions';
 
 /**
@@ -21,6 +22,7 @@ import { baseExtensions, pureChart, pureCodeBlock, pureImage } from './extension
  * | 图表注释 JSON | `<!-- {"chartType": "column"} -->` | `<!-- {"chartType":"column"} -->`（去空格，键序按解析结果） |
  * | **图表区**的数值 | `132.0` | `132`（图表把表解析成 payload，数值走 number 再写回） |
  * | 纯空白的正文 | `"   \n  "` | `""` |
+ * | **行首独立块 ID 注释行** | `<!--b:b_x-->` | 整行删除（fence 内的不删） |
  *
  * 注意第三行**只作用于图表区**：普通 GFM 表格走 marked 的表格解析，单元格是文本，
  * `1,234.50` 这种写法会原样保留（有测试钉住）。
@@ -34,7 +36,11 @@ import { baseExtensions, pureChart, pureCodeBlock, pureImage } from './extension
 export function normalizeMarkdown(markdown: string): string {
   if (!markdown) return markdown;
   const manager = getManager();
-  return manager.serialize(manager.parse(prepareChartMarkdown(markdown)));
+  // 块 ID 注释是身份层数据，不是正文：先按行剥掉（fence 内的伪注释保留），
+  // 再走解析 → 序列化。图表等其他注释不受影响（RFC §7.2）。
+  return manager.serialize(
+    manager.parse(prepareChartMarkdown(stripBlockIdComments(markdown))),
+  );
 }
 
 // [perf] 与 renderReportHtml 同样的理由：每次 new MarkdownManager 都会让底层 marked 全局

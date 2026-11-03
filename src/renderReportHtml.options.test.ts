@@ -57,4 +57,19 @@ describe('renderReportHtml options', () => {
     expect(raw.html).toContain('业绩');
     expect(fixed.html).toContain('业绩');
   });
+
+  it('块 ID 注释在正文渲染中剥离（SSR 无 DOM 也不出字面注释）', () => {
+    const md = [
+      '<!--b:b_one-->',
+      '## 第一节',
+      '',
+      '<!--b:b_two-->',
+      '正文。',
+    ].join('\n');
+    const r = renderReportHtml(md, { includeToc: false });
+    expect(r.ok).toBe(true);
+    expect(r.html).not.toContain('<!--b:');
+    expect(r.html).toContain('第一节');
+    expect(r.html).toContain('正文。');
+  });
 });

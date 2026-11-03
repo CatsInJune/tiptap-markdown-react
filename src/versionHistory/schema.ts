@@ -8,6 +8,7 @@ import {
   type SourceRef,
 } from '../citationUtils';
 import { getCjkEmphasisMarked } from '../cjkEmphasis';
+import { stripBlockIdComments } from '../blockId/id';
 import { baseExtensions, pureChart, pureCodeBlock, pureImage } from '../extensions';
 
 /**
@@ -94,7 +95,7 @@ function getManager(): MarkdownManager {
 /** 把 markdown 解析成对比 schema 上的文档。表格空格、图表注释空格在这一步被抹平。 */
 export function parseVersionDoc(markdown: string, sources?: SourceRef[]) {
   const prepared = prepareChartMarkdown(
-    enrichMarkdownCitations(markdown ?? '', sources ?? []),
+    enrichMarkdownCitations(stripBlockIdComments(markdown ?? ''), sources ?? []),
   );
   const parsed = getManager().parse(prepared);
   return getVersionSchema().nodeFromJSON(parsed);

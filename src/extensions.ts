@@ -59,6 +59,10 @@ import {
 import { MarkdownEmoji } from './emoji/markdownEmoji';
 import { OrderedListWithNumbering } from './numberingFormat';
 import { ParagraphStyles } from './paragraphStyles';
+import {
+  collectTopLevelBlockTypes,
+  createBlockIdUniqueId,
+} from './blockId/uniqueId';
 
 /**
  * StarterKit 默认 Code 的 excludes:'_' 禁止与任何其他 mark 共存。
@@ -614,10 +618,10 @@ const DetailsBlock = Details.extend({
 
 /**
  * 三处共用的纯 schema 扩展——**不含 CodeBlock / Image / CitationRef / Chart**（见上方边界说明）。
- * 编辑器：`[...baseExtensions, 增强CodeBlock, 增强Image, createCitationRef(), createChart(), Markdown]`
+ * 编辑器：`[...baseExtensions, 增强CodeBlock, 增强Image, createCitationRef(), createChart(), blockIdExtension, BlockIdMarkdown]`
  * server/预览：`[...baseExtensions, pureCodeBlock, pureImage, CitationRef, pureChart, …]`
  */
-export const baseExtensions: AnyExtension[] = [
+const schemaExtensions: AnyExtension[] = [
   // 禁用 StarterKit 内置 codeBlock / code（改用 lowlight 代码块 + 可共存的 InlineCode）
   // 与 paragraph / heading（改用带 markdown 样式往返的版本，见上）
   StarterKit.configure({
@@ -669,3 +673,23 @@ export const baseExtensions: AnyExtension[] = [
   // 表情节点：`:shortcode:` 往返。建议列表是编辑器上的 configure，不进这份 schema。
   MarkdownEmoji,
 ];
+
+/**
+ * 块 ID：baseExtensions 里能作为 doc 直接子节点的块类型（RFC §7.1）。
+ * 导出供测试与宿主诊断；UniqueID 的 `types` 与它同源。
+ */
+export const blockIdTopLevelTypes: string[] = collectTopLevelBlockTypes(
+  schemaExtensions,
+);
+
+/**
+ * 块 ID 属性 / 自动分配的「库内统一挂载」点：官方 UniqueID 配成 `blockId` + 短 ID。
+ *
+ * 单独导出、不进 baseExtensions：预览与 server 静态渲染不需要内存里回填 ID，
+ * 而 UniqueID 的 `onCreate` 会发一次 doc 变更事务（触发 TrailingNode 等副作用）。
+ * 编辑管线（MarkdownWysiwygEditor）统一 `[...baseExtensions, blockIdExtension, …]`，
+ * 宿主零配置；自组管线的宿主需要块 ID 时把它一起注册即可。
+ */
+export const blockIdExtension = createBlockIdUniqueId(blockIdTopLevelTypes);
+
+export const baseExtensions: AnyExtension[] = schemaExtensions;
