@@ -6,7 +6,9 @@ import Typography from '@tiptap/extension-typography';
 import Image from '@tiptap/extension-image';
 import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { CharacterCount, Placeholder, Selection } from '@tiptap/extensions';
+import { Markdown } from '@tiptap/markdown';
 import { BlockIdMarkdown } from '../blockId/BlockIdMarkdown';
+import { stripBlockIdComments } from '../blockId/id';
 import {
   EditorContent,
   ReactNodeViewRenderer,
@@ -483,6 +485,17 @@ export interface ImageResizeOptions {
 }
 
 export interface MarkdownWysiwygEditorProps {
+  /**
+   * 块 ID 策略，默认 `'off'`：
+   * - `'markdown'`：挂 UniqueID + 初始回填 + `BlockIdMarkdown`，块 ID 以
+   *   `<!--b:...-->` 写进 markdown（报告编辑器用，按章对齐/历史恢复依赖它）；
+   * - `'memory'`：挂 UniqueID（内存/attrs 有 ID），但用官方 Markdown 序列化，
+   *   不把 ID 写进正文（需要会话内块身份、但不落库时用）；
+   * - `'off'`：不挂块 ID；旧内容里的 `<!--b:...-->` 注释会在解析前剥掉。
+   *
+   * 只影响编辑管线；只读预览 `MarkdownPreview` / 服务端渲染始终剥 ID。
+   */
+  blockIds?: 'markdown' | 'memory' | 'off';
   /** 初始 markdown 内容。 */
   initialMarkdown?: string;
   /**
@@ -799,6 +812,7 @@ export const MarkdownWysiwygEditor = forwardRef<
   MarkdownWysiwygEditorProps
 >(function MarkdownWysiwygEditor(
   {
+    blockIds = 'off',
     initialMarkdown = '',
     editable = true,
     locale = 'en',
@@ -847,8 +861,11 @@ export const MarkdownWysiwygEditor = forwardRef<
   },
   ref,
 ) {
+  // 默认不落 ID；旧卡片正文里若有 1.10.x 写入的 ID 注释，解析前剥掉。
+  const initialContentInput =
+    blockIds === 'markdown' ? initialMarkdown : stripBlockIdComments(initialMarkdown);
   const preparedInitial = prepareChartMarkdown(
-    enrichMarkdownCitations(initialMarkdown, sources ?? []),
+    enrichMarkdownCitations(initialContentInput, sources ?? []),
   );
 
   const blockDragMobile = useIsMobile(768);
@@ -926,10 +943,11 @@ export const MarkdownWysiwygEditor = forwardRef<
         interactive: commentInteractive,
       }),
       // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
-      // 块 ID：UniqueID（attr + 自动分配）+ 初始回填 + markdown 注释往返层都只挂在编辑管线。
-      blockIdExtension,
-      blockIdBackfill,
-      BlockIdMarkdown.configure({ marked: getCjkEmphasisMarked() }),
+      // 块 ID 按 blockIds 策略挂载：默认 off；报告编辑器显式传 markdown。
+      ...(blockIds === 'off' ? [] : [blockIdExtension, blockIdBackfill]),
+      blockIds === 'markdown'
+        ? BlockIdMarkdown.configure({ marked: getCjkEmphasisMarked() })
+        : Markdown.configure({ marked: getCjkEmphasisMarked() }),
       pendingAnchorExtension,
       // 官方查找替换：只出命令 / storage / 装饰，UI 自绘（见 FindReplaceBar）。
       // - injectCSS 关掉：它默认会往页面插一个 <style>，绕开宿主的 --tmr-* 主题与 style.css，

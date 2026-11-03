@@ -325,6 +325,7 @@ Override any of these CSS variables on an ancestor (e.g. `:root` or the editor c
 | Prop | Type | Description |
 | --- | --- | --- |
 | `initialMarkdown` | `string` | Initial content (markdown). |
+| `blockIds` | `'markdown' \| 'memory' \| 'off'` | Block-ID strategy, default `'off'`. `'markdown'` mounts UniqueID + initial backfill + comment round-trip, so `getMarkdown()` contains `<!--b:...-->` lines (the report editor needs this for chapter alignment and history restore). `'memory'` keeps IDs in node attrs but serializes plain markdown. `'off'` disables block IDs and strips legacy `<!--b:...-->` comments from `initialMarkdown` before parsing. Read-only previews and server rendering always strip IDs. |
 | `editable` | `boolean` | `false` renders read-only with the **same** extensions/NodeViews/styles — interactive controls (code-block language dropdown, delete) collapse. Comments are ignored when `false`. Default `true`. |
 | `locale` | `'en' \| 'zh'` | Built-in UI language (default `en`). Pass the same value to the toolbar and any other sibling you render. The outline uses the editor's locale. |
 | `placeholder` | `string` | Placeholder for the empty document. |
