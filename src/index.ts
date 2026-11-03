@@ -231,6 +231,7 @@ export { blockIdTopLevelTypes } from './extensions';
 
 // ── 分章（纯函数，RFC §7.3-7.4）──
 export { splitIntoChapters } from './chapters/splitIntoChapters';
+export { serializeChapterMarkdown } from './chapters/chapterMarkdown';
 export {
   alignChapters,
   type ChapterBaseline,
