@@ -5,8 +5,19 @@ export interface DocumentVersion {
   id: string;
   /** 列表主文案。 */
   title: string;
-  /** 这一版的正文。不含文档标题。 */
-  markdown: string;
+  /**
+   * 这一版的正文。不含文档标题。
+   *
+   * 列表接口只回元数据时可以为空——面板在选中/对比时调用
+   * `onLoadVersionContent(id)` 按需取全文并缓存。
+   */
+  markdown?: string;
+  /**
+   * 版本所属章节的首块 ID。有值且当前文档还能定位到该块时，恢复只替换这一章；
+   * 找不到（章已删）则插到光标处。缺省时面板会从 markdown 的
+   * `<!--b:...-->` 首行推断；都没有则按旧语义整篇替换。
+   */
+  leadBlockId?: string | null;
   /** 列表次行的时间。 */
   createdAt?: Date | number | string;
   /** 列表次行的说明，例如作者。 */
