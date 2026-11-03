@@ -10,6 +10,16 @@ export interface RestoreVersionOptions {
    * `<!--b:...-->` 行推断（章内容以块 ID 注释开头）。
    */
   leadBlockId?: string | null;
+  /**
+   * 恢复范围：
+   * - `chapter`（默认）：按章首块 ID 定位该章 → 范围替换；章已删则插入光标处；
+   * - `document`：整篇替换（用于「一次保存 = 一整篇」的历史批次）。
+   *
+   * `document` 刻意**保留** markdown 里的块 ID：块 ID 与内容一起回到当时的值，
+   * 保存时对齐层才能按章首块 ID 认出「还是原来那几章」，只更新内容而不会
+   * 删章重建（否则 revision 归零、评论被级联删除）。
+   */
+  scope?: 'chapter' | 'document';
 }
 
 /** 恢复落点：整篇替换（旧快照，无块 ID）/ 章范围替换 / 光标处插入（章已删）。 */
@@ -33,6 +43,11 @@ export function restoreVersionMarkdown(
   markdown: string,
   options: RestoreVersionOptions = {},
 ): RestoreVersionResult {
+  // 显式整篇恢复（批次历史）：markdown 原样写入，块 ID 保留。
+  if (options.scope === 'document') {
+    replaceDocument(editor, markdown);
+    return { mode: 'replace-document' };
+  }
   const leadBlockId = options.leadBlockId ?? readLeadBlockId(markdown);
   if (!leadBlockId) {
     replaceDocument(editor, markdown);

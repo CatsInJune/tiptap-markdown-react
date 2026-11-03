@@ -29,4 +29,9 @@ export interface DocumentVersion {
    * 宿主在 `onRestore` 里自己写。
    */
   documentTitle?: string;
+  /**
+   * 恢复范围。`document` = 这一版是「整篇快照」（一次保存一条的批次历史），
+   * 恢复时整篇替换且保留块 ID；缺省按章恢复。
+   */
+  scope?: 'chapter' | 'document';
 }

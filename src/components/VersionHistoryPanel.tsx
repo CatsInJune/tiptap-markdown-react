@@ -338,6 +338,8 @@ export function VersionHistoryPanel({
     flushSync(() => setOpen(false));
     const result = restoreVersionMarkdown(editor, markdown, {
       leadBlockId: version.leadBlockId ?? null,
+      // 整篇批次历史（一次保存一条）：整篇替换并保留块 ID。
+      scope: version.scope ?? 'chapter',
     });
     if (result.mode === 'insert-at-cursor') {
       setNotice(t.restoredToCursor);

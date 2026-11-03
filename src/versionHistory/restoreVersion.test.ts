@@ -2,7 +2,15 @@
 import { Editor, Extension } from '@tiptap/core';
 import { Markdown } from '@tiptap/markdown';
 import { describe, expect, it } from 'vitest';
-import { baseExtensions } from '../extensions';
+import {
+  baseExtensions,
+  blockIdBackfill,
+  blockIdExtension,
+  pureChart,
+  pureCodeBlock,
+  pureImage,
+} from '../extensions';
+import { BlockIdMarkdown } from '../blockId/BlockIdMarkdown';
 import {
   isSameVersionMarkdown,
   readLeadBlockId,
@@ -45,6 +53,22 @@ function buildChapters(): Editor {
       <h2 data-block-id="b_ch2">第二章</h2>
       <p>第二章正文</p>
     `,
+  });
+}
+
+function buildWithBlockIds(markdown: string): Editor {
+  return new Editor({
+    extensions: [
+      ...baseExtensions,
+      blockIdExtension,
+      blockIdBackfill,
+      pureCodeBlock,
+      pureImage,
+      pureChart,
+      BlockIdMarkdown,
+    ],
+    content: markdown,
+    contentType: 'markdown',
   });
 }
 
@@ -103,6 +127,25 @@ describe('restoreVersionMarkdown', () => {
     // 前置空行不影响；首行缩进空格仍可识别。
     expect(readLeadBlockId('\n  <!--b:b_lead-->  \n\n正文')).toBe('b_lead');
     expect(readLeadBlockId('## 没有块 ID')).toBeNull();
+  });
+
+  it('scope=document 整篇替换且保留 markdown 里的块 ID', () => {
+    const editor = buildWithBlockIds(
+      '<!--b:b_oldchap001-->\n\n## 旧章\n\n旧正文',
+    );
+    const result = restoreVersionMarkdown(
+      editor,
+      '<!--b:b_newchap001-->\n\n## 新章\n\n新正文',
+      { scope: 'document' },
+    );
+    expect(result.mode).toBe('replace-document');
+    const markdown = editor.getMarkdown();
+    // 块 ID 随内容一起恢复：保存时对齐层才能认出「还是原来那几章」。
+    expect(markdown).toContain('<!--b:b_newchap001-->');
+    expect(markdown).toContain('新正文');
+    expect(markdown).not.toContain('旧正文');
+    expect(markdown).not.toContain('b_oldchap001');
+    editor.destroy();
   });
 
   it('编辑器多吐出的尾部空行仍视为同一版', () => {
