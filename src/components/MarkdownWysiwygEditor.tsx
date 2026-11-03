@@ -55,7 +55,12 @@ import type {
   CommentClickPayload,
   CommentRef,
 } from '../commentAnchor/commentTypes';
-import { baseExtensions, blockIdExtension, lowlight } from '../extensions';
+import {
+  baseExtensions,
+  blockIdBackfill,
+  blockIdExtension,
+  lowlight,
+} from '../extensions';
 import { getCjkEmphasisMarked } from '../cjkEmphasis';
 import { isComposingKeyEvent } from '../findReplace';
 import { FindReplaceBar } from './FindReplaceBar';
@@ -921,8 +926,9 @@ export const MarkdownWysiwygEditor = forwardRef<
         interactive: commentInteractive,
       }),
       // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
-      // 块 ID：UniqueID（attr + 自动分配）与 markdown 注释往返层都只挂在编辑管线。
+      // 块 ID：UniqueID（attr + 自动分配）+ 初始回填 + markdown 注释往返层都只挂在编辑管线。
       blockIdExtension,
+      blockIdBackfill,
       BlockIdMarkdown.configure({ marked: getCjkEmphasisMarked() }),
       pendingAnchorExtension,
       // 官方查找替换：只出命令 / storage / 装饰，UI 自绘（见 FindReplaceBar）。

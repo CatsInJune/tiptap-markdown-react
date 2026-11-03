@@ -12,6 +12,7 @@ import {
 } from './id';
 import {
   baseExtensions,
+  blockIdBackfill,
   blockIdExtension,
   pureChart,
   pureCodeBlock,
@@ -24,6 +25,7 @@ function createEditor(markdown: string) {
     extensions: [
       ...baseExtensions,
       blockIdExtension,
+      blockIdBackfill,
       pureCodeBlock,
       pureImage,
       pureChart,
@@ -88,6 +90,10 @@ describe('blockId：ID 生成与注释行', () => {
     expect(out).toContain('<!--b:b_fake-->');
     expect(out).toContain('<!-- {"chartType":"line"} -->');
     expect(out).toContain('## 标题');
+    // 行内（非行首独立）的同名注释不是块 ID，原样保留 —— 与解析侧的口径一致
+    expect(stripBlockIdComments('x<!--b:b_inline-->\n\n正文')).toContain(
+      'x<!--b:b_inline-->',
+    );
   });
 });
 
@@ -126,12 +132,13 @@ describe('blockId：markdown 序列化 / 解析（RFC §7.1）', () => {
     editor.destroy();
   });
 
-  it('无 ID 文档：onCreate 回填，首次序列化带 ID', async () => {
+  it('无 ID 文档：进入文档即带 ID，首次序列化带 ID', async () => {
     const editor = new Editor({
       element: document.createElement('div'),
       extensions: [
         ...baseExtensions,
         blockIdExtension,
+        blockIdBackfill,
         pureCodeBlock,
         pureImage,
         pureChart,
@@ -169,19 +176,46 @@ describe('blockId：markdown 序列化 / 解析（RFC §7.1）', () => {
     const content = editor.getJSON().content ?? [];
     expect(content[0]?.attrs?.blockId).toBe('b_real');
     expect((content[0]?.content as any[] | undefined)?.[0]?.text).toBe('正文');
-    // 代码块不是 baseExtensions 的顶层类型，不带 ID；伪注释原样留在 fence 里
+    // 代码块前没有 ID 行，解析阶段自动补一个；伪注释原样留在 fence 里
     expect(content[1]?.type).toBe('codeBlock');
-    expect(content[1]?.attrs?.blockId ?? null).toBeNull();
+    expect(content[1]?.attrs?.blockId).toMatch(BLOCK_ID);
     expect(editor.getMarkdown()).toContain('<!--b:b_fake-->');
     editor.destroy();
+  });
+
+  it('行内 `x<!--b:...-->` 不是行首独立行：不附 ID、不丢正文', () => {
+    const editor = createEditor('x<!--b:b_inline-->\n\n正文');
+    const content = editor.getJSON().content ?? [];
+    expect((content[0]?.content as any[] | undefined)?.[0]?.text).toBe('x');
+    expect(content[1]?.type).toBe('paragraph');
+    // 正文段落会拿到解析阶段自动补的 ID，但**不能**是行内注释里的 b_inline
+    expect(content[1]?.attrs?.blockId).toMatch(BLOCK_ID);
+    expect(content[1]?.attrs?.blockId).not.toBe('b_inline');
+    expect(editor.getMarkdown()).not.toContain('<!--b:b_inline-->');
+    expect(editor.getMarkdown()).toContain('正文');
+    editor.destroy();
+  });
+
+  it('ID 行后多个空行：ID 仍附到真实块（隐式空段不吃 ID）', () => {
+    for (const newlines of ['\n\n\n\n\n', '\n\n\n\n\n\n', '\n\n\n\n\n\n\n']) {
+      const editor = createEditor(`<!--b:b_x-->${newlines}## 标题`);
+      const content = editor.getJSON().content ?? [];
+      const heading = content.find((node) => node.type === 'heading');
+      expect(heading?.attrs?.blockId).toBe('b_x');
+      expect(editor.getMarkdown()).toContain('<!--b:b_x-->\n## 标题');
+      editor.destroy();
+    }
   });
 
   it('块尾孤行丢弃，不报错也不影响前文', () => {
     const editor = createEditor('正文\n\n<!--b:b_orphan-->');
     const content = editor.getJSON().content ?? [];
     expect(content).toHaveLength(1);
-    expect(content[0]?.attrs?.blockId).toBeNull();
-    expect(editor.getMarkdown()).toBe('正文');
+    // 段落拿解析阶段补的 ID，孤儿注释本身被丢弃
+    expect(content[0]?.attrs?.blockId).toMatch(BLOCK_ID);
+    const markdown = editor.getMarkdown();
+    expect(markdown).not.toContain('b_orphan');
+    expect(markdown).toContain('正文');
     editor.destroy();
   });
 
@@ -218,6 +252,44 @@ describe('blockId：markdown 序列化 / 解析（RFC §7.1）', () => {
     expect(twice).toContain('<!--b:b_table-->');
     expect(twice.match(/<!--b:b_table-->/g)).toHaveLength(1);
     editor.destroy();
+  });
+
+  it('代码块 / 图片 / 图表前的 ID 也往返（编辑器内容块类型）', () => {
+    const code = createEditor('<!--b:b_code-->\n```md\nx = 1\n```');
+    const codeContent = code.getJSON().content ?? [];
+    expect(codeContent[0]?.type).toBe('codeBlock');
+    expect(codeContent[0]?.attrs?.blockId).toBe('b_code');
+    expect(code.getMarkdown()).toContain('<!--b:b_code-->');
+    code.commands.setContent(code.getMarkdown(), { contentType: 'markdown' });
+    expect(code.getJSON().content?.[0]?.attrs?.blockId).toBe('b_code');
+    code.destroy();
+
+    const image = createEditor(
+      '<!--b:b_img-->\n![图](https://example.com/a.png)',
+    );
+    const imageContent = image.getJSON().content ?? [];
+    expect(imageContent[0]?.type).toBe('image');
+    expect(imageContent[0]?.attrs?.blockId).toBe('b_img');
+    expect(image.getMarkdown()).toContain('<!--b:b_img-->');
+    image.commands.setContent(image.getMarkdown(), { contentType: 'markdown' });
+    expect(image.getJSON().content?.[0]?.attrs?.blockId).toBe('b_img');
+    image.destroy();
+
+    const chartMarkdown = [
+      '<!-- {"chartType":"column","x":"项目","y":"金额"} -->',
+      '',
+      '| 项目 | 金额 |',
+      '| --- | --- |',
+      '| 收入 | 100 |',
+    ].join('\n');
+    const chart = createEditor(
+      `<!--b:b_chart-->\n${prepareChartMarkdown(chartMarkdown)}`,
+    );
+    const chartContent = chart.getJSON().content ?? [];
+    expect(chartContent[0]?.type).toBe('chart');
+    expect(chartContent[0]?.attrs?.blockId).toBe('b_chart');
+    expect(chart.getMarkdown()).toContain('<!--b:b_chart-->');
+    chart.destroy();
   });
 
   it('图表配置注释是内容注释，与 ID 行共存', () => {

@@ -77,6 +77,7 @@ export {
 // ── 扩展（供组合 extraExtensions 或自建管线） ──
 export {
   baseExtensions,
+  blockIdBackfill,
   blockIdExtension,
   lowlight,
   pureCodeBlock,
@@ -225,6 +226,7 @@ export {
   readBlockIdLine,
   stripBlockIdComments,
 } from './blockId/id';
+export { BLOCK_ID_BACKFILL_META } from './blockId/uniqueId';
 export { blockIdTopLevelTypes } from './extensions';
 
 // ── 分章（纯函数，RFC §7.3-7.4）──

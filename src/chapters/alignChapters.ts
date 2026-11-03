@@ -35,6 +35,10 @@ function sameContent(a: string, b: string): boolean {
 /**
  * 对齐「基线章」与「当前章」（RFC §7.4）。
  *
+ * 说明：RFC §3.1 的分层原则要求「库代码里不出现 section/revision」，但 §7.4 的
+ * 对齐接口本身以 sectionId/revision 为字段。这里按 §7.4 的显式接口实现——库只做
+ * 纯计算、不做任何协议 I/O，协议词汇只是宿主传入/取回的透传值。
+ *
  * 1. **前缀段**：`leadBlockId` 逐位相同视为同章；内容（normalize 后）变 → `changed`，
  *    不变跳过；首个不同位 = 分叉点；
  * 2. **剩余段**：按 `leadBlockId` 建 Map 匹配——匹配上且内容变 → `changed`（保身份）；

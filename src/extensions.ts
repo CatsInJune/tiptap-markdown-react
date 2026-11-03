@@ -61,6 +61,7 @@ import { OrderedListWithNumbering } from './numberingFormat';
 import { ParagraphStyles } from './paragraphStyles';
 import {
   collectTopLevelBlockTypes,
+  createBlockIdBackfill,
   createBlockIdUniqueId,
 } from './blockId/uniqueId';
 
@@ -675,11 +676,21 @@ const schemaExtensions: AnyExtension[] = [
 ];
 
 /**
- * 块 ID：baseExtensions 里能作为 doc 直接子节点的块类型（RFC §7.1）。
+ * 编辑器管线额外挂载的内容块类型：不在 baseExtensions 里（见上方边界说明），
+ * 但同样是会被序列化为顶层块的正文内容。ID 需要在这些块上往返（RFC §7.1
+ * round-trip），否则章首是图表/图片/代码块时 leadBlockId 永远为 null。
+ */
+const EDITOR_CONTENT_BLOCK_TYPES = ['codeBlock', 'image', 'chart'];
+
+/**
+ * 块 ID 的适用节点类型：baseExtensions 全部顶层块类型（RFC §7.1）+ 编辑器内容块。
  * 导出供测试与宿主诊断；UniqueID 的 `types` 与它同源。
  */
-export const blockIdTopLevelTypes: string[] = collectTopLevelBlockTypes(
-  schemaExtensions,
+export const blockIdTopLevelTypes: string[] = Array.from(
+  new Set([
+    ...collectTopLevelBlockTypes(schemaExtensions),
+    ...EDITOR_CONTENT_BLOCK_TYPES,
+  ]),
 );
 
 /**
@@ -687,9 +698,12 @@ export const blockIdTopLevelTypes: string[] = collectTopLevelBlockTypes(
  *
  * 单独导出、不进 baseExtensions：预览与 server 静态渲染不需要内存里回填 ID，
  * 而 UniqueID 的 `onCreate` 会发一次 doc 变更事务（触发 TrailingNode 等副作用）。
- * 编辑管线（MarkdownWysiwygEditor）统一 `[...baseExtensions, blockIdExtension, …]`，
- * 宿主零配置；自组管线的宿主需要块 ID 时把它一起注册即可。
+ * 编辑管线（MarkdownWysiwygEditor）统一 `[...baseExtensions, blockIdExtension, blockIdBackfill, …]`，
+ * 宿主零配置；自组管线的宿主需要块 ID 时把两者一起注册即可。
  */
 export const blockIdExtension = createBlockIdUniqueId(blockIdTopLevelTypes);
+
+/** 库内接管的初始回填（先于 UniqueID.onCreate，压掉 update 抖动，见 uniqueId.ts）。 */
+export const blockIdBackfill = createBlockIdBackfill(blockIdTopLevelTypes);
 
 export const baseExtensions: AnyExtension[] = schemaExtensions;

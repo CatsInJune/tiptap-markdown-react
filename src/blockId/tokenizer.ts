@@ -34,14 +34,16 @@ export const BlockIdMarkdownTokenizer = Extension.create({
      * 必须显式提供：Tiptap 对没有 start 的 tokenizer 会生成一个「新建 Lexer 试跑」
      * 的兜底 start，而 marked 的 Tokenizer 实例在多个 Lexer 间共享，新建 Lexer
      * 会把 tokenizer.lexer 指到新实例上，之后正文段落的 inline 队列就填错了。
-     * 这里返回 ID 行的行首位置：允许它在 block 边界被识别，也不触发兜底。
+     *
+     * marked 传入的是 `src.slice(1)`（当前块的第二个字符起），所以这里**只能**认
+     * 「前面确有换行」的匹配：不能用 `^`，否则 `x<!--b:...-->` 这种行内注释会被
+     * 误判成行首独立行（RFC §7.1 要求顶层行首）。
      */
     start(src: string) {
-      const match = /(?:^|\n) {0,3}<!--b:[A-Za-z0-9_]+-->[ \t]*(?:\r?\n|$)/.exec(
+      const match = /\n {0,3}<!--b:[A-Za-z0-9_]+-->[ \t]*(?:\r?\n|$)/.exec(
         src,
       );
-      if (!match) return -1;
-      return match.index + (match[0].startsWith('\n') ? 1 : 0);
+      return match ? match.index + 1 : -1;
     },
     tokenize(src: string) {
       const match = /^ {0,3}<!--b:([A-Za-z0-9_]+)-->[ \t]*(?:\r?\n|$)/.exec(
