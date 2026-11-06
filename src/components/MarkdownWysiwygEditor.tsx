@@ -637,7 +637,8 @@ export interface MarkdownWysiwygEditorProps {
   findShortcut?: boolean;
   /**
    * 浮动条开合状态变化的通知（条子开着时 `handle.openFind()`、Esc / × 关掉都会触发）。
-   * 典型用法是驱动别处的入口按钮：`<EditorToolbar onSearch={open} searchActive={isOpen} />`。
+   * 典型用法是驱动工具栏里放进 `groups` 的搜索按钮：
+   * `<EditorToolbar groups={…} onSearch={open} searchActive={isOpen} />`。
    * 只在真正变化时回调，挂载时不会先报一次 `false`；报的是「条子真的在屏幕上」——
    * `findBar={false}`（宿主自己摆条子）时恒为 `false`，不会因为 `openFind()` 空转就亮起入口。
    */
@@ -682,10 +683,11 @@ export interface MarkdownWysiwygEditorProps {
    */
   blockDrag?: boolean;
   /**
-   * 图片上传（对齐官方 ImageUploadNode 的交互）：配置后工具栏的图片按钮变成
-   * 「插入上传块」——文档里出现拖拽 / 点击的占位块，上传进度就地显示，全部成功后就地
+   * 图片上传（对齐官方 ImageUploadNode 的交互）：工具栏布局里有 `image` 时，
+   * 点击插入上传占位块——文档里出现拖拽 / 点击的占位块，上传进度就地显示，全部成功后就地
    * 替换为图片。`upload` 是唯一必填项（网络 I/O 归宿主），签名 `(file, onProgress,
    * signal) => Promise<url>`；收 `signal` 后宿主应在移除 / 清空 / 占位块被删时中断请求。
+   * 按钮是否出现由工具栏的 `groups` 决定，默认清单里没有 `image`。
    *
    * 挂在这里而不是工具栏的 `onImageUpload`：按钮的行为由「编辑器里有没有注册
    * imageUpload 扩展」决定，两处都传会以本配置为准。未配置时工具栏走旧的直传路径

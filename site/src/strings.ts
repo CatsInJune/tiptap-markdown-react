@@ -151,16 +151,21 @@ export const ZH_STRINGS: Record<string, string> = {
   'The header 中 / EN switch drives this editor, the toolbar and the TOC. Unsaved edits stay.':
     '顶栏的「中 / EN」驱动这里的编辑器、工具栏和目录。未保存的编辑还在。',
 
-  'Styled formatting toolbar. Image upload button appears only when onImageUpload is provided.':
-    '带样式的格式化工具栏。传入 onImageUpload 时才出现图片上传按钮。',
+  'Styled formatting toolbar. Button visibility comes from groups and hidden. The default list has no image, search, or history button.':
+    '带样式的格式化工具栏。按钮显隐由 groups 和 hidden 决定。默认清单里没有图片、搜索和历史按钮。',
   'Headings, lists, tables, links, colors, alignment': '标题、列表、表格、链接、颜色、对齐',
   'Toggle block beside blockquote (official Details; markdown is HTML details)':
     '引用旁边的折叠块（官方 Details；Markdown 存成 HTML details）',
+  'Image button is off the default list; put image in groups to insert an upload block':
+    '图片按钮不在默认清单里；把 image 放进 groups 才会插入上传块',
+  'groups replaces the bar; hidden subtracts built-in ids from the default list':
+    'groups 整栏替换；hidden 从默认清单里划掉内置 id',
   'Blurred text-selection highlight. Defaults to a 28% mix of the accent':
     '失焦后的文本选区高亮。默认是强调色的 28% 混合',
-  'More menu: code block, equations, table, import markdown': '更多菜单：代码块、公式、表格、导入 Markdown',
+  'More menu: code block, equations, table, fullscreen': '更多菜单：代码块、公式、表格、全屏',
   'Radix Popover / DropdownMenu — no native selects': 'Radix Popover / DropdownMenu——不用原生 select',
-  'extraToolbarItems for custom More-menu entries': 'extraToolbarItems 注入自定义更多菜单项',
+  'extraToolbarItems append to the default More menu; with groups, list the key':
+    'extraToolbarItems 追加到默认「更多」菜单；传了 groups 时，把 key 写进布局才出现',
   'locale switches the built-in toolbar copy': 'locale 切换内置工具栏文案',
   'Toolbar with image upload': '带图片上传的工具栏',
 
@@ -295,8 +300,10 @@ export const ZH_STRINGS: Record<string, string> = {
   'Flip the bar — open when closed, close when open (pair it with a toolbar entry that shows an active state)': '反转浮动条——关着就开、开着就关（配一个带 active 态的入口按钮）',
   'Bar open/close notification (fires only when the bar actually shows or hides, plus once on unmount)': '浮动条开合通知（只在真的显示 / 收起时回调，卸载时补一次 false）',
   'Ways out of the bar. Esc works from anywhere that belongs to the editor and is consumed; clicking into the document or another input deliberately does not close it': '关闭入口。Esc 在属于本编辑器的任何位置都有效且会吃掉这次按键；点回正文或别的输入框刻意不关',
-  'Search entry (magnifier) left of the More menu; wire it to handle.toggleFind() — omit and no button renders': '最右组里、More 左侧的搜索入口（放大镜）。接 handle.toggleFind()；不传就不渲染按钮',
-  'Version-history entry (clock) beside the magnifier. Omit and no button renders; the panel is placed by the host': '放大镜旁边的历史版本入口（时钟）。不传就不渲染按钮；面板由宿主自己摆',
+  'Click handler for the search button. The default layout does not include that button':
+    '搜索按钮的点击回调。默认布局里没有这颗按钮',
+  'Click handler for a history button placed in groups. The default layout has no clock; the floating button belongs to VersionHistoryPanel':
+    '放进 groups 的历史按钮的点击回调。默认布局没有时钟；悬浮按钮属于 VersionHistoryPanel',
   'Whether the history panel is open; drives aria-pressed on the clock': '历史面板是否开着；驱动时钟按钮的 aria-pressed',
   'The library does not store snapshots. Pass the versions you already saved. The panel lists them in your order, previews one with the same read-only renderer as MarkdownPreview, and can diff it against the current document or another version. Restore writes that version\'s markdown back as a single undo step. The document title is not part of the editor transaction — put version.documentTitle back in onRestore. Comments are not in markdown, so they do not appear here.':
     '库不保存快照。把你已经存好的版本传进来。面板按你的顺序排列，用和 MarkdownPreview 相同的只读渲染看某一版，也可以拿它和当前文档或另一版对比。恢复把那一版的 markdown 写回去，单独占一步撤销。文档标题不在这次编辑器事务里——请在 onRestore 里自己写回 version.documentTitle。评论不在 markdown 里，所以这里看不到。',
@@ -307,7 +314,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'Added and removed text are marked; formatting-only changes are not': '只标出增加和删除的文字，单纯的格式变化不高亮',
   'Table-alignment spaces are not treated as changes': '表格对齐用的空格不算修改',
   'Restore is one undo step back to the document from just before': '恢复单独占一步撤销，撤一次回到刚才的正文',
-  'Toolbar clock appears only when onHistory is set': '只有传了 onHistory，工具栏才出现时钟',
+  'Toolbar clock appears only when history is in groups': '只有 groups 里写了 history，工具栏才出现时钟',
   'Stable data-version-* and data-diff selectors': '稳定的 data-version-* 和 data-diff 选择器',
   'Three saved versions': '三条已保存的版本',
   'The editor starts on the latest snapshot. Pick an older one to read it, compare it with the current document, or restore it.':
@@ -324,8 +331,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'id, title, markdown, plus optional createdAt, detail, and documentTitle': 'id、title、markdown，以及可选的 createdAt、detail、documentTitle',
   'Stable selectors: data-version-history, -id, -preview, -action (restore, close, compare), and data-diff (insert, delete, format)':
     '稳定选择器：data-version-history、-id、-preview、-action（restore、close、compare），以及 data-diff（insert、delete、format）',
-  'Toolbar clock. Omit onHistory and no button renders; historyActive drives aria-pressed':
-    '工具栏时钟。不传 onHistory 就不渲染按钮；historyActive 驱动 aria-pressed',
+  'Toolbar clock. Put history in groups to show it; onHistory is the click handler and historyActive drives aria-pressed':
+    '工具栏时钟。把 history 放进 groups 才显示；onHistory 是点击回调，historyActive 驱动 aria-pressed',
   'A floating button opens a fixed dialog: the selected version on the left, the list on the right, grouped by week. The button matches the keyboard shortcut and sits just above it; buttonOffset moves it, and buttonContainer hands placement to you. Pass badge to mark a row, such as Published or Draft. The preview is the selected record: green is text only in it, strikethrough is text only in the record chosen after “with”. An empty snapshot shows an empty state instead of a blank page. Restore closes the dialog, then writes that version back as one undo step. The document title is not part of that write — put version.documentTitle back in onRestore.':
     '悬浮按钮打开固定弹窗：左边是所选版本，右边按周分组列出。按钮和快捷键悬浮钮同一套样式，默认叠在它上方；buttonOffset 改偏移，buttonContainer 把按钮交给宿主摆。用 badge 给条目打标记，例如已发布或草稿。预览是左侧选中的那一版：绿色是只在这一版里的文字，删除线是只在「与」后面那一版里的文字。空快照显示空状态。恢复会先关掉弹窗，再把那一版写回去，单独占一步撤销。文档标题不在这次写入里——请在 onRestore 里自己写回 version.documentTitle。',
   'Floating button, fixed dialog: preview on the left, versions on the right':
@@ -358,7 +365,14 @@ export const ZH_STRINGS: Record<string, string> = {
   'ancestor that contains the editor': '包住编辑器的那一层',
   'Fires when full screen opens or closes, including Esc, hiding the button, and unmount': '全屏打开或关闭时回调，包括 Esc、关掉按钮和卸载',
   '(fullscreen: boolean) => void': '(fullscreen: boolean) => void',
-  'Custom items in More menu': '更多菜单里的自定义项',
+  'Custom items. Appended to the default More menu, or placed by key when groups is set':
+    '自定义项。追加到默认「更多」菜单；传了 groups 时按 key 摆放',
+  'Full toolbar layout. Each inner array is a group; { more: [...] } is the single More button. Omit to use defaultToolbarGroups (no image, search, or history)':
+    '整栏布局。每个内层数组是一组；{ more: [...] } 是唯一的「更多」按钮。不传则用 defaultToolbarGroups（不含图片、搜索、历史）',
+  'Built-in ids removed from the default layout. Ignored when groups is set. Does not hide extraToolbarItems':
+    '从默认布局里划掉的内置 id。传了 groups 时忽略。不会藏 extraToolbarItems',
+  'Legacy direct-upload path: picking a file inserts the returned URL. Ignored when the editor registers imageUpload. The button shows only when image is in the layout':
+    '旧的直传路径：选文件后插入返回的 URL。编辑器注册了 imageUpload 时忽略。只有布局里有 image 才显示按钮',
   'Extra root class': '根元素附加 class',
 
   // ── API 表（PREVIEW / TOC / REPORT / RENDER_HTML / INSERT） ──
@@ -388,7 +402,10 @@ export const ZH_STRINGS: Record<string, string> = {
   'Take over Cmd/Ctrl+F while the editor has focus (only when the editor owns a bar)': '编辑器持有焦点时接管 Cmd/Ctrl+F（仅当编辑器自带条子）',
   'Built-in UI language for the bar': '浮动条的内置界面语言',
   'Bar open/close notification (fires only when the bar actually shows or hides)': '浮动条开合通知（只在真的显示 / 收起时回调）',
-  'Toolbar magnifier entry: onSearch wires to handle.openFind(), searchActive drives its aria-pressed': '工具栏放大镜入口：onSearch 接 handle.openFind()，searchActive 驱动它的 aria-pressed',
+  'Toolbar magnifier. Put search in groups to show it; onSearch is the click handler and searchActive drives aria-pressed':
+    '工具栏放大镜。把 search 放进 groups 才显示；onSearch 是点击回调，searchActive 驱动 aria-pressed',
+  'Toolbar magnifier is off the default list; put search in groups and wire onSearch to toggleFind()':
+    '工具栏放大镜不在默认清单里；把 search 放进 groups，并把 onSearch 接到 toggleFind()',
   'Stable selectors for host CSS (the bar internals use hashed CSS-module classes)': '给宿主 CSS 用的稳定选择器（浮动条内部是哈希过的 CSS Modules 类名）',
   'The bar itself, if you place it yourself': '浮动条本体，想自己摆位时用',
   'Re-exported official extension for hand-built pipelines': '再导出的官方扩展，供自建管线使用',

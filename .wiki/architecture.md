@@ -28,7 +28,7 @@ markdown 没有原生语法的样式（图片缩放/对齐/图注、段落对齐
 
 - **入口与组装**：`index.ts`（导出面，~69 个导出）、`server.ts`、`reader.ts`、`extensions.ts`（baseExtensions + 共享 lowlight）
 - **编辑器组件**：`components/MarkdownWysiwygEditor.tsx`（主组件）、`MarkdownPreview.tsx`、`ReportContent.tsx`（server 用）、`components/ReaderReportContent.tsx` 等
-- **工具栏**：`components/EditorToolbar.tsx`、`ColorPalette.tsx`、`LinkPopover.tsx`、`components/FindReplaceBar.tsx`（可与 `findReplace.ts` 配合）
+- **工具栏**：`toolbarLayout.ts`（`groups` / `hidden` 解析）、`components/EditorToolbar.tsx`、`components/toolbarBody.tsx`、`components/toolbarChrome.tsx`、`ColorPalette.tsx`、`LinkPopover.tsx`、`components/FindReplaceBar.tsx`（可与 `findReplace.ts` 配合）
 - **功能域目录**（`src/<域>/`，各自带 Extension + 序列化 + 测试）：
   - `chart/` — 图表（注释 JSON + GFM 表；`ChartExtension`、`codeBlockChartParse`、`createChart`）
   - `commentAnchor/` — 评论锚（session-only mark、gutter、popover、`commentMapper` 段落定位）

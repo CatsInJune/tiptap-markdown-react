@@ -12,10 +12,12 @@ import {
   MarkdownWysiwygEditor,
   ReportContentInteractive,
   ReportContentWithCharts,
+  defaultToolbarGroups,
   type CitationEnterContext,
   type CommentRef,
   type MarkdownWysiwygEditorHandle,
   type RenderCitation,
+  type ToolbarGroup,
 } from 'tiptap-markdown-react';
 import { ReportContent } from 'tiptap-markdown-react/reader';
 import { renderReportHtml } from 'tiptap-markdown-react/server';
@@ -60,6 +62,19 @@ async function demoImageUpload(
   return url;
 }
 
+/** 默认清单不含 image / search。演示要露出这两颗按钮时，插回对应位置。 */
+function demoToolbarGroups(extra: { image?: boolean; search?: boolean } = {}): ToolbarGroup[] {
+  return defaultToolbarGroups.map((group, index) => {
+    if (extra.image && index === 3) {
+      return ['link', 'image', 'import', 'blockquote', 'details'];
+    }
+    if (extra.search && index === defaultToolbarGroups.length - 1) {
+      return ['search', ...group];
+    }
+    return group;
+  });
+}
+
 /** 完整编辑器 + 工具栏 */
 export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
   const locale = useLang().lang;
@@ -72,6 +87,7 @@ export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
         <EditorToolbar
           editor={editor}
           locale={locale}
+          groups={demoToolbarGroups({ image: true, search: true })}
           // 工具栏只开一道门：条子归编辑器，这里接上句柄；searchActive 用它上报的开合态
           onSearch={() => editorRef.current?.toggleFind()}
           searchActive={findOpen}
@@ -115,7 +131,7 @@ export function ToolbarDemo() {
   return (
     <div className="editorDemo">
       {editor && (
-        <EditorToolbar editor={editor} locale={locale} />
+        <EditorToolbar editor={editor} locale={locale} groups={demoToolbarGroups({ image: true })} />
       )}
       <div className="editorDemoBody compact">
         <MarkdownWysiwygEditor
@@ -703,6 +719,7 @@ export function HeroDemo() {
           <EditorToolbar
             editor={editor}
             locale={locale}
+            groups={demoToolbarGroups({ image: true, search: true })}
             onSearch={() => editorRef.current?.toggleFind()}
             searchActive={findOpen}
           />
@@ -854,6 +871,7 @@ export function I18nDemo() {
           <EditorToolbar
             editor={editor}
             locale={locale}
+            groups={demoToolbarGroups({ search: true })}
             onSearch={() => editorRef.current?.toggleFind()}
             searchActive={findOpen}
           />

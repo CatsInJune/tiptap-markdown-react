@@ -357,14 +357,20 @@ select the query — while `toggleFind()` flips the bar and pairs with an entry 
 
 **Closing it.** `Esc` closes the bar, clears the highlights and returns focus to the editor; it works from anywhere that belongs to the editor (focus inside the bar, inside the document, or on the page while this is the only editor), and the keystroke is consumed so a host popover or drawer wrapping the bar does not close along with it. Other ways out: the bar's ×, `handle.closeFind()`, `toggleFind()`, and unmounting the bar. Deliberately **not** closing on: clicking into the document or another input, an empty query, zero results, after replace-all, or switching to read-only (search stays available then — only the replace row goes away). If an editor is swapped out (remounted for a new document), the library reports `onFindOpenChange(false)` so an entry elsewhere never stays lit.
 
-`<EditorToolbar>` can carry an entry to the same bar. Pass `onSearch` (wired to the ref handle) and the magnifier appears just left of the More menu; omit it and the button does not render. Feed `searchActive` from `onFindOpenChange` and it lights up while the bar is open — pair it with `toggleFind()` so the lit button also turns the bar back off:
+`<EditorToolbar>` can carry an entry to the same bar. The default toolbar does not include it. Put `search` in `groups`, pass `onSearch` (wired to the ref handle), and feed `searchActive` from `onFindOpenChange`. Pair it with `toggleFind()` so the lit button also turns the bar back off. A button with no `onSearch` still renders and the click does nothing.
 
 ```tsx
+import { defaultToolbarGroups } from 'tiptap-markdown-react'
+
 const find = useRef<MarkdownWysiwygEditorHandle>(null)
 const [findOpen, setFindOpen] = useState(false)
+const groups = defaultToolbarGroups.map((group, index) =>
+  index === defaultToolbarGroups.length - 1 ? ['search', ...group] : group,
+)
 
 <EditorToolbar
   editor={editor}
+  groups={groups}
   onSearch={() => find.current?.toggleFind()}
   searchActive={findOpen}
 />
@@ -465,7 +471,7 @@ Configure `imageUpload` on the editor and the toolbar's image button stops openi
 - **Abort** — the `upload` callback receives an `AbortSignal` that fires when a row is removed, the queue is cleared, the block is deleted, or the editor unmounts. Hand it to `fetch` so abandoned uploads stop.
 - **Keyboard** — <kbd>Cmd/Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> inserts a block (on Windows that combo also opens DevTools — the browser wins, same as the official component); <kbd>Enter</kbd> on a selected block opens the picker.
 - The block's text follows the editor `locale`. The `ImageUploadNode` extension and `hasImageUpload(editor)` are exported for hand-built pipelines.
-- The legacy toolbar prop `onImageUpload` still works when the extension is not registered — see the `<EditorToolbar>` table.
+- The image button is not on the default toolbar. Put `image` in `groups` to show it. With `imageUpload` configured, that button inserts the placeholder block; otherwise `onImageUpload` is the legacy direct-upload path. With neither, the button still renders and the click does nothing.
 
 #### Paragraph styles: alignment, indent, line height
 
@@ -538,23 +544,26 @@ Stable selectors: `[data-version-action="open"]` on the button, `[data-version-h
 
 ### `<EditorToolbar>` (client)
 
-The row stays centred and **scrolls horizontally inside the toolbar** when the controls no longer fit — a single line, never wrapped (`justify-content: safe center` keeps both ends reachable once it overflows). The button row is as wide as the toolbar (`min-width: 0` so a flex or grid parent can shrink it); it does not use a fixed max width. Narrower toolbars scroll. `onHistory` and `onSearch` render the clock and the magnifier just left of the More menu.
+The row stays centred and **scrolls horizontally inside the toolbar** when the controls no longer fit — a single line, never wrapped (`justify-content: safe center` keeps both ends reachable once it overflows). The button row is as wide as the toolbar (`min-width: 0` so a flex or grid parent can shrink it); it does not use a fixed max width. Narrower toolbars scroll.
+
+What is on the bar comes from one list. Omit `groups` and you get `defaultToolbarGroups` (`image`, `search` and `history` are not on it). `hidden` removes built-in ids from that default list. Pass `groups` and that array replaces the whole bar: each inner array is a group, a divider sits between groups, and `{ more: [...] }` is the single More button. A listed button still renders when its click has no handler. `extraToolbarItems` append to the default More menu; with `groups`, a custom item appears only when its `key` is listed. Passing both `groups` and `hidden` keeps `groups` and warns in development.
 
 | Prop | Type | Description |
 | --- | --- | --- |
 | `editor` | `Editor` | The instance from `onEditorReady`. |
-| `onImageUpload` | `(file: File) => Promise<string>` | **Legacy** direct-upload path: picking a file inserts the returned URL. Ignored when the editor registers the `imageUpload` extension (configure that on `<MarkdownWysiwygEditor>` instead); omit both and no image button renders. |
+| `groups` | `ToolbarGroup[]` | Full toolbar layout. Omit to use `defaultToolbarGroups`. |
+| `hidden` | `string[]` | Built-in ids removed from the default layout. Ignored when `groups` is set. Does not hide `extraToolbarItems`. |
+| `onImageUpload` | `(file: File) => Promise<string>` | **Legacy** direct-upload path: picking a file inserts the returned URL. Ignored when the editor registers the `imageUpload` extension. The button itself is shown only when `image` is in the layout. |
 | `onError` | `(err, source?: 'image' \| 'markdown' \| 'import') => void` | Side-effect error callback (e.g. failed upload). |
 | `onImportDocument` | `(file, ctx) => Promise<ImportDocumentResult \| string>` | Converts a non-Markdown file to Markdown. `ctx.signal` aborts on cancel/unmount; `ctx.onProgress` reports upload/convert progress back. Omit and Import only takes `.md`. |
 | `importAccept` | `string` | Extra `accept` used by the default Document menu item when `importMenuItems` is omitted. |
 | `importMenuItems` | `ImportMenuItem[]` | Import dropdown options (`label` + `accept`). Hosts that want Markdown / Word / PDF pass three items. |
-| `showImport` | `boolean` | Show the Import dropdown (default `true`). |
 | `locale` | `'en' \| 'zh'` | Built-in toolbar copy, including import, equations, the link popover, table handles and image alignment (default `en`). |
-| `onSearch` | `() => void` | Search entry (magnifier) left of the More menu. Wire it to `handle.toggleFind()` (or `openFind()` if you'd rather it only ever open); omit it and no button renders. Worth passing only when the editor owns a bar (`findBar` on) — a host-placed bar has nothing for it to open. Search works read-only, so the button never greys out. |
+| `onSearch` | `() => void` | Click handler for the `search` button. The default layout does not include that button. |
 | `searchActive` | `boolean` | Whether the bar is open; drives `aria-pressed` and the active highlight of the search entry (default `false`). Feed it from the editor's `onFindOpenChange`. |
-| `onHistory` | `() => void` | Version-history entry (clock) beside the magnifier. Omit it and no button renders. The panel itself is `<VersionHistoryPanel>`, which you place. |
+| `onHistory` | `() => void` | Click handler for a `history` button placed in `groups`. The default layout has no clock. The floating button belongs to `<VersionHistoryPanel>`. |
 | `historyActive` | `boolean` | Whether the history panel is open; drives `aria-pressed` on the clock (default `false`). |
-| `extraToolbarItems` | `ExtraToolbarItem[]` | Custom items appended to the "More" menu. |
+| `extraToolbarItems` | `ExtraToolbarItem[]` | Custom items. Appended to the default More menu, or placed by `key` when `groups` is set. |
 
 #### Table editing (hover handles)
 

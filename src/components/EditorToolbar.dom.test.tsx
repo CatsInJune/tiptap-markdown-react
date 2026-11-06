@@ -18,8 +18,9 @@ beforeAll(() => {
  * 工具栏的搜索入口：只开一道门，不搬条子。
  *
  * 浮动条（FindReplaceBar）归 `<MarkdownWysiwygEditor>`，工具栏只把这个入口画出来、把点击
- * 转给宿主。所以这里钉的是四件事：不传 `onSearch` 就不出现、点击冒泡到宿主、
- * `searchActive` 驱动 `aria-pressed`、文案可注入。
+ * 转给宿主。按钮是否出现由 `groups` 决定：默认清单不含 `search`，只传
+ * `onSearch` 也不渲染。写进布局后，点击冒泡到宿主，`searchActive` 驱动
+ * `aria-pressed`，文案跟随 locale。
  */
 describe('EditorToolbar 的搜索入口', () => {
   let host: HTMLDivElement;
@@ -59,14 +60,14 @@ describe('EditorToolbar 的搜索入口', () => {
     editor.destroy();
   });
 
-  it('不传 onSearch 就不渲染（入口归宿主，没接就不出现）', async () => {
-    await mount();
+  it('默认清单不含搜索，只传 onSearch 也不渲染', async () => {
+    await mount({ onSearch: () => {} });
     expect(searchButton()).toBeNull();
   });
 
-  it('传了 onSearch：按钮出现，点击转给宿主', async () => {
+  it('groups 里写了 search：按钮出现，点击转给宿主', async () => {
     const onSearch = vi.fn();
-    await mount({ onSearch });
+    await mount({ onSearch, groups: [[{ more: [] }, 'search']] });
 
     const button = searchButton();
     expect(button).not.toBeNull();
@@ -79,12 +80,12 @@ describe('EditorToolbar 的搜索入口', () => {
   });
 
   it('searchActive 驱动 aria-pressed（条子开着时高亮）', async () => {
-    await mount({ onSearch: () => {}, searchActive: true });
+    await mount({ groups: [['search']], onSearch: () => {}, searchActive: true });
     expect(searchButton()?.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('locale=zh 使用内置中文', async () => {
-    await mount({ onSearch: () => {}, locale: 'zh' });
+    await mount({ groups: [['search']], onSearch: () => {}, locale: 'zh' });
     expect(searchButton('查找替换')).not.toBeNull();
   });
 
@@ -93,9 +94,14 @@ describe('EditorToolbar 的搜索入口', () => {
     expect(host.querySelector('button[aria-label="Version history"]')).toBeNull();
   });
 
-  it('传了 onHistory：按钮出现，historyActive 驱动 aria-pressed', async () => {
+  it('传了 onHistory 但没写进 groups：不渲染历史入口', async () => {
+    await mount({ onHistory: () => {} });
+    expect(host.querySelector('button[aria-label="Version history"]')).toBeNull();
+  });
+
+  it('groups 里写了 history：按钮出现，historyActive 驱动 aria-pressed', async () => {
     const onHistory = vi.fn();
-    await mount({ onHistory, historyActive: true });
+    await mount({ groups: [['history']], onHistory, historyActive: true });
     const button = host.querySelector<HTMLButtonElement>('button[aria-label="Version history"]');
     expect(button).not.toBeNull();
     expect(button?.getAttribute('aria-pressed')).toBe('true');
@@ -107,9 +113,8 @@ describe('EditorToolbar 的搜索入口', () => {
 });
 
 /**
- * 图片按钮的两条路径：编辑器注册了 imageUpload 扩展 → 插上传占位块（官方交互，
- * 配置在 `<MarkdownWysiwygEditor imageUpload>`）；没注册但传了 onImageUpload →
- * 旧的直传路径（点按钮直接开文件框）。两者都没有就不渲染按钮。
+ * 图片按钮是否出现由 groups 决定。有 imageUpload 扩展时点击插入占位块；
+ * 只有 onImageUpload 时走直传。两者都没有时按钮仍可显示，点击无反应。
  */
 describe('EditorToolbar 的图片按钮', () => {
   let host: HTMLDivElement;
@@ -158,8 +163,8 @@ describe('EditorToolbar 的图片按钮', () => {
     editor.destroy();
   });
 
-  it('注册了扩展：不传 onImageUpload 也出现按钮，点击插入占位块', async () => {
-    await mount({ withExtension: true });
+  it('注册了扩展且 groups 含 image：不传 onImageUpload 也出现按钮，点击插入占位块', async () => {
+    await mount({ withExtension: true, props: { groups: [['image']] } });
 
     const button = imageButton();
     expect(button).not.toBeNull();
@@ -179,9 +184,9 @@ describe('EditorToolbar 的图片按钮', () => {
     expect(names).toContain('imageUpload');
   });
 
-  it('没注册扩展但传了 onImageUpload：走旧的直传路径', async () => {
+  it('没注册扩展但传了 onImageUpload，且 groups 含 image：走旧的直传路径', async () => {
     const onImageUpload = vi.fn(async () => 'https://cdn/x.png');
-    await mount({ withExtension: false, props: { onImageUpload } });
+    await mount({ withExtension: false, props: { onImageUpload, groups: [['image']] } });
 
     expect(imageButton()).not.toBeNull();
     const input = host.querySelector<HTMLInputElement>(
@@ -197,9 +202,19 @@ describe('EditorToolbar 的图片按钮', () => {
     click.mockRestore();
   });
 
-  it('两者都没有：按钮不出现', async () => {
-    await mount({ withExtension: false });
+  it('默认清单不含图片，即使注册了扩展也不出现', async () => {
+    await mount({ withExtension: true });
     expect(imageButton()).toBeNull();
+  });
+
+  it('groups 含 image 但没有上传能力：按钮仍在，点击无反应', async () => {
+    await mount({ withExtension: false, props: { groups: [['image']] } });
+    const button = imageButton();
+    expect(button).not.toBeNull();
+    await act(async () => {
+      button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(host.querySelector('input[type="file"][accept="image/*"]')).toBeNull();
   });
 });
 
@@ -612,8 +627,8 @@ describe('EditorToolbar 的全屏', () => {
     expect(button('退出全屏')).not.toBeNull();
   });
 
-  it('showFullscreen={false} 不渲染全屏项', async () => {
-    await mount({ showFullscreen: false });
+  it('hidden 划掉全屏后更多菜单里没有全屏项', async () => {
+    await mount({ hidden: ['fullscreen'] });
     await openMore();
     expect(button('Full screen')).toBeNull();
   });
