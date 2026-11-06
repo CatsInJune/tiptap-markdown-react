@@ -118,12 +118,12 @@ export interface ToolbarLabels {
   taskList: string;
   more: string;
   /**
-   * 工具栏的搜索入口（放大镜按钮，落在 More 之后）：title 与 aria-label。
-   * 只在宿主传了 `onSearch` 时才渲染——它只是入口，条子本身归编辑器
-   * （`<MarkdownWysiwygEditor>`），点击后由宿主调 `handle.openFind()`。
+   * 工具栏的搜索入口（放大镜按钮）：title 与 aria-label。
+   * 默认清单里没有这颗按钮，要放进 `groups` 才出现。条子本身归编辑器，
+   * 点击后由宿主调 `handle.toggleFind()`。
    */
   search: string;
-  /** 工具栏的历史版本入口。只在宿主传了 `onHistory` 时才渲染。 */
+  /** 工具栏的历史版本入口。默认清单里没有，要放进 `groups` 才出现。 */
   history: string;
   /** 更多菜单里的全屏项。把包住工具栏和正文的容器铺满视口。 */
   fullscreen: string;

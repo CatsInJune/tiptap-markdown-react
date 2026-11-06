@@ -33,6 +33,12 @@ export {
   type ImportDocumentResult,
   type ImportMenuItem,
 } from './components/EditorToolbar';
+export {
+  defaultToolbarGroups,
+  type ToolbarGroup,
+  type ToolbarItemId,
+  type ToolbarSlot,
+} from './toolbarLayout';
 export { ColorPalette, type ColorPaletteProps } from './components/ColorPalette';
 export { CodeBlockView } from './components/CodeBlockView';
 export {

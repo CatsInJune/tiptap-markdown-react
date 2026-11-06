@@ -169,7 +169,7 @@ function Composer() {
   const [editor, setEditor] = useState<Editor | null>(null);
   return (
     <div>
-      {editor && <EditorToolbar editor={editor} onImageUpload={upload} />}
+      {editor && <EditorToolbar editor={editor} />}
       <MarkdownWysiwygEditor initialMarkdown="# Hello" onEditorReady={setEditor} />
     </div>
   );
@@ -257,7 +257,7 @@ function ComponentsPage() {
           'Regex (RE2, no lookarounds) stays available via setUseRegex, no button',
           'Replace and replace-all — replace-all is a single undo step',
           'Find-only on read-only editors; bar text follows locale',
-          'Toolbar magnifier entry: onSearch wires to handle.openFind(), searchActive drives its aria-pressed',
+          'Toolbar magnifier is off the default list; put search in groups and wire onSearch to toggleFind()',
           'Stable data-find-* selectors for host CSS (bar internals are hashed CSS-module classes)',
           'Headless: drive it with editor.commands.setSearchTerm / replaceAll',
         ]}
@@ -289,7 +289,7 @@ function ComponentsPage() {
           'Added and removed text are marked; formatting-only changes are not',
           'Table-alignment spaces are not treated as changes',
           'Restore is one undo step back to the document from just before',
-          'Toolbar clock appears only when onHistory is set',
+          'Toolbar clock appears only when history is in groups',
           'Stable data-version-* and data-diff selectors',
         ]}
         demo={
@@ -326,15 +326,16 @@ function ComponentsPage() {
       <ComponentSection
         id="toolbar"
         title="EditorToolbar"
-        description="Styled formatting toolbar. The image button appears when the editor has imageUpload configured (or a legacy onImageUpload is passed)."
+        description="Styled formatting toolbar. Button visibility comes from groups and hidden. The default list has no image, search, or history button."
         importName="EditorToolbar"
         features={[
           'Headings, lists, tables, links, colors, alignment',
           'Toggle block beside blockquote (official Details; markdown is HTML details)',
-          'Image button: upload placeholder block (drop / click, progress in place)',
-          'More menu: code block, equations, table, import markdown',
+          'Image button is off the default list; put image in groups to insert an upload block',
+          'groups replaces the bar; hidden subtracts built-in ids from the default list',
+          'More menu: code block, equations, table, fullscreen',
           'Radix Popover / DropdownMenu — no native selects',
-          'extraToolbarItems for custom More-menu entries',
+          'extraToolbarItems append to the default More menu; with groups, list the key',
           'locale switches the built-in toolbar copy',
         ]}
         demo={

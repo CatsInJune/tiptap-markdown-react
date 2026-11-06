@@ -17,7 +17,16 @@ export default defineConfig({
   },
   // 包通过 file:.. 以符号链接安装，realpath 会指向仓库根；dedupe 保证 site 只有一份
   // react / react-dom（否则符号链接下双 React 会触发 invalid hook call）。
+  // prosemirror-* 同理：根目录和站点锁的版本可能不同，两份 view 混用时
+  // DecorationSet 会对不上（localsInner）。
   resolve: {
-    dedupe: ['react', 'react-dom'],
+    dedupe: [
+      'react',
+      'react-dom',
+      'prosemirror-model',
+      'prosemirror-state',
+      'prosemirror-transform',
+      'prosemirror-view',
+    ],
   },
 });

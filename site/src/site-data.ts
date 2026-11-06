@@ -142,21 +142,21 @@ export const EDITOR_REF_API: ApiRow[] = [
 
 export const TOOLBAR_API: ApiRow[] = [
   { name: 'editor', desc: 'Tiptap Editor instance (required)', type: 'Editor' },
-  { name: 'onImageUpload', desc: 'Legacy direct-upload path: picking a file inserts the returned URL. Ignored when the editor registers the imageUpload extension', type: '(file: File) => Promise<string>', defaultVal: '—' },
+  { name: 'groups', desc: 'Full toolbar layout. Each inner array is a group; { more: [...] } is the single More button. Omit to use defaultToolbarGroups (no image, search, or history)', type: 'ToolbarGroup[]', defaultVal: 'defaultToolbarGroups' },
+  { name: 'hidden', desc: 'Built-in ids removed from the default layout. Ignored when groups is set. Does not hide extraToolbarItems', type: 'string[]', defaultVal: '—' },
+  { name: 'onImageUpload', desc: 'Legacy direct-upload path: picking a file inserts the returned URL. Ignored when the editor registers imageUpload. The button shows only when image is in the layout', type: '(file: File) => Promise<string>', defaultVal: '—' },
   { name: 'onError', desc: 'Side-effect error callback', type: "(err: unknown, source?: 'image' | 'markdown' | 'import') => void", defaultVal: '—' },
   { name: 'onImportDocument', desc: 'Convert a non-Markdown file to Markdown. Omit and Import only takes .md', type: '(file: File, ctx: ImportDocumentContext) => Promise<ImportDocumentResult | string>', defaultVal: '—' },
   { name: 'importAccept', desc: 'Extra accept for the default Document menu item when importMenuItems is omitted', type: 'string', defaultVal: '—' },
   { name: 'importMenuItems', desc: 'Import dropdown options (label + accept). Hosts split Markdown / Word / PDF here', type: 'ImportMenuItem[]', defaultVal: '—' },
-  { name: 'showImport', desc: 'Show the Import dropdown', type: 'boolean', defaultVal: 'true' },
   { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
-  { name: 'onSearch', desc: 'Search entry (magnifier) left of the More menu; wire it to handle.toggleFind() — omit and no button renders', type: '() => void', defaultVal: '—' },
+  { name: 'onSearch', desc: 'Click handler for the search button. The default layout does not include that button', type: '() => void', defaultVal: '—' },
   { name: 'searchActive', desc: 'Whether the bar is open; drives aria-pressed on the search entry', type: 'boolean', defaultVal: 'false' },
-  { name: 'onHistory', desc: 'Version-history entry (clock) beside the magnifier. Omit and no button renders; the panel is placed by the host', type: '() => void', defaultVal: '—' },
+  { name: 'onHistory', desc: 'Click handler for a history button placed in groups. The default layout has no clock; the floating button belongs to VersionHistoryPanel', type: '() => void', defaultVal: '—' },
   { name: 'historyActive', desc: 'Whether the history panel is open; drives aria-pressed on the clock', type: 'boolean', defaultVal: 'false' },
-  { name: 'showFullscreen', desc: 'Full screen item in the More menu. Fills the viewport with the frame that wraps the toolbar and the editor; open the menu again or press Esc to exit', type: 'boolean', defaultVal: 'true' },
   { name: 'fullscreenTarget', desc: 'Element that should fill the viewport. Omit to walk up from the toolbar to the first ancestor that contains the editor. A function or ref is read on click', type: 'HTMLElement | (() => HTMLElement | null) | { current: HTMLElement | null }', defaultVal: 'ancestor that contains the editor' },
   { name: 'onFullscreenChange', desc: 'Fires when full screen opens or closes, including Esc, hiding the button, and unmount', type: '(fullscreen: boolean) => void', defaultVal: '—' },
-  { name: 'extraToolbarItems', desc: 'Custom items in More menu', type: 'ExtraToolbarItem[]', defaultVal: '—' },
+  { name: 'extraToolbarItems', desc: 'Custom items. Appended to the default More menu, or placed by key when groups is set', type: 'ExtraToolbarItem[]', defaultVal: '—' },
   { name: 'className', desc: 'Extra root class', type: 'string', defaultVal: '—' },
 ];
 
@@ -546,7 +546,7 @@ export const HISTORY_API: ApiRow[] = [
   { name: 'className', desc: 'Extra class on the panel root', type: 'string', defaultVal: '—' },
   { name: 'DocumentVersion', desc: 'id, title, markdown, plus optional createdAt, detail, and documentTitle', type: 'interface', defaultVal: '—' },
   { name: 'data-version-* / data-diff', desc: 'Stable selectors: data-version-history, -id, -preview, -action (restore, close, compare), and data-diff (insert, delete, format)', type: 'data attributes', defaultVal: '—' },
-  { name: 'EditorToolbar onHistory / historyActive', desc: 'Toolbar clock. Omit onHistory and no button renders; historyActive drives aria-pressed', type: '() => void / boolean', defaultVal: '—' },
+  { name: 'EditorToolbar onHistory / historyActive', desc: 'Toolbar clock. Put history in groups to show it; onHistory is the click handler and historyActive drives aria-pressed', type: '() => void / boolean', defaultVal: '—' },
 ];
 
 export const FIND_API: ApiRow[] = [
@@ -557,7 +557,7 @@ export const FIND_API: ApiRow[] = [
   { name: 'locale', desc: 'Built-in UI language for the bar', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'onFindOpenChange', desc: 'Bar open/close notification (fires only when the bar actually shows or hides, plus once on unmount)', type: '(open: boolean) => void', defaultVal: '—' },
   { name: 'Esc / × / toggleFind', desc: 'Ways out of the bar. Esc works from anywhere that belongs to the editor and is consumed; clicking into the document or another input deliberately does not close it', type: 'keyboard / handle', defaultVal: '—' },
-  { name: 'EditorToolbar onSearch / searchActive', desc: 'Toolbar magnifier entry: onSearch wires to handle.openFind(), searchActive drives its aria-pressed', type: '() => void / boolean', defaultVal: '—' },
+  { name: 'EditorToolbar onSearch / searchActive', desc: 'Toolbar magnifier. Put search in groups to show it; onSearch is the click handler and searchActive drives aria-pressed', type: '() => void / boolean', defaultVal: '—' },
   { name: 'data-find-bar / -field / -counter / -option / -action', desc: 'Stable selectors for host CSS (the bar internals use hashed CSS-module classes)', type: 'data attributes', defaultVal: '—' },
   { name: 'FindReplaceBar', desc: 'The bar itself, if you place it yourself', type: 'Component', defaultVal: '—' },
   { name: 'FindAndReplace', desc: 'Re-exported official extension for hand-built pipelines', type: 'Extension', defaultVal: '—' },

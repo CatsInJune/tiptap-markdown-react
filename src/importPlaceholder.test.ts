@@ -41,6 +41,23 @@ describe('ImportPlaceholder', () => {
     editor.destroy();
   });
 
+  it('进度更新时转圈节点还是原来那个', () => {
+    const editor = build();
+    expect(editor.commands.insertImportPlaceholder('Uploading 0%')).toBe(true);
+    const spin = editor.view.dom.querySelector('.tmr-import-placeholder-spin');
+    const label = editor.view.dom.querySelector('.tmr-import-placeholder-label');
+    expect(spin).not.toBeNull();
+    expect(label?.textContent).toBe('Uploading 0%');
+
+    expect(editor.commands.updateImportPlaceholder('Uploading 29%')).toBe(true);
+    expect(editor.commands.updateImportPlaceholder('Uploading 64%')).toBe(true);
+
+    expect(editor.view.dom.querySelector('.tmr-import-placeholder-spin')).toBe(spin);
+    expect(editor.view.dom.querySelector('.tmr-import-placeholder-label')).toBe(label);
+    expect(label?.textContent).toBe('Uploading 64%');
+    editor.destroy();
+  });
+
   it('不在 baseExtensions 里，避免 SSR 渲染出占位块', () => {
     expect(
       baseExtensions.some((ext) => ext.name === ImportPlaceholder.name),

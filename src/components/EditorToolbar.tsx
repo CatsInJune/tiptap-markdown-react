@@ -1,61 +1,21 @@
 'use client';
 
-import * as Popover from '@radix-ui/react-popover';
 import { useEditorState, type Editor } from '@tiptap/react';
 import {
-  createContext,
-  forwardRef,
   useCallback,
-  useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  type ButtonHTMLAttributes,
   type ReactNode,
 } from 'react';
-import {
-  AlignCenterIcon,
-  AlignJustifyIcon,
-  AlignLeftIcon,
-  AlignRightIcon,
-  BoldIcon,
-  ChevronDownIcon,
-  CodeIcon,
-  DetailsIcon,
-  EraserIcon,
-  ExpandIcon,
-  ImageIcon,
-  IndentDecreaseIcon,
-  IndentIncreaseIcon,
-  ItalicIcon,
-  LineHeightIcon,
-  LinkIcon,
-  ListChecksIcon,
-  ListOrderedIcon,
-  ListUnorderedIcon,
-  MinimizeIcon,
-  PaintbrushIcon,
-  HistoryIcon,
-  RedoIcon,
-  SearchIcon,
-  StrikethroughIcon,
-  UnderlineIcon,
-  UndoIcon,
-} from '../icons';
 import {
   useToolbarFullscreen,
   type FullscreenTarget,
 } from '../fullscreen';
 import { getLocaleBundle, type LocaleCode } from '../i18n';
 import type { ToolbarLabels } from '../labels';
-import {
-  applyNumberingFormat,
-  NUMBERING_FORMAT_IDS,
-  NUMBERING_FORMAT_LABELS,
-  NUMBERING_FORMAT_PREVIEWS,
-  readCurrentNumberingFormat,
-  type NumberingFormat,
-} from '../numberingFormat';
+import { readCurrentNumberingFormat } from '../numberingFormat';
 import {
   MD_FILE_RE,
   resolveImportMenuItems,
@@ -65,19 +25,39 @@ import type { SourceRef } from '../citationUtils';
 import { hasImageUpload } from '../imageUpload';
 import { insertMarkdown } from '../insertMarkdown';
 import { subscribeMathClick, type MathKind } from '../math';
+import {
+  resolveToolbarLayout,
+  type ToolbarGroup,
+} from '../toolbarLayout';
 import styles from '../styles/toolbar.module.css';
 import '../styles/fullscreen.css';
 
 export type { FullscreenTarget } from '../fullscreen';
+
+/** 焦点是否在正文顶部的文档标题上。标题不是正文节点，工具栏不能给它套样式。 */
+function focusedDocumentTitle(): HTMLTextAreaElement | null {
+  const el = document.activeElement;
+  if (el instanceof HTMLTextAreaElement && el.hasAttribute('data-document-title')) {
+    return el;
+  }
+  return null;
+}
+
+/** 段落级样式读自段落或标题（光标所在处）——对齐 / 缩进 / 行高共用。 */
+function readParaAttr<T>(editor: Editor, name: string): T | null {
+  return (
+    ((editor.getAttributes('paragraph')[name] ??
+      editor.getAttributes('heading')[name]) as T | undefined) ?? null
+  );
+}
 import {
   applyCapturedFormat,
   captureFormat,
   clearFormatting,
   type CapturedFormat,
 } from '../formatBrush';
-import { ColorPalette } from './ColorPalette';
 import { ImageAlignTools } from './ImageAlignTools';
-import { LinkPopover } from './LinkPopover';
+import { renderToolbarBody } from './toolbarBody';
 import { TableHandles } from './TableHandles';
 import { MathEditorPopover } from './MathEditorPopover';
 
@@ -114,7 +94,9 @@ export interface ExtraToolbarItem {
 export interface EditorToolbarProps {
   editor: Editor;
   /**
-   * 图片上传回调：收到文件，返回可访问的图片 URL。未提供则不显示图片按钮。
+   * 图片直传回调：收到文件，返回可访问的图片 URL。
+   * 编辑器注册了 imageUpload 时忽略这条路径，改为插入上传占位块。
+   * 按钮是否出现由 `groups` 决定；默认清单里没有 `image`。
    * 抛错会转交 onError(..., 'image')。
    */
   onImageUpload?: (file: File) => Promise<string>;
@@ -143,33 +125,34 @@ export interface EditorToolbarProps {
    * 时多一项 Document。宿主要拆成 Word / PDF 时自己传入。
    */
   importMenuItems?: ImportMenuItem[];
-  /** 是否显示导入下拉，默认 `true`。卡片等场景可关掉。 */
-  showImport?: boolean;
   /** 内置语言，默认英文。 */
   locale?: LocaleCode;
   /**
-   * 工具栏最右端的搜索入口（放大镜）。**不传就不渲染**——条子本身归
-   * `<MarkdownWysiwygEditor>`，这里只给一个入口，宿主接上自己的编辑器句柄即可：
-   * `onSearch={() => handle.current?.openFind()}`。
-   *
-   * 条子归编辑器渲染（`findBar` 开）时才接；`findBar={false}` 的宿主自己摆条子，
-   * 这个入口点了也不会弹东西。只读态照样可查，所以不随 `editable` 灰显。
+   * 搜索按钮的点击回调。按钮是否出现由 `groups` 决定（默认清单里没有 `search`）。
+   * 清单里有这颗按钮但没传回调时，按钮照样在，点击无反应。
+   * 条子归编辑器；`findBar={false}` 时宿主自己摆条子。只读态照样可查，所以不随 `editable` 灰显。
    */
   onSearch?: () => void;
   /** 条子当前是否开着（驱动按钮的 aria-pressed / 高亮）。不传恒为未激活。 */
   searchActive?: boolean;
   /**
-   * 历史版本入口（时钟）。**不传就不渲染**——面板本身归宿主，这里只给一道门：
-   * `onHistory={() => setHistoryOpen(true)}`。
+   * 工具栏时钟的点击回调。默认清单里没有 `history`，只传回调不会出现按钮。
+   * 版本面板自己的悬浮按钮不读这个回调。
    */
   onHistory?: () => void;
   /** 历史面板当前是否开着（驱动按钮的 aria-pressed / 高亮）。不传恒为未激活。 */
   historyActive?: boolean;
   /**
-   * 是否在更多菜单里显示全屏，默认 `true`。点一下把容器铺满视口，再点或按 Esc 退出。
-   * 查找条、菜单、灯箱开着时，第一次 Esc 先关它们。
+   * 从默认清单里划掉的内置按钮 id。传了 `groups` 时忽略。
+   * 不作用于 `extraToolbarItems` 的 key。
    */
-  showFullscreen?: boolean;
+  hidden?: readonly string[];
+  /**
+   * 自定义整栏。每个内层数组是一组，组与组之间一条竖线。
+   * `{ more: [...] }` 是一颗「更多」按钮，一栏只能有一颗。
+   * 不传则用 `defaultToolbarGroups`。
+   */
+  groups?: readonly ToolbarGroup[];
   /**
    * 要铺满视口的元素。不传则从工具栏往上找「里面有编辑器」的那一层
    * （工具栏和正文是兄弟时，就是它们的父元素）。工具栏单独挂在侧栏时，
@@ -179,346 +162,15 @@ export interface EditorToolbarProps {
   fullscreenTarget?: FullscreenTarget;
   /** 全屏开合。Esc、再点一次、关掉按钮、卸载时都会收到 `false`。 */
   onFullscreenChange?: (fullscreen: boolean) => void;
-  /** 追加到 More 菜单末尾的自定义项。 */
+  /**
+   * 自定义项。没传 `groups` 时追加到默认「更多」菜单；
+   * 传了 `groups` 时，只有写进布局的 key 才会出现。
+   */
   extraToolbarItems?: ExtraToolbarItem[];
   className?: string;
 }
 
 export type { ImportMenuItem };
-
-/**
- * 单个工具栏按钮：激活态高亮，disabled 时灰显。
- *
- * forwardRef + 透传其余属性，是为了让它能当 Radix 的触发器（`<LinkPopover>` 的 `asChild`
- * 要挂 ref，并把 `aria-expanded` / `data-state` 传下来）。
- */
-const ToolbarButton = forwardRef<
-  HTMLButtonElement,
-  {
-    title: string;
-    active?: boolean;
-    disabled?: boolean;
-    busy?: boolean;
-    onClick?: () => void;
-    children: ReactNode;
-  } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title' | 'onClick' | 'children'>
->(function ToolbarButton(
-  { title, active, disabled, busy, onClick, children, className, ...rest },
-  ref,
-) {
-  return (
-    <button
-      {...rest}
-      ref={ref}
-      type="button"
-      title={title}
-      aria-label={title}
-      aria-pressed={active}
-      aria-busy={busy}
-      disabled={disabled}
-      className={`${styles.btn} ${active ? styles.btnActive : ''}${className ? ` ${className}` : ''}`}
-      // mousedown + preventDefault 防止点击工具栏时编辑器失焦丢选区
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-});
-
-function Divider() {
-  return <span className={styles.divider} aria-hidden />;
-}
-
-/** 行高下拉的档位（对齐语雀 / Notion 的习惯值；不含"默认"）。 */
-const LINE_HEIGHTS = ['1', '1.15', '1.5', '2', '2.5', '3'] as const;
-
-/** 焦点是否在正文顶部的文档标题上。标题不是正文节点，工具栏不能给它套样式。 */
-function focusedDocumentTitle(): HTMLTextAreaElement | null {
-  const el = document.activeElement;
-  if (el instanceof HTMLTextAreaElement && el.hasAttribute('data-document-title')) {
-    return el;
-  }
-  return null;
-}
-
-/** 段落级样式读自段落或标题（光标所在处）——对齐 / 缩进 / 行高共用。 */
-function readParaAttr<T>(editor: Editor, name: string): T | null {
-  return (
-    ((editor.getAttributes('paragraph')[name] ??
-      editor.getAttributes('heading')[name]) as T | undefined) ?? null
-  );
-}
-
-// 关闭当前菜单的回调（由 MenuPopover 注入，MenuItem 选中后调用以收起）。
-const MenuCloseCtx = createContext<() => void>(() => {});
-
-/**
- * 菜单气泡：用 Radix Popover 而非 DropdownMenu——后者会强制抢焦点（menu 语义），
- * 打开即让编辑器 blur、丢选区；Popover 可 onOpenAutoFocus preventDefault 保持编辑器焦点。
- * 菜单项为普通 button（onMouseDown preventDefault 不夺焦），行为与原生菜单一致。
- */
-function MenuPopover({
-  trigger,
-  children,
-  contentClassName,
-  align = 'start',
-}: {
-  trigger: ReactNode;
-  children: ReactNode;
-  contentClassName?: string;
-  align?: 'start' | 'center' | 'end';
-}) {
-  const [open, setOpen] = useState(false);
-  const close = useCallback(() => setOpen(false), []);
-  return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>{trigger}</Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          className={
-            contentClassName ? `${styles.menu} ${contentClassName}` : styles.menu
-          }
-          sideOffset={4}
-          align={align}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
-          <MenuCloseCtx.Provider value={close}>
-            {children}
-          </MenuCloseCtx.Provider>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
-function MenuItem({
-  selected,
-  disabled,
-  label,
-  onSelect,
-  children,
-}: {
-  selected?: boolean;
-  disabled?: boolean;
-  /** 盖过子节点拼出来的无障碍名称。图标加文字时，读屏只念这一句。 */
-  label?: string;
-  onSelect: () => void;
-  children: ReactNode;
-}) {
-  const close = useContext(MenuCloseCtx);
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      aria-label={label}
-      aria-pressed={selected || undefined}
-      className={`${styles.menuItem} ${selected ? styles.menuItemSelected : ''}`}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={() => {
-        onSelect();
-        close();
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-/** 编号格式：单列预览卡片，每张是五行嵌套编号。 */
-function NumberingFormatGrid({
-  current,
-  onSelect,
-}: {
-  current: NumberingFormat | null;
-  onSelect: (format: NumberingFormat) => void;
-}) {
-  const close = useContext(MenuCloseCtx);
-  return (
-    <div className={styles.numberingGrid} role="group" aria-label="Numbering formats">
-      {NUMBERING_FORMAT_IDS.map((format) => {
-        const active = current === format;
-        return (
-          <button
-            key={format}
-            type="button"
-            role="menuitem"
-            aria-label={NUMBERING_FORMAT_LABELS[format]}
-            aria-pressed={active}
-            className={`${styles.numberingOption}${active ? ` ${styles.numberingOptionActive}` : ''}`}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              onSelect(format);
-              close();
-            }}
-          >
-            <span className={styles.numberingPreview}>
-              {NUMBERING_FORMAT_PREVIEWS[format].map((row, index) => (
-                <span
-                  key={`${format}-${index}`}
-                  className={styles.numberingPreviewRow}
-                  data-depth={row.depth}
-                >
-                  <span className={styles.numberingPreviewMarker}>{row.marker}</span>
-                  <span className={styles.numberingPreviewLine} />
-                </span>
-              ))}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-const TABLE_PICKER_COLS = 10;
-const TABLE_PICKER_ROWS = 8;
-
-/**
- * More 菜单里的「插入表格」：二级面板用网格悬停选行列，点击插入。
- * 保持 Popover（不夺编辑器焦点），与 MenuItem 一致。
- */
-function TableInsertItem({
-  disabled,
-  labels,
-  onInsert,
-}: {
-  disabled?: boolean;
-  labels: Pick<ToolbarLabels, 'tableInsert' | 'tableSizeSelected'>;
-  onInsert: (rows: number, cols: number) => void;
-}) {
-  const closeMenu = useContext(MenuCloseCtx);
-  const [open, setOpen] = useState(false);
-  const [hover, setHover] = useState({ cols: 0, rows: 0 });
-
-  const resetHover = useCallback(() => setHover({ cols: 0, rows: 0 }), []);
-
-  return (
-    <Popover.Root
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) resetHover();
-      }}
-    >
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          className={`${styles.menuItem} ${open ? styles.menuItemSelected : ''}`}
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <span className={styles.styleItem}>
-            <span className={styles.styleIcon}>⊞</span>
-            {labels.tableInsert}
-          </span>
-          <ChevronDownIcon size={12} className={styles.tableInsertCaret} />
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          className={styles.tableSizePicker}
-          side="right"
-          align="start"
-          sideOffset={6}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
-          <div
-            className={styles.tableSizeGrid}
-            style={{
-              gridTemplateColumns: `repeat(${TABLE_PICKER_COLS}, 1fr)`,
-            }}
-            onMouseLeave={resetHover}
-          >
-            {Array.from({ length: TABLE_PICKER_ROWS * TABLE_PICKER_COLS }, (_, i) => {
-              const col = (i % TABLE_PICKER_COLS) + 1;
-              const row = Math.floor(i / TABLE_PICKER_COLS) + 1;
-              const active = hover.cols > 0 && col <= hover.cols && row <= hover.rows;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  aria-label={labels.tableSizeSelected(col, row)}
-                  className={`${styles.tableSizeCell} ${active ? styles.tableSizeCellActive : ''}`}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onMouseEnter={() => setHover({ cols: col, rows: row })}
-                  onClick={() => {
-                    onInsert(row, col);
-                    setOpen(false);
-                    resetHover();
-                    closeMenu();
-                  }}
-                />
-              );
-            })}
-          </div>
-          <div className={styles.tableSizeLabel}>
-            {hover.cols > 0
-              ? labels.tableSizeSelected(hover.cols, hover.rows)
-              : labels.tableInsert}
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
-/** 颜色气泡：点色块即应用并关闭。 */
-function ColorPopover({
-  title,
-  glyph,
-  bar,
-  value,
-  onPick,
-  locale,
-}: {
-  title: string;
-  glyph: string;
-  bar: string;
-  value?: string;
-  onPick: (color: string | null) => void;
-  locale: LocaleCode;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          className={styles.btn}
-          title={title}
-          aria-label={title}
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <span className={styles.colorIcon}>
-            <span className={styles.colorIconGlyph}>{glyph}</span>
-            <span className={styles.colorIconBar} style={{ background: bar }} />
-          </span>
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          className={styles.popoverContent}
-          sideOffset={4}
-          align="start"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
-          <ColorPalette
-            value={value}
-            onPick={(c) => {
-              onPick(c);
-              setOpen(false);
-            }}
-            locale={locale}
-          />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
 
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '30px'] as const;
@@ -534,22 +186,39 @@ export function EditorToolbar({
   onImportDocument,
   importAccept,
   importMenuItems,
-  showImport = true,
   locale = 'en',
   onSearch,
   searchActive = false,
   onHistory,
   historyActive = false,
-  showFullscreen = true,
+  hidden,
+  groups,
   fullscreenTarget,
   onFullscreenChange,
   extraToolbarItems,
   className,
 }: EditorToolbarProps) {
   const t: ToolbarLabels = getLocaleBundle(locale).toolbar;
+  const extraKeyList = JSON.stringify(extraToolbarItems?.map((item) => item.key) ?? []);
+  const layout = useMemo(
+    () =>
+      resolveToolbarLayout({
+        groups,
+        hidden,
+        extraKeys: extraToolbarItems?.map((item) => item.key),
+      }),
+    [groups, hidden, extraKeyList, extraToolbarItems],
+  );
+  const warningKey = layout.warnings.join('\n');
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production' || !warningKey) return;
+    for (const line of warningKey.split('\n')) {
+      console.warn(`[EditorToolbar] ${line}`);
+    }
+  }, [warningKey]);
   const toolbarRootRef = useRef<HTMLDivElement>(null);
   const { fullscreen, toggleFullscreen } = useToolbarFullscreen({
-    enabled: showFullscreen,
+    enabled: layout.hasFullscreen,
     target: fullscreenTarget,
     toolbarRootRef,
     editor,
@@ -713,7 +382,7 @@ export function EditorToolbar({
       chain().setImageUploadNode().run();
       return;
     }
-    fileInputRef.current?.click();
+    if (onImageUpload) fileInputRef.current?.click();
   };
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -943,636 +612,55 @@ export function EditorToolbar({
         }
       >
         <div className={styles.inner}>
-          {/* 撤销 / 重做 */}
-          <ToolbarButton
-            title={t.undo}
-            disabled={!state.canUndo}
-            onClick={() => chain().undo().run()}
-          >
-            <UndoIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            title={t.redo}
-            disabled={!state.canRedo}
-            onClick={() => chain().redo().run()}
-          >
-            <RedoIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            title={t.formatPainter}
-            active={painter !== 'off'}
-            onClick={onFormatPainterClick}
-          >
-            <PaintbrushIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            title={t.clearFormatting}
-            onClick={() => {
+          {renderToolbarBody({
+            editor,
+            locale,
+            t,
+            groups: layout.groups,
+            fullscreen,
+            toggleFullscreen,
+            painter,
+            titleFocused,
+            scriptActive,
+            canEditFontSize,
+            searchActive,
+            historyActive,
+            importing: !!importing,
+            importTitle,
+            importItems,
+            extraToolbarItems,
+            state,
+            onFormatPainterClick,
+            clearFormatting: () => {
               if (editingTitle()) return;
               clearFormatting(editor);
-            }}
-          >
-            <EraserIcon />
-          </ToolbarButton>
-
-          <Divider />
-
-          {/* 段落样式下拉（正文 / 标题 1~6） */}
-          <MenuPopover
-            trigger={
-              <button
-                type="button"
-                className={`${styles.styleTrigger} ${styles.styleTriggerStable}`}
-                title={
-                  titleFocused || !state.headingLevel
-                    ? t.normalText
-                    : t.headingLabel(state.headingLevel)
-                }
-                aria-label={t.style}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <span className={`${styles.styleTriggerLabel} ${styles.styleTriggerLabelStable}`}>
-                  <span className={styles.styleTriggerSizer} aria-hidden="true">
-                    <span>{t.normalText}</span>
-                    {HEADING_LEVELS.map((lv) => (
-                      <span key={lv}>{`H${lv}`}</span>
-                    ))}
-                  </span>
-                  <span className={styles.styleTriggerValue}>
-                    {titleFocused || !state.headingLevel
-                      ? t.normalText
-                      : `H${state.headingLevel}`}
-                  </span>
-                </span>
-                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
-              </button>
-            }
-          >
-            <MenuItem
-              selected={!titleFocused && (state.headingLevel ?? 0) === 0}
-              onSelect={() => setBlockStyle(0)}
-            >
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>¶</span>
-                {t.normalText}
-              </span>
-            </MenuItem>
-            {HEADING_LEVELS.map((lv) => (
-              <MenuItem
-                key={lv}
-                selected={!titleFocused && state.headingLevel === lv}
-                onSelect={() => setBlockStyle(lv)}
-              >
-                <span className={styles.styleItem}>
-                  <span className={styles.styleIcon}>{`H${lv}`}</span>
-                  {t.headingLabel(lv)}
-                </span>
-              </MenuItem>
-            ))}
-          </MenuPopover>
-
-          {/* 正文字号下拉：仅正文可调 */}
-          <MenuPopover
-            trigger={
-              <button
-                type="button"
-                className={`${styles.styleTrigger} ${styles.styleTriggerStable}`}
-                title={state.fontSize || t.fontSize}
-                aria-label={t.fontSize}
-                disabled={!canEditFontSize}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <span className={`${styles.styleTriggerLabel} ${styles.styleTriggerLabelStable}`}>
-                  <span className={styles.styleTriggerSizer} aria-hidden="true">
-                    <span>{t.fontSize}</span>
-                    {FONT_SIZES.map((size) => (
-                      <span key={size}>{size}</span>
-                    ))}
-                  </span>
-                  <span className={styles.styleTriggerValue}>
-                    {state.fontSize || t.fontSize}
-                  </span>
-                </span>
-                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
-              </button>
-            }
-          >
-            <MenuItem
-              selected={!state.fontSize}
-              onSelect={() => applyFontSize('')}
-            >
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>A</span>
-                {t.fontSizeDefault}
-              </span>
-            </MenuItem>
-            {FONT_SIZES.map((size) => (
-              <MenuItem
-                key={size}
-                selected={state.fontSize === size}
-                onSelect={() => applyFontSize(size)}
-              >
-                <span className={styles.styleItem}>
-                  <span className={styles.styleIcon}>{parseInt(size, 10)}</span>
-                  {size}
-                </span>
-              </MenuItem>
-            ))}
-          </MenuPopover>
-
-          <Divider />
-
-          {/* 文字格式 */}
-          <ToolbarButton
-            title={t.bold}
-            active={markActive(state.bold)}
-            onClick={() => styleCommand((commands) => commands.toggleBold())}
-          >
-            <BoldIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            title={t.italic}
-            active={markActive(state.italic)}
-            onClick={() => styleCommand((commands) => commands.toggleItalic())}
-          >
-            <ItalicIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            title={t.underline}
-            active={markActive(state.underline)}
-            onClick={() => styleCommand((commands) => commands.toggleUnderline())}
-          >
-            <UnderlineIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            title={t.strike}
-            active={markActive(state.strike)}
-            onClick={() => styleCommand((commands) => commands.toggleStrike())}
-          >
-            <StrikethroughIcon />
-          </ToolbarButton>
-          <ToolbarButton
-            title={t.code}
-            active={markActive(state.code)}
-            onClick={() => styleCommand((commands) => commands.toggleCode())}
-          >
-            <CodeIcon />
-          </ToolbarButton>
-
-          {/* 文字颜色 */}
-          <ColorPopover
-            title={t.textColor}
-            glyph="T"
-            bar={state.textColor || '#ff3b30'}
-            value={state.textColor}
-            onPick={applyTextColor}
-            locale={locale}
-          />
-          {/* 文字高亮 */}
-          <ColorPopover
-            title={t.highlight}
-            glyph="✎"
-            bar={state.highlightColor || '#ffd83d'}
-            value={state.highlightColor}
-            onPick={applyHighlight}
-            locale={locale}
-          />
-
-          {/* 上标 / 下标下拉（A▾） */}
-          <MenuPopover
-            trigger={
-              <button
-                type="button"
-                className={`${styles.scriptTrigger} ${
-                  scriptActive !== 'normal' ? styles.btnActive : ''
-                }`}
-                title={t.scriptMenu}
-                aria-label={t.scriptMenu}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <span className={styles.scriptTriggerGlyph}>A</span>
-                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
-              </button>
-            }
-          >
-            <MenuItem
-              selected={scriptActive === 'normal'}
-              onSelect={() =>
-                styleCommand((commands) =>
-                  commands.unsetSuperscript().unsetSubscript(),
-                )
-              }
-            >
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>A</span>
-                {t.scriptNormal}
-              </span>
-            </MenuItem>
-            <MenuItem
-              selected={scriptActive === 'superscript'}
-              onSelect={() =>
-                styleCommand((commands) =>
-                  commands.unsetSubscript().toggleSuperscript(),
-                )
-              }
-            >
-              <span className={styles.styleItem}>
-                <span className={`${styles.styleIcon} ${styles.scriptGlyph}`}>
-                  x<sup>2</sup>
-                </span>
-                {t.superscript}
-              </span>
-            </MenuItem>
-            <MenuItem
-              selected={scriptActive === 'subscript'}
-              onSelect={() =>
-                styleCommand((commands) =>
-                  commands.unsetSuperscript().toggleSubscript(),
-                )
-              }
-            >
-              <span className={styles.styleItem}>
-                <span className={`${styles.styleIcon} ${styles.scriptGlyph}`}>
-                  x<sub>2</sub>
-                </span>
-                {t.subscript}
-              </span>
-            </MenuItem>
-          </MenuPopover>
-
-          <Divider />
-
-          {/* 插入媒体。链接走浮层：输入地址 + 应用 / 在新窗口打开 / 移除，
-              光标在链接里打开时预填它的 href（旧实现是 window.prompt，在链接里点一下就删）。 */}
-          <LinkPopover
-            editor={editor}
-            locale={locale}
-            trigger={
-              <ToolbarButton title={t.link} active={state.link}>
-                <LinkIcon />
-              </ToolbarButton>
-            }
-          />
-          {imageUploadEnabled || onImageUpload ? (
-            <>
-              <ToolbarButton title={t.image} onClick={handlePickImage}>
-                <ImageIcon />
-              </ToolbarButton>
-              {!imageUploadEnabled && (
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={handleImageChange}
-                />
-              )}
-            </>
-          ) : null}
-          {showImport ? (
-            <MenuPopover
-              trigger={
-                <button
-                  type="button"
-                  className={styles.styleTrigger}
-                  title={importTitle}
-                  aria-label={importTitle}
-                  aria-busy={!!importing}
-                  disabled={!!importing}
-                  onMouseDown={(e) => e.preventDefault()}
-                >
-                  <span className={styles.styleTriggerLabel}>
-                    {t.importDocument}
-                  </span>
-                  <ChevronDownIcon
-                    size={12}
-                    className={styles.styleTriggerCaret}
-                  />
-                </button>
-              }
-            >
-              {importItems.map((item) => (
-                <MenuItem
-                  key={item.key}
-                  onSelect={() => pickImport(item.accept)}
-                >
-                  {item.label}
-                </MenuItem>
-              ))}
-            </MenuPopover>
-          ) : null}
-          <ToolbarButton
-            title={t.blockquote}
-            active={markActive(state.blockquote)}
-            onClick={() => styleCommand((commands) => commands.toggleBlockquote())}
-          >
-            <span className={styles.txtIcon}>❝</span>
-          </ToolbarButton>
-          <ToolbarButton
-            title={t.details}
-            active={state.details}
-            onClick={() => {
-              const next = editor.chain().focus();
-              if (editor.isActive('details')) next.unsetDetails().run();
-              else next.setDetails().run();
-            }}
-          >
-            <DetailsIcon />
-          </ToolbarButton>
-
-          <Divider />
-
-          {/* 段落排版：对齐 / 缩进 / 行高（三组下拉） */}
-          <MenuPopover
-            trigger={
-              <button
-                type="button"
-                className={`${styles.styleTrigger} ${styles.iconTrigger}`}
-                title={t.align}
-                aria-label={t.align}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                {state.textAlign === 'center' ? (
-                  <AlignCenterIcon />
-                ) : state.textAlign === 'right' ? (
-                  <AlignRightIcon />
-                ) : state.textAlign === 'justify' ? (
-                  <AlignJustifyIcon />
-                ) : (
-                  <AlignLeftIcon />
-                )}
-                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
-              </button>
-            }
-          >
-            {(
-              [
-                { value: 'left', label: t.alignLeft, Icon: AlignLeftIcon },
-                { value: 'center', label: t.alignCenter, Icon: AlignCenterIcon },
-                { value: 'right', label: t.alignRight, Icon: AlignRightIcon },
-                { value: 'justify', label: t.alignJustify, Icon: AlignJustifyIcon },
-              ] as const
-            ).map(({ value, label, Icon }) => (
-              <MenuItem
-                key={value}
-                selected={state.textAlign === value}
-                onSelect={() =>
-                  styleCommand((commands) => commands.setTextAlign(value))
-                }
-              >
-                <span className={styles.styleItem}>
-                  <span className={styles.styleIcon}>
-                    <Icon size={14} />
-                  </span>
-                  {label}
-                </span>
-              </MenuItem>
-            ))}
-          </MenuPopover>
-
-          <MenuPopover
-            trigger={
-              <button
-                type="button"
-                className={`${styles.styleTrigger} ${styles.iconTrigger}`}
-                title={t.indent}
-                aria-label={t.indent}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <IndentIncreaseIcon />
-                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
-              </button>
-            }
-          >
-            <MenuItem
-              onSelect={() =>
-                styleCommand((commands) => commands.increaseIndent())
-              }
-            >
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>
-                  <IndentIncreaseIcon size={14} />
-                </span>
-                {t.indentIncrease}
-              </span>
-            </MenuItem>
-            <MenuItem
-              onSelect={() =>
-                styleCommand((commands) => commands.decreaseIndent())
-              }
-            >
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>
-                  <IndentDecreaseIcon size={14} />
-                </span>
-                {t.indentDecrease}
-              </span>
-            </MenuItem>
-          </MenuPopover>
-
-          <MenuPopover
-            trigger={
-              <button
-                type="button"
-                className={`${styles.styleTrigger} ${styles.iconTrigger}`}
-                title={t.lineHeight}
-                aria-label={t.lineHeight}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <LineHeightIcon />
-                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
-              </button>
-            }
-          >
-            <MenuItem
-              selected={!state.lineHeight}
-              onSelect={() =>
-                styleCommand((commands) => commands.setLineHeight(null))
-              }
-            >
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>—</span>
-                {t.lineHeightDefault}
-              </span>
-            </MenuItem>
-            {LINE_HEIGHTS.map((value) => (
-              <MenuItem
-                key={value}
-                selected={state.lineHeight === Number(value)}
-                onSelect={() =>
-                  styleCommand((commands) =>
-                    commands.setLineHeight(Number(value)),
-                  )
-                }
-              >
-                <span className={styles.styleItem}>
-                  <span className={styles.styleIcon}>≡</span>
-                  {value}
-                </span>
-              </MenuItem>
-            ))}
-          </MenuPopover>
-
-          <Divider />
-
-          {/* 列表。有序列表是「切换 + 编号格式」一组：箭头打开编号预览。 */}
-          <ToolbarButton
-            title={t.bulletList}
-            active={state.bulletList}
-            onClick={() => chain().toggleBulletList().run()}
-          >
-            <ListUnorderedIcon />
-          </ToolbarButton>
-          <span
-            className={`${styles.listSplit}${
-              state.orderedList ? ` ${styles.listSplitActive}` : ''
-            }`}
-          >
-            <ToolbarButton
-              title={t.orderedList}
-              active={state.orderedList}
-              onClick={() => chain().toggleOrderedList().run()}
-            >
-              <ListOrderedIcon />
-            </ToolbarButton>
-            <MenuPopover
-              align="end"
-              contentClassName={styles.numberingMenu}
-              trigger={
-                <button
-                  type="button"
-                  className={`${styles.numberingCaret}${
-                    state.numberingFormat ? ` ${styles.numberingCaretActive}` : ''
-                  }`}
-                  title={t.numberingFormat}
-                  aria-label={t.numberingFormat}
-                  onMouseDown={(e) => e.preventDefault()}
-                >
-                  <ChevronDownIcon size={12} />
-                </button>
-              }
-            >
-              <NumberingFormatGrid
-                current={state.numberingFormat}
-                onSelect={(format) => applyNumberingFormat(editor, format)}
-              />
-            </MenuPopover>
-          </span>
-          <ToolbarButton
-            title={t.taskList}
-            active={state.taskList}
-            onClick={() => chain().toggleTaskList().run()}
-          >
-            <ListChecksIcon />
-          </ToolbarButton>
-
-          <Divider />
-
-          {/* 查找替换入口：条子归编辑器，这里只开一道门。宿主接 onSearch 时才出现。
-              位置在 More 左侧——More 是「其余都以它收口」的兜底菜单，惯例留在最右；
-              而且行内本来就排满，谁在最后谁就先被挤到下一行。 */}
-          {onHistory ? (
-            <ToolbarButton
-              title={t.history}
-              active={historyActive}
-              onClick={onHistory}
-            >
-              <HistoryIcon />
-            </ToolbarButton>
-          ) : null}
-          {onSearch ? (
-            <ToolbarButton
-              title={t.search}
-              active={searchActive}
-              onClick={onSearch}
-            >
-              <SearchIcon />
-            </ToolbarButton>
-          ) : null}
-
-          {/* More 下拉（代码块、分割线、表格 + 宿主注入项） */}
-          <MenuPopover
-            trigger={
-              <button
-                type="button"
-                className={styles.styleTrigger}
-                title={t.more}
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                <span className={styles.styleTriggerLabel}>{t.more}</span>
-                <ChevronDownIcon size={12} className={styles.styleTriggerCaret} />
-              </button>
-            }
-          >
-            <MenuItem onSelect={() => chain().toggleCodeBlock().run()}>
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>{'{ }'}</span>
-                {t.codeBlock}
-              </span>
-            </MenuItem>
-            <MenuItem onSelect={() => openInsertMath('inline')}>
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>√x</span>
-                {t.inlineMath}
-              </span>
-            </MenuItem>
-            <MenuItem onSelect={() => openInsertMath('block')}>
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>∑</span>
-                {t.blockMath}
-              </span>
-            </MenuItem>
-            <MenuItem onSelect={() => chain().setHorizontalRule().run()}>
-              <span className={styles.styleItem}>
-                <span className={styles.styleIcon}>—</span>
-                {t.hr}
-              </span>
-            </MenuItem>
-            <TableInsertItem
-              disabled={state.inTable}
-              labels={t}
-              onInsert={(rows, cols) =>
-                chain()
-                  .insertTable({ rows, cols, withHeaderRow: true })
-                  .run()
-              }
-            />
-            {showFullscreen ? (
-              <MenuItem
-                selected={fullscreen}
-                label={fullscreen ? t.exitFullscreen : t.fullscreen}
-                onSelect={toggleFullscreen}
-              >
-                <span className={styles.styleItem}>
-                  <span className={styles.styleIcon}>
-                    {fullscreen ? (
-                      <MinimizeIcon size={14} />
-                    ) : (
-                      <ExpandIcon size={14} />
-                    )}
-                  </span>
-                  {fullscreen ? t.exitFullscreen : t.fullscreen}
-                </span>
-              </MenuItem>
-            ) : null}
-            {extraToolbarItems?.map((item) => (
-              <MenuItem
-                key={item.key}
-                disabled={item.disabled}
-                onSelect={() => item.onSelect(editor)}
-              >
-                <span className={styles.styleItem}>
-                  <span className={styles.styleIcon}>{item.icon}</span>
-                  {item.label}
-                </span>
-              </MenuItem>
-            ))}
-          </MenuPopover>
+            },
+            styleCommand,
+            markActive,
+            setBlockStyle,
+            applyFontSize,
+            applyTextColor,
+            applyHighlight,
+            pickImage: handlePickImage,
+            pickImport,
+            onSearch,
+            onHistory,
+            openInsertMath,
+            chain,
+          })}
         </div>
       </div>
 
-      {/* 导入的隐藏文件选择器：accept 由下拉选项写入 */}
-      {showImport ? (
+      {layout.hasImage && !imageUploadEnabled && onImageUpload ? (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={handleImageChange}
+        />
+      ) : null}
+      {layout.hasImport ? (
         <input
           ref={importInputRef}
           type="file"
