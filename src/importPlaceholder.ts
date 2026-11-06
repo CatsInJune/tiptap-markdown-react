@@ -69,6 +69,42 @@ export const ImportPlaceholder = Node.create({
     return '';
   },
 
+  /**
+   * 进度更新只改 label。默认视图会因为 markup 变了拆掉整块 DOM，
+   * 转圈动画每次从 0° 重来，看起来像卡住。这里保住 spin 节点，只改文案。
+   */
+  addNodeView() {
+    const name = this.name;
+    return ({ node }) => {
+      const dom = document.createElement('div');
+      dom.setAttribute('data-type', 'import-placeholder');
+      dom.className = 'tmr-import-placeholder';
+      dom.setAttribute('contenteditable', 'false');
+      dom.setAttribute('aria-live', 'polite');
+      dom.setAttribute('aria-busy', 'true');
+
+      const spin = document.createElement('span');
+      spin.className = 'tmr-import-placeholder-spin';
+      spin.setAttribute('aria-hidden', 'true');
+
+      const labelEl = document.createElement('span');
+      labelEl.className = 'tmr-import-placeholder-label';
+      labelEl.textContent = String(node.attrs.label ?? '');
+      dom.append(spin, labelEl);
+
+      return {
+        dom,
+        update: (updated) => {
+          if (updated.type.name !== name) return false;
+          const next = String(updated.attrs.label ?? '');
+          if (labelEl.textContent !== next) labelEl.textContent = next;
+          return true;
+        },
+        ignoreMutation: () => true,
+      };
+    };
+  },
+
   addCommands() {
     return {
       insertImportPlaceholder:
