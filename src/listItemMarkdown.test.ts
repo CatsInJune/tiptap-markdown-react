@@ -7,6 +7,7 @@ import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { Markdown } from '@tiptap/markdown';
 import { afterEach, describe, expect, it } from 'vitest';
 import { baseExtensions, pureCodeBlock } from './extensions';
+import { normalizeMarkdown } from './normalizeMarkdown';
 import { renderReportHtml } from './renderReportHtml';
 
 const CASES: Record<string, string> = {
@@ -226,6 +227,33 @@ describe('列表项首块标题：服务端渲染', () => {
     expect(result.html).toContain('<blockquote>');
     expect(result.html).toContain('console.log(1)');
     expect(result.html).toContain('<table');
+  });
+});
+
+describe('有序列表空项', () => {
+  let editor: Editor;
+  afterEach(() => editor?.destroy());
+
+  it('两项之间回车产生的空项，版本对比再规范化时不抛错', () => {
+    editor = build([...baseExtensions, Markdown], '1. 第一\n2. 第二\n');
+    let pos = 0;
+    editor.state.doc.descendants((node, nodePos) => {
+      if (pos) return false;
+      if (node.isText && node.text === '第一') pos = nodePos + node.nodeSize;
+      return true;
+    });
+    editor.commands.setTextSelection(pos);
+    editor.commands.splitListItem('listItem');
+    const markdown = editor.getMarkdown();
+    expect(markdown).toContain('2. ');
+    expect(() => normalizeMarkdown(markdown)).not.toThrow();
+    expect(normalizeMarkdown(markdown).trim()).toBe(markdown.trim());
+  });
+
+  it('带编号格式外壳的空项同样能规范化', () => {
+    const markdown =
+      '<ol data-numbering-format="decimal">\n\n1. 第一\n2. \n\n</ol>\n';
+    expect(() => normalizeMarkdown(markdown)).not.toThrow();
   });
 });
 

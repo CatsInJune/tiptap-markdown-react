@@ -349,6 +349,25 @@ declare module '@tiptap/core' {
   }
 }
 
+/**
+ * 官方有序列表解析遇到 `2.` 这种空项时，列表项 content 是空数组。
+ * 序列化会把第一块拆出来再渲染，空数组拆出 undefined，读 type 直接抛。
+ * 编辑器里回车新开的空项就是这条路径。补一个空段落，和列表项 schema 对齐。
+ */
+function fillEmptyListItems(node: JSONContent): JSONContent {
+  if (!Array.isArray(node.content)) {
+    if (node.type !== 'listItem') return node;
+    return { ...node, content: [{ type: 'paragraph' }] };
+  }
+  const content = node.content
+    .filter((child): child is JSONContent => Boolean(child?.type))
+    .map((child) => fillEmptyListItems(child));
+  if (node.type === 'listItem' && content.length === 0) {
+    return { ...node, content: [{ type: 'paragraph' }] };
+  }
+  return { ...node, content };
+}
+
 /** extend 里非 add* 方法的 this 上，类型没带 parent，运行时是有的。 */
 function callParent<T>(self: object, ...args: unknown[]): T | undefined {
   const parent = (self as { parent?: (...a: unknown[]) => T }).parent;
@@ -421,13 +440,14 @@ export const OrderedListWithNumbering = OrderedList.extend({
       token,
       helpers,
     );
-    if (!isNumberingFormat(token.numberingFormat) || !parsed || Array.isArray(parsed)) {
-      return parsed ?? [];
+    if (!parsed || Array.isArray(parsed)) return parsed ?? [];
+    const filled = parsed.type === 'orderedList' ? fillEmptyListItems(parsed) : parsed;
+    if (!isNumberingFormat(token.numberingFormat) || filled.type !== 'orderedList') {
+      return filled;
     }
-    if (parsed.type !== 'orderedList') return parsed;
     return {
-      ...parsed,
-      attrs: { ...parsed.attrs, numberingFormat: token.numberingFormat },
+      ...filled,
+      attrs: { ...filled.attrs, numberingFormat: token.numberingFormat },
     };
   },
 
