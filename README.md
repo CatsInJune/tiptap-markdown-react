@@ -283,7 +283,7 @@ Single `$` is always a dollar sign (`$24.4B`, `US$`, even `$24.4B$`). Importing 
 
 CommonMark's flanking rules reject a closing `**` that directly follows a punctuation character and is directly followed by text: `**多出的50元，不是多赚的净利润。**图中15元` renders with literal asterisks. Chinese typography puts punctuation inside emphasis all the time, so this bites often (`**…75%**看作` too; Latin `**bold.**next` has the same shape).
 
-All library parse entries (editor, preview, `renderReportHtml`, `normalizeMarkdown`, version diff) install marked's official `hooks.emStrongMask` on a dedicated marked instance: punctuation/symbol characters sitting directly before a `*`/`_` run are masked length-preservingly for delimiter scanning only, so `punctuation**text` closes correctly. Raw text is never modified and `getMarkdown()` still emits `**…**`.
+All library parse entries (editor, preview, `renderReportHtml`, `normalizeMarkdown`, version diff) install marked's official `hooks.emStrongMask` on a dedicated marked instance: punctuation/symbol characters sitting directly before a `*`/`_` run are masked length-preservingly for delimiter scanning only, so `punctuation**text` closes correctly. An opening `**`/`*` that is followed by punctuation or a symbol and preceded by a letter (`拿**“已经有人付款”**当作`, `拿**（已经有人付款）**当作`, `拿**《已经有人付款》**当作`) is accepted by the same instance's `emStrong` wrapper; the mask hook never sees that check. Raw text is never modified and `getMarkdown()` still emits `**…**`.
 
 Custom setups that build their own `Markdown` extension or `MarkdownManager` opt in the same way:
 
