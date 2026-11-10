@@ -12,9 +12,11 @@ import { getCjkEmphasisMarked } from './cjkEmphasis';
  *
  * 复现：docx 导入的「**多出的50元，不是多赚的净利润。**图中…」「他通常把**产品首周消化约75%**看作…」
  * 在编辑器/阅读页显示字面星号——闭定界符前面是标点/符号、后面紧跟文字时，CommonMark 不认它闭合。
- * 中文标点习惯性贴着粗体文字，中文场景高频踩（拉丁文 `**bold.**next` 同型）。
+ * 手动把引号、括号、书名号等符号和中间的字一起加粗是另一支：`拿**“已经有人付款”**当作`、
+ * `拿**（已经有人付款）**当作`，开定界符后面是标点/符号、前面是汉字，CommonMark 不认它开启。
+ * 中文标点习惯性贴着粗体文字（拉丁文 `**bold.**next` 同型）。
  *
- * 修复走 marked 官方 `hooks.emStrongMask`（见 cjkEmphasis.ts），测试用与生产一致的注入方式。
+ * 修复见 cjkEmphasis.ts，测试用与生产一致的 `getCjkEmphasisMarked()`。
  */
 
 // 与生产注入保持一致：编辑器、预览、server 三个 manager 都用 getCjkEmphasisMarked()。
@@ -218,6 +220,115 @@ describe('CJK 粗体边界（emStrongMask）', () => {
       '**多出的50元，不是多赚的净利润。**图中15元和65元只扣了做货成本。',
     );
     expect(html).toContain('<strong>多出的50元，不是多赚的净利润。</strong>');
+    expect(html).not.toContain('**');
+  });
+
+  it('引号连同引号内文字加粗，前后紧贴汉字', () => {
+    const editor = build('拿**“已经有人付款”**当作降低交付标准的理由。');
+    expect(boldSpans(editor)).toContain('“已经有人付款”');
+    expect(firstText(editor, '拿')?.bold).toBe(false);
+    expect(firstText(editor, '当作降低交付标准的理由。')?.bold).toBe(false);
+    expect(hasLiteralAsterisks(editor)).toBe(false);
+    expect(editor.getMarkdown()).toBe('拿**“已经有人付款”**当作降低交付标准的理由。');
+    editor.destroy();
+  });
+
+  it('英文引号、直角引号同样能开粗体', () => {
+    const straight = build('拿**"已经有人付款"**当作');
+    expect(boldSpans(straight)).toContain('"已经有人付款"');
+    expect(hasLiteralAsterisks(straight)).toBe(false);
+    straight.destroy();
+
+    const corner = build('拿**「已经有人付款」**当作');
+    expect(boldSpans(corner)).toContain('「已经有人付款」');
+    expect(hasLiteralAsterisks(corner)).toBe(false);
+    corner.destroy();
+  });
+
+  it('引号包住的斜体，前后紧贴汉字', () => {
+    const editor = build('拿*“已经有人付款”*当作');
+    const hit = firstText(editor, '“已经有人付款”');
+    expect(hit?.italic).toBe(true);
+    expect(hit?.bold).toBe(false);
+    expect(hasLiteralAsterisks(editor)).toBe(false);
+    editor.destroy();
+  });
+
+  it('renderReportHtml：引号粗体输出 <strong>，不留字面星号', () => {
+    const { html } = renderReportHtml('拿**“已经有人付款”**当作降低交付标准的理由。');
+    expect(html).toContain('<strong>“已经有人付款”</strong>');
+    expect(html).not.toContain('**');
+  });
+
+  it('选区前后的标点或符号一起加粗，前后紧贴汉字', () => {
+    const samples = [
+      '拿**“已经有人付款”**当作',
+      '拿**「已经有人付款」**当作',
+      '拿**『已经有人付款』**当作',
+      '拿**（已经有人付款）**当作',
+      '拿**(已经有人付款)**当作',
+      '拿**【已经有人付款】**当作',
+      '拿**《已经有人付款》**当作',
+      '拿**〈已经有人付款〉**当作',
+      '拿**[已经有人付款]**当作',
+      '拿**{已经有人付款}**当作',
+      '拿**‘已经有人付款’**当作',
+      '拿**·已经有人付款·**当作',
+      '拿**…已经有人付款…**当作',
+      '拿**—已经有人付款—**当作',
+      '拿**：已经有人付款：**当作',
+      '拿**！已经有人付款！**当作',
+      '拿**？已经有人付款？**当作',
+      '拿**%已经有人付款%**当作',
+      '拿**$已经有人付款$**当作',
+      '拿**￥已经有人付款￥**当作',
+      '拿**+已经有人付款+**当作',
+      '拿**/已经有人付款/**当作',
+      '拿**#已经有人付款#**当作',
+      '拿**&已经有人付款&**当作',
+      '拿**※已经有人付款※**当作',
+      '拿**★已经有人付款★**当作',
+      '拿**《“已经有人付款”》**当作',
+      '拿**（已经有人付款**当作',
+      '拿**已经有人付款）**当作',
+    ];
+    for (const md of samples) {
+      const editor = build(md);
+      const inner = md.slice(md.indexOf('**') + 2, md.lastIndexOf('**'));
+      expect(boldSpans(editor), md).toContain(inner);
+      expect(firstText(editor, '拿')?.bold, md).toBe(false);
+      expect(firstText(editor, '当作')?.bold, md).toBe(false);
+      expect(hasLiteralAsterisks(editor), md).toBe(false);
+      // 方括号、& 序列化时会转义。转义后再读回来，可见文字和加粗都还在。
+      const serialized = editor.getMarkdown();
+      const again = build(serialized);
+      expect(boldSpans(again).join(''), serialized).toBe(boldSpans(editor).join(''));
+      expect(hasLiteralAsterisks(again), serialized).toBe(false);
+      editor.destroy();
+      again.destroy();
+    }
+  });
+
+  it('括号包住的斜体，前后紧贴汉字', () => {
+    const editor = build('拿*（已经有人付款）*当作');
+    const hit = firstText(editor, '（已经有人付款）');
+    expect(hit?.italic).toBe(true);
+    expect(hit?.bold).toBe(false);
+    expect(hasLiteralAsterisks(editor)).toBe(false);
+    editor.destroy();
+  });
+
+  it('renderReportHtml：括号、书名号、百分号同样输出 <strong>', () => {
+    const html = [
+      '拿**（已经有人付款）**当作',
+      '拿**《已经有人付款》**当作',
+      '他通常把**约75%**看作',
+    ]
+      .map((md) => renderReportHtml(md).html)
+      .join('\n');
+    expect(html).toContain('<strong>（已经有人付款）</strong>');
+    expect(html).toContain('<strong>《已经有人付款》</strong>');
+    expect(html).toContain('<strong>约75%</strong>');
     expect(html).not.toContain('**');
   });
 });
