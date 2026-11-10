@@ -63,5 +63,6 @@ export function getCjkEmphasisMarked(): typeof marked {
     hooks: cjkEmphasisHook,
     tokenizer: { emStrong },
   });
-  return cached;
+  // 实例类型是 Marked，没有 getDefaults；调用方要的是 typeof marked。
+  return cached as unknown as typeof marked;
 }
