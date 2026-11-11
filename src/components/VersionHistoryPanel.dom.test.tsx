@@ -95,9 +95,15 @@ describe('VersionHistoryPanel', () => {
     });
   };
 
+  const settleDiff = async () => {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+  };
+
   const openDialog = async () => {
     await click(document.querySelector('[data-version-action="open"]')!);
-    await act(async () => {});
+    await settleDiff();
   };
 
   afterEach(() => {
@@ -209,11 +215,11 @@ describe('VersionHistoryPanel', () => {
     expect(dialog.textContent).not.toContain('Current document');
 
     await click(dialog.querySelector('[data-version-id="a"]')!);
-    await act(async () => {});
+    await settleDiff();
     await click(dialog.querySelector('[data-version-target]')!);
     await act(async () => {});
     await click(document.querySelector('[data-version-target-id="empty"]')!);
-    await act(async () => {});
+    await settleDiff();
     const inserted = [...dialog.querySelectorAll('[data-diff="insert"]')].map((el) => el.textContent).join('');
     const removed = [...dialog.querySelectorAll('[data-diff="delete"]')].map((el) => el.textContent).join('');
     expect(inserted).toContain('版本甲');
@@ -229,6 +235,23 @@ describe('VersionHistoryPanel', () => {
     expect(document.querySelector('[data-version-history]')).toBeNull();
     expect(editor.getMarkdown()).toContain('版本甲');
     expect(onRestore).toHaveBeenCalledWith(expect.objectContaining({ id: 'a', markdown: '版本甲' }));
+  });
+
+  it('面板关着时编辑不读全文', async () => {
+    editor = buildEditor('hello');
+    let calls = 0;
+    const read = editor.getMarkdown.bind(editor);
+    editor.getMarkdown = () => {
+      calls += 1;
+      return read();
+    };
+    await mount();
+    expect(calls).toBe(0);
+    await act(async () => {
+      editor.commands.insertContent('!');
+    });
+    expect(calls).toBe(0);
+    expect(document.querySelector('[data-version-history]')).toBeNull();
   });
 
   it('默认选中最新一版，不做当前稿全文比对', async () => {

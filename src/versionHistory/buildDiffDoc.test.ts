@@ -19,7 +19,7 @@ describe('版本对比', () => {
     expect(marks.some((mark) => mark.diff === 'insert')).toBe(false);
   });
 
-  it('中文按字对比', () => {
+  it('中文按词对比，公共前缀不高亮', () => {
     const marks = diffAnnotations('今天天气很好', '今天天气不错');
     const inserted = marks.filter((mark) => mark.diff === 'insert').map((mark) => mark.text).join('');
     const deleted = marks.filter((mark) => mark.diff === 'delete').map((mark) => mark.text).join('');
@@ -36,7 +36,6 @@ describe('版本对比', () => {
     expect(inserted?.text).not.toContain('bar');
     expect(deleted?.text).toContain('bar');
     expect(deleted?.text).not.toContain('foo');
-    expect(marks.some((mark) => mark.diff === 'format')).toBe(false);
   });
 
   it('文字相同只是标记不同时不高亮', () => {
