@@ -10,6 +10,8 @@ const BATCH_CHARS = 24000;
 /**
  * 先装首屏，其余块空闲时接上，不进撤销。装完按版本 id 记住 JSON。
  * 返回取消函数：切到下一版时停掉还没装的块。
+ *
+ * 切版/续装不能把选区推到文末——预览区会跟着滚一下。
  */
 export function loadVersionPreview(options: {
   editor: Editor;
@@ -23,7 +25,7 @@ export function loadVersionPreview(options: {
   let cancelScheduled = () => {};
 
   const finish = () => {
-    if (cancelled || editor.isDestroyed) return;
+    if (cancelled || isEditorClosed(editor)) return;
     rememberVersionJson(key, editor.getJSON());
     onReady();
   };
@@ -32,10 +34,11 @@ export function loadVersionPreview(options: {
   if (cached?.content?.length) {
     const parts = chunkNodes(cached.content, FIRST_CHARS, BATCH_CHARS);
     editor.commands.setContent({ type: 'doc', content: parts.head }, { emitUpdate: false });
+    pinPreviewToTop(editor);
     cancelScheduled = runLater(
       parts.rest.map((nodes) => () => insertAtEnd(editor, nodes)),
       finish,
-      () => cancelled || editor.isDestroyed,
+      () => cancelled || isEditorClosed(editor),
     );
   } else {
     const parts = chunkMarkdownBlocks(splitTopLevelMarkdown(markdown), FIRST_CHARS, BATCH_CHARS);
@@ -43,10 +46,11 @@ export function loadVersionPreview(options: {
       contentType: 'markdown',
       emitUpdate: false,
     });
+    pinPreviewToTop(editor);
     cancelScheduled = runLater(
       parts.rest.map((chunk) => () => insertAtEnd(editor, chunk)),
       finish,
-      () => cancelled || editor.isDestroyed,
+      () => cancelled || isEditorClosed(editor),
     );
   }
 
@@ -54,6 +58,14 @@ export function loadVersionPreview(options: {
     cancelled = true;
     cancelScheduled();
   };
+}
+
+/**
+ * TipTap 未 mount 时 `isDestroyed` 也是 true（没有 editorView），
+ * headless 测试仍能 setContent；真正销毁才看 `destroyed`。
+ */
+function isEditorClosed(editor: Editor): boolean {
+  return Boolean((editor as Editor & { destroyed?: boolean }).destroyed);
 }
 
 function runLater(steps: Array<() => void>, done: () => void, stopped: () => boolean): () => void {
@@ -82,7 +94,9 @@ function runLater(steps: Array<() => void>, done: () => void, stopped: () => boo
 }
 
 function insertAtEnd(editor: Editor, content: string | JSONContent[]): void {
-  if (editor.isDestroyed) return;
+  if (isEditorClosed(editor)) return;
+  const scroller = previewScroller(editor);
+  const top = scroller?.scrollTop ?? 0;
   const pos = insertionPos(editor.state.doc);
   editor
     .chain()
@@ -90,12 +104,38 @@ function insertAtEnd(editor: Editor, content: string | JSONContent[]): void {
       tr.setMeta('addToHistory', false);
       return true;
     })
-    .insertContentAt(
-      pos,
-      content,
-      typeof content === 'string' ? { contentType: 'markdown' } : {},
-    )
+    .insertContentAt(pos, content, {
+      updateSelection: false,
+      ...(typeof content === 'string' ? { contentType: 'markdown' } : {}),
+    })
     .run();
+  if (scroller) scroller.scrollTop = top;
+}
+
+/** 预览滚动容器：历史面板挂 data-version-preview。 */
+function previewScroller(editor: Editor): HTMLElement | null {
+  try {
+    return editor.view.dom.closest('[data-version-preview]');
+  } catch {
+    return null;
+  }
+}
+
+/** 换版后停在顶部，选区也钉在开头，避免 setContent 把光标甩到首屏末尾再滚一下。 */
+function pinPreviewToTop(editor: Editor): void {
+  if (isEditorClosed(editor)) return;
+  try {
+    const scroller = previewScroller(editor);
+    if (scroller) scroller.scrollTop = 0;
+  } catch {
+    // 测试里无挂载 DOM 时没有滚动容器。
+  }
+  try {
+    if (editor.state.doc.content.size === 0) return;
+    editor.commands.setTextSelection(1);
+  } catch {
+    // 个别环境 view 尚未就绪时跳过选区钉扎，不影响装载。
+  }
 }
 
 /** 尾部那个空段是编辑器补的，后续块插在它前面。 */
