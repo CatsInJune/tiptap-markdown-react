@@ -1,10 +1,9 @@
 import type { Mark, Node } from '@tiptap/pm/model';
-import { Fragment } from '@tiptap/pm/model';
 import type { SourceRef } from '../citationUtils';
-import { alignSeq, lcsLength, type Aligned } from './diffSequence';
-import { getVersionSchema, parseVersionDoc } from './schema';
+import { alignSeq, diffSeq, type Aligned } from './diffSequence';
+import { parseVersionDoc } from './schema';
 
-export type DiffKind = 'insert' | 'delete' | 'format';
+export type DiffKind = 'insert' | 'delete';
 
 const ATOMIC = new Set([
   'codeBlock',
@@ -15,205 +14,229 @@ const ATOMIC = new Set([
   'horizontalRule',
 ]);
 const LISTS = new Set(['bulletList', 'orderedList', 'taskList']);
-const PAIR_THRESHOLD = 0.4;
+/** 短于这个长度的块，Myers 本身很便宜，不必先判「整段改写」。 */
+const REWRITE_MIN = 80;
+const REWRITE_SAMPLE = 24;
+
+interface WordSegmenter {
+  segment(input: string): Iterable<{ segment: string }>;
+}
+
+const SegmenterCtor = (
+  Intl as typeof Intl & {
+    Segmenter?: new (locales: string, options: { granularity: 'word' }) => WordSegmenter;
+  }
+).Segmenter;
+
+const segmenter = SegmenterCtor ? new SegmenterCtor('zh-CN', { granularity: 'word' }) : null;
 
 interface Piece {
   text: string;
   marks: readonly Mark[];
+  /** 在所属文档里的起点。比较对象一侧的坐标不会拿去画装饰。 */
+  from: number;
+  to: number;
   atom?: Node;
 }
 
-interface TaggedPiece extends Piece {
-  diff?: DiffKind;
+interface Positioned {
+  node: Node;
+  pos: number;
 }
 
-interface TextUnit {
+interface TextUnit extends Positioned {
   kind: 'text';
   type: string;
   level: number | null;
-  node: Node;
   pieces: Piece[];
   plain: string;
 }
 
-interface AtomicUnit {
+interface AtomicUnit extends Positioned {
   kind: 'atomic';
   type: string;
   hash: string;
-  node: Node;
 }
 
-interface ItemUnit {
+interface ItemUnit extends Positioned {
   kind: 'item';
   type: string;
-  node: Node;
   children: BlockUnit[];
   plain: string;
 }
 
-interface ListUnit {
+interface ListUnit extends Positioned {
   kind: 'list';
   type: string;
-  node: Node;
   items: ItemUnit[];
 }
 
-interface ContainerUnit {
+interface ContainerUnit extends Positioned {
   kind: 'container';
   type: string;
-  node: Node;
   summary: Piece[];
   children: BlockUnit[];
 }
 
 type BlockUnit = TextUnit | AtomicUnit | ListUnit | ContainerUnit;
 
+/** 画在选中版上的一处差异。delete 的 from === to，是小组件的插入点。 */
+export interface VersionDiffMark {
+  diff: DiffKind;
+  text: string;
+  from: number;
+  to: number;
+  /** 整块增删（段落、代码块、表格、图表），而不是块里的几个词。 */
+  block: boolean;
+  type: string;
+}
+
 /**
- * 画布是所选版本（selected）。相对比较对象（other）：
- * 只在所选版本里的是插入，只在比较对象里的是删除，文字相同但标记不同的是格式变化。
+ * 选中版相对比较对象的差异。坐标都在 `selected` 这篇文档上。
+ * 纯文本已经相同的块不会再做词级比较。
  */
-export function buildVersionDiffDoc(
-  selected: string,
-  other: string,
-  sources?: SourceRef[],
-): Node {
-  const target = collectBlocks(parseVersionDoc(selected, sources));
-  const base = collectBlocks(parseVersionDoc(other, sources));
-  const blocks = renderAligned(alignBlocks(stripTrailingEmpty(base), stripTrailingEmpty(target)));
-  const schema = getVersionSchema();
-  return schema.nodes.doc.create(null, blocks.length ? blocks : [emptyParagraph()]);
+export function diffVersions(selected: Node, other: Node): VersionDiffMark[] {
+  const target = collectBlocks(selected, 0);
+  const base = collectBlocks(other, 0);
+  return renderAligned(alignBlocks(stripTrailingEmpty(base), stripTrailingEmpty(target)), 0);
 }
 
 export function diffAnnotations(
   selected: string,
   other: string,
+  sources?: SourceRef[],
 ): { diff: DiffKind; text: string }[] {
-  const out: { diff: DiffKind; text: string }[] = [];
-  buildVersionDiffDoc(selected, other).descendants((node) => {
-    if (node.type.name === 'diffRegion') {
-      const diff = node.attrs.diff;
-      if (diff === 'insert' || diff === 'delete' || diff === 'format') {
-        out.push({ diff, text: node.textContent });
-      }
-      return false;
-    }
-    if (!node.isText) return;
-    const mark = node.marks.find((item) => DIFF_MARK_NAMES.has(item.type.name));
-    if (!mark) return;
-    const diff = markName(mark.type.name);
-    if (diff) out.push({ diff, text: node.text ?? '' });
-  });
-  return out;
+  return diffVersions(parseVersionDoc(selected, sources), parseVersionDoc(other, sources)).map(
+    (mark) => ({ diff: mark.diff, text: mark.text }),
+  );
 }
 
-const DIFF_MARK_NAMES = new Set(['diffInsert', 'diffDelete', 'diffFormat']);
-
-function markName(name: string): DiffKind | null {
-  if (name === 'diffInsert') return 'insert';
-  if (name === 'diffDelete') return 'delete';
-  if (name === 'diffFormat') return 'format';
-  return null;
-}
-
-function collectBlocks(node: Node): BlockUnit[] {
+function collectBlocks(node: Node, contentStart: number): BlockUnit[] {
   const units: BlockUnit[] = [];
-  node.forEach((child) => {
-    const unit = blockFrom(child);
+  node.forEach((child, offset) => {
+    const unit = blockFrom(child, contentStart + offset);
     if (unit) units.push(unit);
   });
   return units;
 }
 
-function blockFrom(node: Node): BlockUnit | null {
+function blockFrom(node: Node, pos: number): BlockUnit | null {
   const name = node.type.name;
   if (ATOMIC.has(name)) {
-    return { kind: 'atomic', type: name, hash: JSON.stringify(node.toJSON()), node };
+    return { kind: 'atomic', type: name, hash: atomHash(node), node, pos };
   }
-  if (LISTS.has(name)) return listFrom(node);
+  if (LISTS.has(name)) return listFrom(node, pos);
   if (name === 'blockquote') {
-    return { kind: 'container', type: name, node, summary: [], children: collectBlocks(node) };
+    return {
+      kind: 'container',
+      type: name,
+      node,
+      pos,
+      summary: [],
+      children: collectBlocks(node, pos + 1),
+    };
   }
-  if (name === 'details') return detailsFrom(node);
-  if (name === 'paragraph' || name === 'heading') return textFrom(node);
-  return { kind: 'atomic', type: name, hash: JSON.stringify(node.toJSON()), node };
+  if (name === 'details') return detailsFrom(node, pos);
+  if (name === 'paragraph' || name === 'heading') return textFrom(node, pos);
+  return { kind: 'atomic', type: name, hash: atomHash(node), node, pos };
 }
 
-function textFrom(node: Node): TextUnit {
-  const pieces = piecesFrom(node);
+function textFrom(node: Node, pos: number): TextUnit {
+  const pieces = piecesFrom(node, pos);
   return {
     kind: 'text',
     type: node.type.name,
     level: node.type.name === 'heading' ? Number(node.attrs.level ?? 1) : null,
     node,
+    pos,
     pieces,
     plain: pieces.map((piece) => piece.text).join(''),
   };
 }
 
-function listFrom(node: Node): ListUnit {
+function listFrom(node: Node, pos: number): ListUnit {
   const items: ItemUnit[] = [];
-  node.forEach((child) => {
-    const children = collectBlocks(child);
+  node.forEach((child, offset) => {
+    const childPos = pos + 1 + offset;
     items.push({
       kind: 'item',
       type: child.type.name,
       node: child,
-      children,
+      pos: childPos,
+      children: collectBlocks(child, childPos + 1),
       plain: child.textContent,
     });
   });
-  return { kind: 'list', type: node.type.name, node, items };
+  return { kind: 'list', type: node.type.name, node, pos, items };
 }
 
-function detailsFrom(node: Node): ContainerUnit {
+function detailsFrom(node: Node, pos: number): ContainerUnit {
   let summary: Piece[] = [];
   let children: BlockUnit[] = [];
-  node.forEach((child) => {
-    if (child.type.name === 'detailsSummary') summary = piecesFrom(child);
-    else if (child.type.name === 'detailsContent') children = collectBlocks(child);
+  node.forEach((child, offset) => {
+    const childPos = pos + 1 + offset;
+    if (child.type.name === 'detailsSummary') summary = piecesFrom(child, childPos);
+    else if (child.type.name === 'detailsContent') children = collectBlocks(child, childPos + 1);
   });
-  return { kind: 'container', type: 'details', node, summary, children };
+  return { kind: 'container', type: 'details', node, pos, summary, children };
 }
 
-function piecesFrom(node: Node): Piece[] {
+function piecesFrom(node: Node, pos: number): Piece[] {
+  if (node.isText) return tokenize(node.text ?? '', node.marks, pos);
   const pieces: Piece[] = [];
-  node.forEach((child) => {
+  const origin = pos + 1;
+  node.forEach((child, offset) => {
+    const childPos = origin + offset;
     if (child.isText) {
-      pieces.push(...tokenize(child.text ?? '', child.marks));
+      pieces.push(...tokenize(child.text ?? '', child.marks, childPos));
       return;
     }
     if (child.isAtom || child.isInline) {
-      pieces.push({ text: atomKey(child), marks: child.marks, atom: child });
+      pieces.push({
+        text: atomKey(child),
+        marks: child.marks,
+        atom: child,
+        from: childPos,
+        to: childPos + child.nodeSize,
+      });
       return;
     }
-    pieces.push(...piecesFrom(child));
+    pieces.push(...piecesFrom(child, childPos));
   });
   return pieces;
 }
 
-/** 西文按词，中文和标点按字，空白单独成词，这样段内插删能落到词上。 */
-function tokenize(text: string, marks: readonly Mark[]): Piece[] {
+/** 西文和中文都按词。词边界来自 Intl.Segmenter，不再把每个汉字拆成一格。 */
+function tokenize(text: string, marks: readonly Mark[], pos: number): Piece[] {
+  if (!text) return [];
   const pieces: Piece[] = [];
-  let ascii = '';
-  const flush = () => {
-    if (!ascii) return;
-    pieces.push({ text: ascii, marks });
-    ascii = '';
-  };
-  for (const ch of text) {
-    if (/[A-Za-z0-9]/.test(ch)) {
-      ascii += ch;
-      continue;
-    }
-    flush();
-    pieces.push({ text: ch, marks });
+  if (!segmenter) {
+    pieces.push({ text, marks, from: pos, to: pos + text.length });
+    return pieces;
   }
-  flush();
+  let local = 0;
+  for (const part of segmenter.segment(text)) {
+    const segment = part.segment;
+    if (!segment) continue;
+    const from = pos + local;
+    local += segment.length;
+    pieces.push({ text: segment, marks, from, to: pos + local });
+  }
   return pieces;
 }
 
 function atomKey(node: Node): string {
-  return `\u0000${node.type.name}\u0000${JSON.stringify(node.attrs)}`;
+  return `\u0000${atomHash(node)}`;
+}
+
+function atomHash(node: Node): string {
+  const attrs = node.attrs ?? {};
+  const bits = [node.type.name, node.textContent];
+  for (const key of ['src', 'language', 'index', 'alt']) {
+    const value = attrs[key];
+    if (value != null && value !== '') bits.push(String(value));
+  }
+  return bits.join('\u0001');
 }
 
 function stripTrailingEmpty(units: BlockUnit[]): BlockUnit[] {
@@ -250,7 +273,7 @@ function blockPairable(a: BlockUnit, b: BlockUnit): boolean {
   if (a.kind !== b.kind || a.type !== b.type) return false;
   if (a.kind === 'atomic') return false;
   if (a.kind === 'text' && b.kind === 'text') {
-    return a.level === b.level && pieceSimilarity(a.pieces, b.pieces) >= PAIR_THRESHOLD;
+    return a.level === b.level && !rewritten(a.plain, b.plain);
   }
   return true;
 }
@@ -263,174 +286,186 @@ function itemEqual(a: ItemUnit, b: ItemUnit): boolean {
 
 function itemPairable(a: ItemUnit, b: ItemUnit): boolean {
   if (a.type !== b.type) return false;
-  return pieceSimilarity(tokenize(a.plain, []), tokenize(b.plain, [])) >= PAIR_THRESHOLD;
+  return !rewritten(a.plain, b.plain);
 }
 
-function pieceSimilarity(a: Piece[], b: Piece[]): number {
-  if (a.length === 0 && b.length === 0) return 1;
+/** 长度和首尾抽样都不像同一段时，整块替换，不再跑词级 Myers。 */
+function rewritten(a: string, b: string): boolean {
   const max = Math.max(a.length, b.length);
-  if (max === 0) return 1;
-  return lcsLength(a.map((piece) => piece.text), b.map((piece) => piece.text)) / max;
+  if (max < REWRITE_MIN) return false;
+  const min = Math.min(a.length, b.length);
+  if (min === 0 || min / max < 0.35) return true;
+  const head = a.slice(0, REWRITE_SAMPLE) === b.slice(0, REWRITE_SAMPLE);
+  const tail = a.slice(-REWRITE_SAMPLE) === b.slice(-REWRITE_SAMPLE);
+  if (head || tail) return false;
+  const mid = Math.floor(max / 2);
+  const sample = REWRITE_SAMPLE / 2;
+  return a.slice(mid - sample, mid + sample) !== b.slice(mid - sample, mid + sample);
 }
 
 function plainPieces(pieces: Piece[]): string {
   return pieces.map((piece) => piece.text).join('');
 }
 
-function renderAligned(aligned: Aligned<BlockUnit>[]): Node[] {
-  return aligned.map((item) => {
-    if (item.op === 'insert') return renderWhole(item.target, 'insert');
-    if (item.op === 'delete') return renderWhole(item.base, 'delete');
-    return renderPair(item.base, item.target);
-  });
-}
-
-function renderWhole(unit: BlockUnit, diff: 'insert' | 'delete'): Node {
-  if (unit.kind === 'text') return renderText(unit, null, diff);
-  if (unit.kind === 'atomic') return wrap(unit.node, diff);
-  if (unit.kind === 'list') return wrap(unit.node, diff);
-  return wrap(unit.node, diff);
-}
-
-function renderPair(base: BlockUnit, target: BlockUnit): Node {
-  if (base.kind === 'text' && target.kind === 'text') return renderText(target, base);
-  if (base.kind === 'list' && target.kind === 'list') return renderList(target, base);
-  if (base.kind === 'container' && target.kind === 'container') return renderContainer(target, base);
-  return target.node;
-}
-
-function renderText(target: TextUnit, base: TextUnit | null, whole?: 'insert' | 'delete'): Node {
-  const tagged: TaggedPiece[] = !base || whole
-    ? target.pieces.map((piece) => ({ ...piece, diff: whole }))
-    : wordDiff(base.pieces, target.pieces);
-  const content = piecesToNodes(tagged);
-  return getVersionSchema().nodes[target.type].create(target.node.attrs, content);
-}
-
-/** 只标文字的增删。加粗、颜色、对齐这类标记变化不单独高亮。 */
-function wordDiff(base: Piece[], target: Piece[]): TaggedPiece[] {
-  const ops = alignSeq(base, target, (a, b) => a.text === b.text, () => false);
-  const out: TaggedPiece[] = [];
-  for (const op of ops) {
-    if (op.op === 'insert') {
-      out.push({ ...op.target, diff: 'insert' });
+function renderAligned(aligned: Aligned<BlockUnit>[], fallback: number): VersionDiffMark[] {
+  const out: VersionDiffMark[] = [];
+  let cursor = fallback;
+  for (const item of aligned) {
+    if (item.op === 'insert') {
+      out.push(...insertMarks(item.target));
+      cursor = after(item.target);
       continue;
     }
-    if (op.op === 'delete') {
-      out.push({ ...op.base, diff: 'delete' });
+    if (item.op === 'delete') {
+      out.push(blockMark(item.base, 'delete', cursor));
       continue;
     }
-    out.push({ ...op.target });
+    if (item.op === 'same') {
+      cursor = after(item.target);
+      continue;
+    }
+    out.push(...renderPair(item.base, item.target));
+    cursor = after(item.target);
   }
   return out;
 }
 
-function renderList(target: ListUnit, base: ListUnit): Node {
-  const aligned = alignSeq(base.items, target.items, itemEqual, itemPairable);
-  const items = aligned.map((item) => {
-    if (item.op === 'insert') return renderItem(item.target, null, 'insert');
-    if (item.op === 'delete') return renderItem(item.base, null, 'delete');
-    return renderItem(item.target, item.base);
-  });
-  return getVersionSchema().nodes[target.type].create(target.node.attrs, fit(target.type, items));
+function renderPair(base: BlockUnit, target: BlockUnit): VersionDiffMark[] {
+  if (base.kind === 'text' && target.kind === 'text') return renderText(target, base);
+  if (base.kind === 'list' && target.kind === 'list') return renderList(target, base);
+  if (base.kind === 'container' && target.kind === 'container') return renderContainer(target, base);
+  return [];
 }
 
-function renderItem(target: ItemUnit, base: ItemUnit | null, whole?: 'insert' | 'delete'): Node {
-  const children = !base || whole
-    ? target.children.map((child) => renderWhole(child, whole ?? 'insert'))
-    : renderAligned(alignBlocks(base.children, target.children));
-  return getVersionSchema().nodes[target.type].create(
-    target.node.attrs,
-    fit(target.type, children),
-  );
+function renderText(target: TextUnit, base: TextUnit | null): VersionDiffMark[] {
+  if (!base || base.plain === target.plain) return [];
+  const words = wordDiff(base.pieces, target.pieces, target.pos + target.node.nodeSize - 1);
+  if (words) return words;
+  return [blockMark(base, 'delete', target.pos), ...insertMarks(target)];
 }
 
-function renderContainer(target: ContainerUnit, base: ContainerUnit): Node {
-  const schema = getVersionSchema();
-  if (target.type === 'details') {
-    const summary = renderSummary(wordDiff(base.summary, target.summary));
-    const inner = renderAligned(alignBlocks(base.children, target.children));
-    const content = schema.nodes.detailsContent.create(null, fit('detailsContent', inner));
-    return schema.nodes.details.create(target.node.attrs, [summary, content]);
-  }
-  const inner = renderAligned(alignBlocks(base.children, target.children));
-  return schema.nodes.blockquote.create(target.node.attrs, fit('blockquote', inner));
+function wordMaxD(n: number, m: number): number {
+  return Math.max(32, Math.ceil(Math.max(n, m) * 0.5));
 }
 
-function renderSummary(pieces: TaggedPiece[]): Node {
-  const textOnly = pieces.map((piece) => {
-    if (!piece.atom) return piece;
-    return { ...piece, atom: undefined, text: piece.atom.textContent || piece.atom.type.name };
-  });
-  return getVersionSchema().nodes.detailsSummary.create(null, piecesToNodes(textOnly));
-}
-
-function wrap(node: Node, diff: 'insert' | 'delete'): Node {
-  return getVersionSchema().nodes.diffRegion.create({ diff }, node);
-}
-
-function piecesToNodes(pieces: TaggedPiece[]): Node[] {
-  const schema = getVersionSchema();
-  const nodes: Node[] = [];
-  for (const piece of pieces) {
-    const marks = withDiff(piece.marks, piece.diff);
-    if (piece.atom) {
-      const diffMark = piece.diff ? schema.marks[diffMarkName(piece.diff)] : null;
-      if (diffMark && piece.atom.type.allowsMarkType(diffMark)) {
-        nodes.push(piece.atom.mark(marks));
-      } else if (piece.diff) {
-        pushText(nodes, piece.atom.textContent || piece.atom.type.name, marks);
-      } else {
-        nodes.push(piece.atom);
-      }
+function wordDiff(base: Piece[], target: Piece[], endPos: number): VersionDiffMark[] | null {
+  const ops = diffSeq(base, target, (a, b) => a.text === b.text, wordMaxD(base.length, target.length));
+  if (!ops) return null;
+  const out: VersionDiffMark[] = [];
+  let cursor = target[0]?.from ?? endPos;
+  let deleted = '';
+  let deleteAt = cursor;
+  const flush = () => {
+    if (!deleted) return;
+    out.push({
+      diff: 'delete',
+      text: deleted,
+      from: deleteAt,
+      to: deleteAt,
+      block: false,
+      type: 'text',
+    });
+    deleted = '';
+  };
+  for (const op of ops) {
+    if (op.type === 'delete') {
+      if (!deleted) deleteAt = cursor;
+      deleted += op.a.text;
       continue;
     }
-    pushText(nodes, piece.text, marks);
+    flush();
+    if (op.type === 'insert') {
+      if (op.b.text.trim()) {
+        out.push({
+          diff: 'insert',
+          text: op.b.text,
+          from: op.b.from,
+          to: op.b.to,
+          block: false,
+          type: 'text',
+        });
+      }
+      cursor = op.b.to;
+      continue;
+    }
+    cursor = op.b.to;
   }
-  return nodes;
+  flush();
+  return out;
 }
 
-function pushText(nodes: Node[], text: string, marks: readonly Mark[]): void {
-  if (!text) return;
-  const schema = getVersionSchema();
-  const last = nodes[nodes.length - 1];
-  if (last?.isText && marksKey(last.marks) === marksKey(marks)) {
-    nodes[nodes.length - 1] = schema.text((last.text ?? '') + text, marks);
-    return;
+function renderList(target: ListUnit, base: ListUnit): VersionDiffMark[] {
+  const aligned = alignSeq(base.items, target.items, itemEqual, itemPairable);
+  const out: VersionDiffMark[] = [];
+  let cursor = target.pos + 1;
+  for (const item of aligned) {
+    if (item.op === 'insert') {
+      out.push(...insertMarks(item.target));
+      cursor = after(item.target);
+      continue;
+    }
+    if (item.op === 'delete') {
+      out.push(blockMark(item.base, 'delete', cursor));
+      continue;
+    }
+    if (item.op === 'same') {
+      cursor = after(item.target);
+      continue;
+    }
+    out.push(...renderAligned(alignBlocks(item.base.children, item.target.children), item.target.pos + 1));
+    cursor = after(item.target);
   }
-  nodes.push(schema.text(text, marks));
+  return out;
 }
 
-function withDiff(marks: readonly Mark[], diff?: DiffKind): readonly Mark[] {
-  const kept = marks.filter((mark) => !DIFF_MARK_NAMES.has(mark.type.name));
-  if (!diff) return kept;
-  const type = getVersionSchema().marks[diffMarkName(diff)];
-  return type ? [...kept, type.create()] : kept;
+function renderContainer(target: ContainerUnit, base: ContainerUnit): VersionDiffMark[] {
+  const out: VersionDiffMark[] = [];
+  if (target.type === 'details') {
+    const summary = wordDiff(base.summary, target.summary, target.pos + 1);
+    if (summary) out.push(...summary);
+  }
+  out.push(...renderAligned(alignBlocks(base.children, target.children), target.pos + 1));
+  return out;
 }
 
-function diffMarkName(diff: DiffKind): string {
-  if (diff === 'insert') return 'diffInsert';
-  if (diff === 'delete') return 'diffDelete';
-  return 'diffFormat';
+/** 文字块只高亮字，避免把整行列表项涂成通栏。代码块、表格、图表仍整块标。 */
+function insertMarks(unit: BlockUnit | ItemUnit): VersionDiffMark[] {
+  if (unit.kind === 'text') {
+    const first = unit.pieces[0];
+    const last = unit.pieces[unit.pieces.length - 1];
+    if (!first || !last) return [];
+    return [{
+      diff: 'insert',
+      text: unit.node.textContent,
+      from: first.from,
+      to: last.to,
+      block: false,
+      type: unit.type,
+    }];
+  }
+  if (unit.kind === 'list') return unit.items.flatMap((item) => insertMarks(item));
+  if (unit.kind === 'item' || unit.kind === 'container') {
+    return unit.children.flatMap((child) => insertMarks(child));
+  }
+  return [blockMark(unit, 'insert')];
 }
 
-function marksKey(marks: readonly Mark[]): string {
-  return [...marks]
-    .map((mark) => `${mark.type.name}:${JSON.stringify(mark.attrs)}`)
-    .sort()
-    .join('|');
+function blockMark(unit: Positioned & { type: string; plain?: string }, diff: DiffKind, at?: number): VersionDiffMark {
+  const text = unit.node.textContent;
+  if (diff === 'delete') {
+    const pos = at ?? unit.pos;
+    return { diff, text, from: pos, to: pos, block: true, type: unit.type };
+  }
+  return {
+    diff,
+    text,
+    from: unit.pos,
+    to: unit.pos + unit.node.nodeSize,
+    block: true,
+    type: unit.type,
+  };
 }
 
-function fit(typeName: string, nodes: Node[]): Node[] {
-  const type = getVersionSchema().nodes[typeName];
-  const content = nodes.length ? nodes : [emptyParagraph()];
-  if (!type) return content;
-  if (type.contentMatch.matchFragment(Fragment.from(content))) return content;
-  const withParagraph = [emptyParagraph(), ...content];
-  if (type.contentMatch.matchFragment(Fragment.from(withParagraph))) return withParagraph;
-  return content;
-}
-
-function emptyParagraph(): Node {
-  return getVersionSchema().nodes.paragraph.create();
+function after(unit: Positioned): number {
+  return unit.pos + unit.node.nodeSize;
 }

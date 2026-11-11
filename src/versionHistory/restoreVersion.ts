@@ -80,8 +80,16 @@ export function restoreVersionMarkdown(
  * 两边都按编辑器读入再吐出的写法比较。表格对齐空格不算不同。
  * 编辑器尾部那个空段会多吐一个换行，存库的正文通常没有它，这里剥掉文末换行再比。
  */
-export function isSameVersionMarkdown(current: string, markdown: string): boolean {
-  return comparable(current) === comparable(markdown);
+export function isSameVersionMarkdown(
+  current: string,
+  markdown: string,
+  options?: { currentNormalized?: boolean },
+): boolean {
+  const left = stripTrailingNewlines(current);
+  const right = stripTrailingNewlines(markdown);
+  if (left === right) return true;
+  const normalizedCurrent = options?.currentNormalized ? left : comparable(left);
+  return normalizedCurrent === comparable(right);
 }
 
 /**
@@ -138,6 +146,21 @@ function replaceDocument(editor: Editor, markdown: string): void {
     .run();
 }
 
+const NORMALIZED_CACHE_MAX = 6;
+const normalizedCache = new Map<string, string>();
+
 function comparable(markdown: string): string {
-  return normalizeMarkdown(markdown).replace(/\n+$/, '');
+  const hit = normalizedCache.get(markdown);
+  if (hit !== undefined) return hit;
+  const next = normalizeMarkdown(markdown).replace(/\n+$/, '');
+  if (normalizedCache.size >= NORMALIZED_CACHE_MAX) {
+    const oldest = normalizedCache.keys().next().value;
+    if (oldest !== undefined) normalizedCache.delete(oldest);
+  }
+  normalizedCache.set(markdown, next);
+  return next;
+}
+
+function stripTrailingNewlines(markdown: string): string {
+  return markdown.replace(/\n+$/, '');
 }

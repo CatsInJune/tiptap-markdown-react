@@ -16,7 +16,6 @@ import styles from '../styles/versionHistory.module.css';
 
 export type { DocumentVersion };
 
-const CURRENT_DIFF_DEBOUNCE_MS = 200;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 /** 恢复提示（例如「章已不存在，插到光标处」）停留时长。 */
 const NOTICE_MS = 6000;
@@ -80,8 +79,8 @@ type ContentMap = Record<string, string>;
  * 面板数据是报告全部快照的平铺列表（时间倒序、无章概念，含已删章的孤儿快照）。
  * 列表行可以只带元数据，正文由 `onLoadVersionContent` 按需取。
  *
- * 不对比时用只读预览。对比时画布仍是这一版：绿色是只在这一版里的，
- * 删除线是只在比较对象里的，另一底色是文字相同但标记变了。
+ * 不对比时用只读预览。对比时画布仍是这一版，先把正文画出来，差异空闲时再叠上：
+ * 绿色是只在这一版里的，删除线是只在比较对象里的。
  *
  * 恢复按版本所属章的首块 ID 定位：章还在 → 只替换该章范围；
  * 章已删 → 内容插到光标处并提示。旧快照没有块 ID 时整篇写回。
@@ -120,8 +119,7 @@ export function VersionHistoryPanel({
   const [targetOpen, setTargetOpen] = useState(false);
   const [buttonHost, setButtonHost] = useState<HTMLElement | null>(null);
   const [trackedStyle, setTrackedStyle] = useState<CSSProperties | null>(null);
-  const [currentMarkdown, setCurrentMarkdown] = useState(() => editor.getMarkdown?.() ?? '');
-  const [debouncedMarkdown, setDebouncedMarkdown] = useState(currentMarkdown);
+  const [liveMarkdown, setLiveMarkdown] = useState<string | null>(null);
   const [loadedContent, setLoadedContent] = useState<ContentMap>({});
   const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
   const [loadErrorIds, setLoadErrorIds] = useState<Record<string, boolean>>({});
@@ -211,24 +209,14 @@ export function VersionHistoryPanel({
     setUncontrolledId(versions[0]?.id ?? null);
   }, [versions, uncontrolledId, selectedIdProp]);
 
+  // 只在面板打开时读当前稿，用来判断恢复按钮。关着不订 update，打字不必序列化全文。
   useEffect(() => {
-    const read = () => editor.getMarkdown?.() ?? '';
-    const next = read();
-    setCurrentMarkdown(next);
-    setDebouncedMarkdown(next);
-    let timer = 0;
-    const onUpdate = () => {
-      const markdown = read();
-      setCurrentMarkdown(markdown);
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => setDebouncedMarkdown(markdown), CURRENT_DIFF_DEBOUNCE_MS);
-    };
-    editor.on('update', onUpdate);
-    return () => {
-      editor.off('update', onUpdate);
-      window.clearTimeout(timer);
-    };
-  }, [editor]);
+    if (!isOpen) {
+      setLiveMarkdown(null);
+      return;
+    }
+    setLiveMarkdown(editor.getMarkdown?.() ?? '');
+  }, [editor, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -323,8 +311,8 @@ export function VersionHistoryPanel({
   };
 
   const same =
-    selected && selectedContent != null
-      ? isSameVersionMarkdown(debouncedMarkdown, selectedContent)
+    isOpen && liveMarkdown != null && selectedContent != null
+      ? isSameVersionMarkdown(liveMarkdown, selectedContent, { currentNormalized: true })
       : true;
   const blank = selectedContent != null ? selectedContent.trim() === '' : true;
   const canRestore = Boolean(

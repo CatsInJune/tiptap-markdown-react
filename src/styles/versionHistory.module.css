@@ -384,27 +384,39 @@
   border-radius: 2px;
 }
 
-/* 图表自带白底，淡色铺底几乎看不见。用色边和角标把整张图的增删标出来。 */
-.preview :global([data-diff-region] .tmr-chart) {
+.preview :global([data-diff-region][data-diff='delete']) {
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* 图表自带白底，淡色铺底几乎看不见。用色边和角标把整张图的增删标出来。
+   装饰直接打在图表节点上，所以选择器同时认「包一层」和「节点自己」。 */
+.preview :global([data-diff-region] .tmr-chart),
+.preview :global(.tmr-chart[data-diff-region]) {
   position: relative;
 }
 
 .preview :global([data-diff-region][data-diff='insert'] .tmr-chart),
-.preview :global([data-diff-region][data-diff='delete'] .tmr-chart) {
+.preview :global([data-diff-region][data-diff='delete'] .tmr-chart),
+.preview :global(.tmr-chart[data-diff-region][data-diff='insert']),
+.preview :global(.tmr-chart[data-diff-region][data-diff='delete']) {
   border-width: 2px;
 }
 
-.preview :global([data-diff-region][data-diff='insert'] .tmr-chart) {
+.preview :global([data-diff-region][data-diff='insert'] .tmr-chart),
+.preview :global(.tmr-chart[data-diff-region][data-diff='insert']) {
   border-color: #3d7a32;
   box-shadow: 0 0 0 3px color-mix(in srgb, #3d7a32 35%, transparent);
 }
 
-.preview :global([data-diff-region][data-diff='delete'] .tmr-chart) {
+.preview :global([data-diff-region][data-diff='delete'] .tmr-chart),
+.preview :global(.tmr-chart[data-diff-region][data-diff='delete']) {
   border-color: #a33b32;
   box-shadow: 0 0 0 3px color-mix(in srgb, #a33b32 32%, transparent);
 }
 
-.preview :global([data-diff-region] .tmr-chart)::before {
+.preview :global([data-diff-region] .tmr-chart)::before,
+.preview :global(.tmr-chart[data-diff-region])::before {
   position: absolute;
   top: 8px;
   left: 8px;
@@ -418,13 +430,15 @@
   pointer-events: none;
 }
 
-.preview :global([data-diff-region][data-diff='insert'] .tmr-chart)::before {
+.preview :global([data-diff-region][data-diff='insert'] .tmr-chart)::before,
+.preview :global(.tmr-chart[data-diff-region][data-diff='insert'])::before {
   content: var(--vh-diff-insert);
   background: #e7f3e4;
   color: #3d7a32;
 }
 
-.preview :global([data-diff-region][data-diff='delete'] .tmr-chart)::before {
+.preview :global([data-diff-region][data-diff='delete'] .tmr-chart)::before,
+.preview :global(.tmr-chart[data-diff-region][data-diff='delete'])::before {
   content: var(--vh-diff-delete);
   background: #f8e8e6;
   color: #a33b32;

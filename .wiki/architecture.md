@@ -36,7 +36,7 @@ markdown 没有原生语法的样式（图片缩放/对齐/图注、段落对齐
   - `slashMenu/` — 斜杠菜单（官方 `@tiptap/suggestion` 自绘）
   - `blockDrag/` — 块拖拽（含列表内 drop 规则）
   - `toc/` — 目录抽取与 slug（`extractToc`、`tocSlug`、`scrollToTocHeading`）
-  - `versionHistory/` — 历史版本面板的 diff/还原（`buildDiffDoc`、`restoreVersion`）
+  - `versionHistory/` — 历史版本面板的 diff/还原（`buildDiffDoc`、`diffSequence` Myers、`diffDecorations`、`restoreVersion`）。对比画在选中版上，不另造合并文档
   - `shortcuts/` — 快捷键抽屉面板
 - **单文件功能**：`math.ts`（公式往返）、`imageMarkdown.ts` / `imageUpload.ts` / `imageResize.dom` / `imageAlign.ts` / `imageCaption.ts` / `imageCrop.ts` / `imagePreview.ts`（图片系）、`paragraphStyles.ts` / `paragraphMarkdown.ts`（段落三件套）、`numberingFormat.ts`、`supSub`（序列化器在 `extensions.ts`）、`highlightMarkdown` / `textStyleMarkdown`（测试见证语法）、`findReplace.ts`、`formatBrush.ts`、`fullscreen.ts`、`characterCount.ts`（正文文档标题在 `components/MarkdownWysiwygEditor.tsx` 内，无独立文件）
 - **markdown 管线**：`markdownPaste.ts`（粘贴启发式 `looksLikeMarkdown`）、`markdownFileDrop.ts`、`importMenu.ts`、`insertMarkdown.ts`、`normalizeMarkdown.ts`、`stabilizeMarkdown.ts`（补未闭合围栏）、`markdownRange.ts` / `replaceRange.ts` / `anchorRange.ts`（区间级操作）、`pendingAnchor.ts`

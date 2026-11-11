@@ -4,7 +4,7 @@
 
 **项目**：Markdown 优先的所见即所得编辑器 + 阅读器套件（Tiptap v3），Markdown 进 / Markdown 出，编辑器 + 客户端预览 + 服务端渲染三端一致。
 **版本节奏**：高频小版本发布（见 `.wiki/decisions.md` 与 GitHub Wiki 的 Changelog）。
-**最后更新**：2026-11-01
+**最后更新**：2026-11-11
 
 ## 页面索引
 
