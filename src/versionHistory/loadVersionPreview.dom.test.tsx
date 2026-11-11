@@ -11,8 +11,9 @@ function flushIdle(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function buildEditor(): Editor {
+function buildEditor(host?: HTMLElement): Editor {
   return new Editor({
+    element: host,
     extensions: [
       ...baseExtensions,
       Markdown.configure({ marked: getCjkEmphasisMarked() }),
@@ -135,5 +136,41 @@ describe('loadVersionPreview', () => {
     }
     expect(ready).toBe(true);
     expect(editor.getJSON()).toEqual(first);
+  });
+
+  it('续装时预览区滚动位置不变，选区也不被推到文末', async () => {
+    const preview = document.createElement('div');
+    preview.setAttribute('data-version-preview', '');
+    preview.style.overflow = 'auto';
+    preview.style.height = '120px';
+    document.body.appendChild(preview);
+    const mount = document.createElement('div');
+    preview.appendChild(mount);
+    editor.destroy();
+    editor = buildEditor(mount);
+
+    const blocks = Array.from({ length: 12 }, (_, index) => `段${index}${'字'.repeat(900)}`);
+    const markdown = blocks.join('\n\n');
+    let ready = false;
+    loadVersionPreview({
+      editor,
+      markdown,
+      cacheId: 'v-scroll',
+      onReady: () => {
+        ready = true;
+      },
+    });
+    expect(preview.scrollTop).toBe(0);
+    expect(editor.state.selection.from).toBe(1);
+
+    preview.scrollTop = 40;
+    for (let i = 0; i < 20 && !ready; i += 1) {
+      await flushIdle();
+    }
+    expect(ready).toBe(true);
+    expect(preview.scrollTop).toBe(40);
+    expect(editor.state.selection.from).toBe(1);
+
+    preview.remove();
   });
 });
