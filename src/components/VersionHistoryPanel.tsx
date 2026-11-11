@@ -516,10 +516,11 @@ export function VersionHistoryPanel({
                   <p className={styles.emptyTitle}>{t.emptyVersion}</p>
                   <p className={styles.emptyHint}>{t.emptyVersionHint}</p>
                 </div>
-              ) : showDiff && selectedContent != null && compareContent != null ? (
+              ) : selectedContent != null && compareVersion ? (
                 <VersionDiffView
                   selected={selectedContent}
                   other={compareContent}
+                  selectedId={selected?.id}
                   sources={sources}
                   locale={locale}
                 />
