@@ -1,7 +1,15 @@
 'use client';
 
 import type { Editor } from '@tiptap/react';
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import {
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+} from 'react';
 import { flushSync } from 'react-dom';
 import { createPortal } from 'react-dom';
 import * as Popover from '@radix-ui/react-popover';
@@ -310,9 +318,15 @@ export function VersionHistoryPanel({
     setCompareId((current) => (current === id ? null : current));
   };
 
+  // 列表高亮跟 selected 走（紧急更新）；预览/全文比对延后，避免切版时主线程
+  // 先跑 prepare/isSame，侧栏背景要等几百毫秒才换。
+  const previewContent = useDeferredValue(selectedContent);
+  const previewId = useDeferredValue(selected?.id);
+  const previewCompare = useDeferredValue(compareContent);
+
   const same =
-    isOpen && liveMarkdown != null && selectedContent != null
-      ? isSameVersionMarkdown(liveMarkdown, selectedContent, { currentNormalized: true })
+    isOpen && liveMarkdown != null && previewContent != null
+      ? isSameVersionMarkdown(liveMarkdown, previewContent, { currentNormalized: true })
       : true;
   const blank = selectedContent != null ? selectedContent.trim() === '' : true;
   const canRestore = Boolean(
@@ -516,16 +530,16 @@ export function VersionHistoryPanel({
                   <p className={styles.emptyTitle}>{t.emptyVersion}</p>
                   <p className={styles.emptyHint}>{t.emptyVersionHint}</p>
                 </div>
-              ) : selectedContent != null && compareVersion ? (
+              ) : previewContent != null && compareVersion ? (
                 <VersionDiffView
-                  selected={selectedContent}
-                  other={compareContent}
-                  selectedId={selected?.id}
+                  selected={previewContent}
+                  other={previewCompare}
+                  selectedId={previewId}
                   sources={sources}
                   locale={locale}
                 />
-              ) : selectedContent != null ? (
-                <MarkdownPreview markdown={selectedContent} sources={sources} locale={locale} />
+              ) : previewContent != null ? (
+                <MarkdownPreview markdown={previewContent} sources={sources} locale={locale} />
               ) : (
                 <div className={styles.emptyVersion}>
                   <FileIcon />
