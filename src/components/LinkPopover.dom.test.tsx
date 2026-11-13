@@ -6,6 +6,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { baseExtensions } from '../extensions';
 import { LinkPopover, type LinkPopoverProps } from './LinkPopover';
+import { TiptapConfigProvider } from './TiptapConfigProvider';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -55,16 +56,26 @@ describe('LinkPopover', () => {
   const action = (name: 'apply' | 'open' | 'remove') =>
     document.querySelector<HTMLButtonElement>(`[data-link-action="${name}"]`);
 
-  const mount = async (props: Partial<LinkPopoverProps> & { editor: Editor }) => {
+  const mount = async (
+    props: Partial<LinkPopoverProps> & { editor: Editor },
+    locale?: 'zh' | 'en',
+  ) => {
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
     await act(async () => {
-      root.render(
+      const popover = (
         <LinkPopover
           trigger={<button type="button" data-test-trigger="" aria-label="Link" />}
           {...props}
-        />,
+        />
+      );
+      root.render(
+        locale ? (
+          <TiptapConfigProvider locale={locale}>{popover}</TiptapConfigProvider>
+        ) : (
+          popover
+        ),
       );
     });
     return host;
@@ -205,9 +216,9 @@ describe('LinkPopover', () => {
     expect(action('remove')?.disabled).toBe(true);
   });
 
-  it('locale=zh 使用内置中文，并给宿主留下稳定选择器', async () => {
+  it('Provider 为 zh 时使用内置中文，并给宿主留下稳定选择器', async () => {
     editor = buildEditor('x');
-    await mount({ editor, locale: 'zh' });
+    await mount({ editor }, 'zh');
     await click(host.querySelector('[data-test-trigger]'));
 
     expect(field()?.getAttribute('placeholder')).toBe('输入链接地址');

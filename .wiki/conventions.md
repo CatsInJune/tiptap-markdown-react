@@ -5,7 +5,7 @@
 1. **`@tiptap/*` 依赖精确锁版本、不带 `^`**。pnpm 宿主项目里 caret 会解析到与宿主锁不一致的小版本，ProseMirror 插件状态跨小版本不兼容（0.19.1 事故）。新增依赖后自查 `package.json` 的 `@tiptap` 行。
 2. **仓库禁止出现 `agentic-ui`、`Ant Design`（含 `antd`、`getPopupContainer`）字样**——库零 UI 框架依赖是卖点，下拉/浮层只用 Radix primitives，图标用内联 SVG（`src/icons/`）。
 3. **移植第三方 MIT 代码必须声明**：出口是 `THIRD_PARTY_LICENSES.md` 移植清单 + 源码文件头部标注。付费组件（注册接口 401 / npm 404）只可自研，不可 vendor。
-4. **UI 文案两份同步**：类型与英文默认在 `src/labels.ts`，中文包在 `src/i18n/zh.ts`。改任何可见文案必须同时改两处；组件只收 `locale` prop，不收单条文案。
+4. **UI 文案两份同步**：类型与英文默认在 `src/labels.ts`，中文包在 `src/i18n/zh.ts`。改任何可见文案必须同时改两处；语言统一由 `<TiptapConfigProvider>` 提供，组件不再收各自的 `locale` 或单条文案。
 
 ## markdown 往返约束（加扩展的前置检查）
 

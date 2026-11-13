@@ -16,7 +16,7 @@ function build(content = ''): Editor {
   return new Editor({
     extensions: [
       ...baseExtensions,
-      createChart({ editable: false }),
+      createChart(),
       pendingAnchorExtension,
       Markdown,
     ],

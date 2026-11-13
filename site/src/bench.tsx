@@ -205,7 +205,7 @@ function LibMode() {
         ref={(handle: any) => {
           (window as any).__handle = handle;
         }}
-        locale="zh"
+
         initialMarkdown={initialMarkdown}
         documentTitle="压测文档"
         toc={useToc}
@@ -260,7 +260,7 @@ function CustomMode({
       }),
       ImportPlaceholder,
       Placeholder.configure({ placeholder: '输入正文…' }),
-      createChart({ editable: false }),
+      createChart(),
       createCitationRef({ renderCitation: undefined }),
       CommentMark,
       commentAnchorExtension({ showGutter: true, interactive: true }),

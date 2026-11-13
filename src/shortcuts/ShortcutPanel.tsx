@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
-import { getLocaleBundle, type LocaleCode } from '../i18n';
+import { getLocaleBundle } from '../i18n';
+import { useMarkdownLocale } from '../components/TiptapConfigProvider';
 import { XIcon } from '../icons';
 import styles from '../styles/shortcutPanel.module.css';
 import { buildShortcutGroups, type ShortcutGroup } from './types';
@@ -7,8 +8,6 @@ import { buildShortcutGroups, type ShortcutGroup } from './types';
 export interface ShortcutPanelProps {
   open: boolean;
   onClose: () => void;
-  /** 内置语言，默认英文。 */
-  locale?: LocaleCode;
 }
 
 function isMacPlatform(): boolean {
@@ -29,11 +28,8 @@ function keycapText(key: string, mac: boolean): string {
  * 数据来自 buildShortcutGroups（键位与 input rule 均为库内真实行为）。
  * 定位 fixed 贴视口右缘；Esc 关闭。
  */
-export function ShortcutPanel({
-  open,
-  onClose,
-  locale = 'en',
-}: ShortcutPanelProps) {
+export function ShortcutPanel({ open, onClose }: ShortcutPanelProps) {
+  const locale = useMarkdownLocale();
   const t = getLocaleBundle(locale).shortcut;
 
   // 打开期间 Esc 关闭

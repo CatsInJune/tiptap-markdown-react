@@ -8,6 +8,8 @@ const serverBundle = getLocaleBundle('en');
 interface LocaleEntry {
   locale: LocaleCode;
   bundle: LocaleBundle;
+  /** 是否由编辑器 / 预览发布过语言；未发布时组件可回落到 TiptapConfigProvider。 */
+  published: boolean;
   listeners: Set<() => void>;
   /** 渲染期只改快照，绘制前再通知 NodeView。 */
   pendingNotify: boolean;
@@ -21,6 +23,7 @@ function ensure(editor: Editor): LocaleEntry {
     entry = {
       locale: 'en',
       bundle: serverBundle,
+      published: false,
       listeners: new Set(),
       pendingNotify: false,
     };
@@ -32,7 +35,9 @@ function ensure(editor: Editor): LocaleEntry {
 /** 写入当前语言。同值不重复通知。可在渲染期间调用。 */
 export function setEditorLocale(editor: Editor, locale: LocaleCode): void {
   const entry = ensure(editor);
-  if (entry.locale === locale) return;
+  const changed = !entry.published || entry.locale !== locale;
+  entry.published = true;
+  if (!changed) return;
   entry.locale = locale;
   entry.bundle = getLocaleBundle(locale);
   entry.pendingNotify = true;
@@ -83,12 +88,24 @@ export function usePublishEditorLocale(
   }, [editor, locale]);
 }
 
-/** NodeView 订阅所属编辑器的文案。快照引用稳定，语言不变时不重渲染。 */
-export function useEditorBundle(editor: Editor): LocaleBundle {
+/**
+ * NodeView / 就地交互订阅所属编辑器的文案。
+ * 编辑器（MarkdownWysiwygEditor / MarkdownPreview）发布过语言时以它为准；
+ * 自建 Editor 未发布时回落到 `fallback`（通常是 TiptapConfigProvider 的语言）。
+ */
+export function useEditorBundle(
+  editor: Editor,
+  fallback: LocaleCode = 'en',
+): LocaleBundle {
   const subscribe = useCallback(
     (onStoreChange: () => void) => subscribeEditorLocale(editor, onStoreChange),
     [editor],
   );
-  const getSnapshot = useCallback(() => getEditorBundle(editor), [editor]);
-  return useSyncExternalStore(subscribe, getSnapshot, () => serverBundle);
+  const getSnapshot = useCallback(() => {
+    const entry = stores.get(editor);
+    return entry?.published ? entry.bundle : getLocaleBundle(fallback);
+  }, [editor, fallback]);
+  return useSyncExternalStore(subscribe, getSnapshot, () =>
+    getLocaleBundle(fallback),
+  );
 }

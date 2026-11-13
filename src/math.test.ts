@@ -4,11 +4,7 @@ import { Markdown } from '@tiptap/markdown';
 import { describe, expect, it } from 'vitest';
 import { baseExtensions } from './extensions';
 import { insertMarkdown } from './insertMarkdown';
-import {
-  renderMathElementHtml,
-  renderMathHtml,
-  subscribeMathClick,
-} from './math';
+import { renderMathElementHtml, renderMathHtml } from './math';
 import { renderReportHtml } from './renderReportHtml';
 
 function build(content: string): Editor {
@@ -165,16 +161,5 @@ describe('math SSR', () => {
     expect(() => renderMathHtml('\\notacommand{', false)).not.toThrow();
     const { html } = renderReportHtml('$$\\notacommand{$$');
     expect(html).toContain('data-type="inline-math"');
-  });
-});
-
-describe('subscribeMathClick', () => {
-  it('delivers payload and unsubscribes', () => {
-    const received: { kind: string; latex: string }[] = [];
-    const unsub = subscribeMathClick((payload) => {
-      received.push({ kind: payload.kind, latex: payload.latex });
-    });
-    unsub();
-    expect(received).toEqual([]);
   });
 });

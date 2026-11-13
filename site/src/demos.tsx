@@ -77,7 +77,6 @@ function demoToolbarGroups(extra: { image?: boolean; search?: boolean } = {}): T
 
 /** 完整编辑器 + 工具栏 */
 export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
-  const locale = useLang().lang;
   const [editor, setEditor] = useState<Editor | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
@@ -86,7 +85,6 @@ export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
       {editor && (
         <EditorToolbar
           editor={editor}
-          locale={locale}
           groups={demoToolbarGroups({ image: true, search: true })}
           // 工具栏只开一道门：条子归编辑器，这里接上句柄；searchActive 用它上报的开合态
           onSearch={() => editorRef.current?.toggleFind()}
@@ -96,7 +94,6 @@ export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor
           ref={editorRef}
-          locale={locale}
           initialMarkdown={initial}
           placeholder="Write something…"
           // 图片上传配置挂在编辑器上（官方 ImageUploadNode 同款交互）：工具栏图片按钮
@@ -112,11 +109,9 @@ export function EditorDemo({ initial = DEMO_MD }: { initial?: string }) {
 
 /** 仅编辑器，无工具栏 */
 export function EditorOnlyDemo() {
-  const locale = useLang().lang;
   return (
     <div className="editorDemoBody compact">
       <MarkdownWysiwygEditor
-        locale={locale}
         initialMarkdown="# Minimal editor\n\nNo toolbar — just the editor surface."
         placeholder="Type here…"
       />
@@ -126,16 +121,14 @@ export function EditorOnlyDemo() {
 
 /** 工具栏 + 编辑器，强调图片上传 */
 export function ToolbarDemo() {
-  const locale = useLang().lang;
   const [editor, setEditor] = useState<Editor | null>(null);
   return (
     <div className="editorDemo">
       {editor && (
-        <EditorToolbar editor={editor} locale={locale} groups={demoToolbarGroups({ image: true })} />
+        <EditorToolbar editor={editor} groups={demoToolbarGroups({ image: true })} />
       )}
       <div className="editorDemoBody compact">
         <MarkdownWysiwygEditor
-          locale={locale}
           initialMarkdown="# Toolbar demo\n\nClick the image button to insert an upload block — drop or pick a file; it becomes a data URL in this demo."
           imageUpload={{ upload: demoImageUpload }}
           onEditorReady={setEditor}
@@ -174,7 +167,6 @@ const COMMENT_SAMPLE_COMMENTS: CommentRef[] = [
  * 只读态（MarkdownPreview）不渲染任何评论。
  */
 export function CommentAnchorDemo() {
-  const locale = useLang().lang;
   const editorRef = useRef<MarkdownWysiwygEditorHandle>(null);
   const [active, setActive] = useState<string | null>(null);
   const [readonly, setReadonly] = useState(false);
@@ -204,7 +196,6 @@ export function CommentAnchorDemo() {
         </label>
         <MarkdownWysiwygEditor
           ref={editorRef}
-          locale={locale}
           initialMarkdown={COMMENT_SAMPLE_MD}
           editable={!readonly}
           comments={COMMENT_SAMPLE_COMMENTS}
@@ -287,14 +278,12 @@ export function CommentAnchorDemo() {
 
 /** Markdown 摄入:粘贴 / 拖拽 .md / 工具栏导入 */
 export function MarkdownIngestDemo() {
-  const locale = useLang().lang;
   const [editor, setEditor] = useState<Editor | null>(null);
   return (
     <div className="editorDemo">
-      {editor && <EditorToolbar editor={editor} locale={locale} />}
+      {editor && <EditorToolbar editor={editor} />}
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor
-          locale={locale}
           initialMarkdown={INGEST_MD}
           placeholder="Paste markdown or drop a .md file…"
           onEditorReady={setEditor}
@@ -306,11 +295,10 @@ export function MarkdownIngestDemo() {
 
 /** 代码块 + 键盘导航 */
 export function CodeBlockDemo() {
-  const locale = useLang().lang;
   return (
     <div className="editorDemo">
       <div className="editorDemoBody">
-        <MarkdownWysiwygEditor locale={locale} initialMarkdown={CODEBLOCK_MD} />
+        <MarkdownWysiwygEditor initialMarkdown={CODEBLOCK_MD} />
       </div>
     </div>
   );
@@ -318,14 +306,12 @@ export function CodeBlockDemo() {
 
 /** 公式：工具栏插入 + 点击原地编辑；金额保持文本 */
 export function MathDemo() {
-  const locale = useLang().lang;
   const [editor, setEditor] = useState<Editor | null>(null);
   return (
     <div className="editorDemo">
-      {editor && <EditorToolbar editor={editor} locale={locale} />}
+      {editor && <EditorToolbar editor={editor} />}
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor
-          locale={locale}
           initialMarkdown={MATH_MD}
           placeholder="Insert an equation from More…"
           onEditorReady={setEditor}
@@ -347,14 +333,12 @@ export function MathSsrDemo() {
 
 /** 图表：注释 + 表；点击编辑 JSON/表；多 config Tab */
 export function ChartDemo() {
-  const locale = useLang().lang;
   const [editor, setEditor] = useState<Editor | null>(null);
   return (
     <div className="editorDemo">
-      {editor && <EditorToolbar editor={editor} locale={locale} />}
+      {editor && <EditorToolbar editor={editor} />}
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor
-          locale={locale}
           initialMarkdown={CHART_MD}
           placeholder="Charts from <!-- config --> + table…"
           onEditorReady={setEditor}
@@ -376,7 +360,6 @@ export function ChartSsrDemo() {
 
 /** 流式追加表格行时图表原地更新 */
 export function ChartStreamingDemo() {
-  const locale = useLang().lang;
   const base = `<!-- {"chartType": "line", "x": "date", "y": "close", "title": "Streaming prices"} -->
 | date | close |
 |------|------|
@@ -398,24 +381,22 @@ export function ChartStreamingDemo() {
   const md = base + (n > 0 ? `${extra.slice(0, n).join('\n')}\n` : '');
   return (
     <div className="previewDemo">
-      <MarkdownPreview markdown={md} locale={locale} />
+      <MarkdownPreview markdown={md} />
     </div>
   );
 }
 
 /** 客户端预览 */
 export function PreviewDemo({ markdown = PREVIEW_MD }: { markdown?: string }) {
-  const locale = useLang().lang;
   return (
     <div className="previewDemo">
-      <MarkdownPreview markdown={markdown} locale={locale} />
+      <MarkdownPreview markdown={markdown} />
     </div>
   );
 }
 
 /** 脚注圆标：库渲 pill，消费方用 renderCitation 挂 Popover */
 export function CitationDemo() {
-  const locale = useLang().lang;
   const renderCitation: RenderCitation = useCallback(({ index, defaultDom }) => {
     const source = CITATION_SOURCES.find((s) => s.index === index);
     if (!source?.excerpt) return defaultDom;
@@ -458,7 +439,6 @@ export function CitationDemo() {
     <div className="previewDemo">
       <MarkdownPreview
         markdown={CITATION_MD}
-        locale={locale}
         sources={CITATION_SOURCES}
         renderCitation={renderCitation}
       />
@@ -540,7 +520,6 @@ export function CitationSsrDemo() {
 
 /** 实时 markdown 输出 */
 export function MarkdownOutputDemo() {
-  const locale = useLang().lang;
   const [editor, setEditor] = useState<Editor | null>(null);
   const [markdown, setMarkdown] = useState(DEMO_MD);
   useEffect(() => {
@@ -556,7 +535,6 @@ export function MarkdownOutputDemo() {
     <div className="markdownOutDemo">
       <div className="markdownOutEditor">
         <MarkdownWysiwygEditor
-          locale={locale}
           initialMarkdown={DEMO_MD}
           onEditorReady={setEditor}
         />
@@ -599,10 +577,9 @@ const TOC_MD = `# 目录
 
 /** 编辑器内置左侧目录 */
 export function EditorTocDemo() {
-  const locale = useLang().lang;
   return (
     <div className="editorTocDemoEditor">
-      <MarkdownWysiwygEditor locale={locale} initialMarkdown={TOC_MD} toc />
+      <MarkdownWysiwygEditor initialMarkdown={TOC_MD} toc />
     </div>
   );
 }
@@ -625,7 +602,6 @@ export function ReportContentDemo() {
 
 /** CSS 变量主题切换 */
 export function ThemeDemo() {
-  const locale = useLang().lang;
   const [accent, setAccent] = useState('#1677ff');
   return (
     <div
@@ -647,14 +623,13 @@ export function ThemeDemo() {
         </label>
         <code>--tmr-accent: {accent}</code>
       </div>
-      <MarkdownWysiwygEditor locale={locale} initialMarkdown="# Themed editor\n\nAccent color drives selection, links, and TOC highlights." />
+      <MarkdownWysiwygEditor initialMarkdown="# Themed editor\n\nAccent color drives selection, links, and TOC highlights." />
     </div>
   );
 }
 
 /** 首页大 demo：编辑、客户端预览、服务端渲染、Markdown 产物。 */
 export function HeroDemo() {
-  const locale = useLang().lang;
   const tx = useTx();
   const [editor, setEditor] = useState<Editor | null>(null);
   const [markdown, setMarkdown] = useState(DEMO_MD);
@@ -718,7 +693,6 @@ export function HeroDemo() {
         {editor && (
           <EditorToolbar
             editor={editor}
-            locale={locale}
             groups={demoToolbarGroups({ image: true, search: true })}
             onSearch={() => editorRef.current?.toggleFind()}
             searchActive={findOpen}
@@ -727,7 +701,6 @@ export function HeroDemo() {
         <div className="demoBody demoBodyEditor">
           <MarkdownWysiwygEditor
             ref={editorRef}
-            locale={locale}
             initialMarkdown={DEMO_MD}
             sources={DEMO_SOURCES}
             placeholder="Write something…"
@@ -742,12 +715,12 @@ export function HeroDemo() {
       </div>
       {tab === 'reader' && (
         <div className="demoBody">
-          <MarkdownPreview markdown={markdown} locale={locale} sources={DEMO_SOURCES} />
+          <MarkdownPreview markdown={markdown} sources={DEMO_SOURCES} />
         </div>
       )}
       {tab === 'ssr' && (
         <div className="demoBody">
-          <ReportContentWithCharts html={serverHtml} locale={locale} />
+          <ReportContentWithCharts html={serverHtml} />
         </div>
       )}
       {tab === 'markdown' && (
@@ -793,7 +766,6 @@ const HISTORY_VERSIONS: DocumentVersion[] = [
 ];
 
 export function VersionHistoryDemo() {
-  const locale = useLang().lang;
   const frameRef = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const buttonContainer = useCallback(() => frameRef.current, []);
@@ -804,12 +776,10 @@ export function VersionHistoryDemo() {
           <VersionHistoryPanel
             editor={editor}
             versions={HISTORY_VERSIONS}
-            locale={locale}
             buttonContainer={buttonContainer}
           />
         ) : null}
         <MarkdownWysiwygEditor
-          locale={locale}
           initialMarkdown={HISTORY_VERSIONS[2].markdown}
           onEditorReady={setEditor}
         />
@@ -819,7 +789,6 @@ export function VersionHistoryDemo() {
 }
 
 export function FindReplaceDemo() {
-  const locale = useLang().lang;
   const ref = useRef<MarkdownWysiwygEditorHandle>(null);
   return (
     <div className="editorDemo">
@@ -833,20 +802,22 @@ export function FindReplaceDemo() {
         </span>
       </div>
       <div className="editorDemoBody">
-        <MarkdownWysiwygEditor ref={ref} locale={locale} initialMarkdown={FIND_MD} />
+        <MarkdownWysiwygEditor ref={ref} initialMarkdown={FIND_MD} />
       </div>
     </div>
   );
 }
 
-/** 国际化：各组件传同一个 locale，文案在库内 */
+/** 国际化：最外层一个 TiptapConfigProvider，整套组件统一切换 */
 const I18N_MD = `# 国际化演示
 
-语言切换靠各组件的 **locale**。工具栏、目录、查找条和代码块一起变，编辑器不用重建。
+语言切换靠外层 **TiptapConfigProvider**。编辑器、工具栏、目录、查找条、代码块和就地交互一起变，编辑器不用重建。
 
 \`\`\`tsx
-<MarkdownWysiwygEditor locale={locale} />
-<EditorToolbar editor={editor} locale={locale} />
+<TiptapConfigProvider locale="zh">
+  <MarkdownWysiwygEditor />
+  <EditorToolbar editor={editor} />
+</TiptapConfigProvider>
 \`\`\``;
 
 export function I18nDemo() {
@@ -870,7 +841,6 @@ export function I18nDemo() {
         {editor && (
           <EditorToolbar
             editor={editor}
-            locale={locale}
             groups={demoToolbarGroups({ search: true })}
             onSearch={() => editorRef.current?.toggleFind()}
             searchActive={findOpen}
@@ -879,7 +849,6 @@ export function I18nDemo() {
         <MarkdownWysiwygEditor
           ref={editorRef}
           initialMarkdown={I18N_MD}
-          locale={locale}
           characterCount
           onFindOpenChange={setFindOpen}
           onEditorReady={setEditor}
@@ -894,11 +863,9 @@ const HOST_FIND_MD = `# 宿主摆位的查找条
 
 这个编辑器 **findBar={false}**：扩展照旧注册（命令、storage、高亮都在），但编辑器不渲染
 浮动条，定位完全归宿主。上面那个按钮切换的就是宿主自己渲染的 <FindReplaceBar />。
-
 因为编辑器没有条子可开，Cmd/Ctrl+F 也不再被接管——宿主自己绑到自己的状态上。`;
 
 export function HostPlacedFindDemo() {
-  const locale = useLang().lang;
   const [editor, setEditor] = useState<Editor | null>(null);
   const [open, setOpen] = useState(false);
   return (
@@ -913,12 +880,11 @@ export function HostPlacedFindDemo() {
       </div>
       {open && editor ? (
         <div className="hostPlacedBar">
-          <FindReplaceBar editor={editor} locale={locale} onClose={() => setOpen(false)} />
+          <FindReplaceBar editor={editor} onClose={() => setOpen(false)} />
         </div>
       ) : null}
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor
-          locale={locale}
           initialMarkdown={HOST_FIND_MD}
           findBar={false}
           onEditorReady={setEditor}
@@ -935,7 +901,6 @@ const CONTAINER_FIND_MD = `# 条子挂到宿主容器
 快捷键照旧归库——把光标放进正文按 Cmd/Ctrl+F，条子出现在那个框里。`;
 
 export function FindBarContainerDemo() {
-  const locale = useLang().lang;
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   return (
@@ -952,7 +917,6 @@ export function FindBarContainerDemo() {
       <div className="hostContainerSlot" ref={setHost} />
       <div className="editorDemoBody">
         <MarkdownWysiwygEditor
-          locale={locale}
           initialMarkdown={CONTAINER_FIND_MD}
           findBarContainer={() => host}
           findBarOffset={{ bottom: 6, left: 6 }}

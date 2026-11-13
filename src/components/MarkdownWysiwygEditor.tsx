@@ -109,6 +109,10 @@ import { makeTocGetId } from '../toc/tocSlug';
 import { CodeBlockView } from './CodeBlockView';
 import { BlockDragHandle } from './BlockDragHandle';
 import { EditorToc, type TocRailBox } from './EditorToc';
+import { ImageAlignTools } from './ImageAlignTools';
+import { useMarkdownLocale } from './TiptapConfigProvider';
+import { MathEditingLayer } from './MathEditingLayer';
+import { TableHandles } from './TableHandles';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 // 带语言选择器的代码块（自定义 React NodeView）。base 不含代码块，此增强版由编辑器注入。
@@ -504,8 +508,6 @@ export interface MarkdownWysiwygEditorProps {
    * 只读态不应用评论锚定（comments 被忽略），与 MarkdownPreview 语义一致。
    */
   editable?: boolean;
-  /** 内置界面语言，默认英文。工具栏等并列组件需各自传同一个值。目录跟着编辑器。 */
-  locale?: LocaleCode;
   /**
    * 初始脚注来源：按 index 对齐 `[^n]`，写入 citationRef 的 url/title。
    * 仅影响初始 content；后续插入请用 `insertMarkdown(editor, md, sources)`。
@@ -817,7 +819,6 @@ export const MarkdownWysiwygEditor = forwardRef<
     blockIds = 'off',
     initialMarkdown = '',
     editable = true,
-    locale = 'en',
     sources,
     renderCitation,
     placeholder,
@@ -863,6 +864,8 @@ export const MarkdownWysiwygEditor = forwardRef<
   },
   ref,
 ) {
+  const locale = useMarkdownLocale();
+
   // 默认不落 ID；旧卡片正文里若有 1.10.x 写入的 ID 注释，解析前剥掉。
   const initialContentInput =
     blockIds === 'markdown' ? initialMarkdown : stripBlockIdComments(initialMarkdown);
@@ -937,7 +940,7 @@ export const MarkdownWysiwygEditor = forwardRef<
       // 取值。早先只把属性挂在根 div 上，选择器永远匹配不到，占位符从没显示过。
       // showOnlyWhenEditable 默认 true，只读态自动不显示。
       ...(placeholder ? [Placeholder.configure({ placeholder })] : []),
-      createChart({ editable: false }),
+      createChart(),
       createCitationRef({ renderCitation }),
       CommentMark,
       commentAnchorExtension({
@@ -1289,7 +1292,6 @@ export const MarkdownWysiwygEditor = forwardRef<
     editor && findBar && findOpen ? (
       <FindReplaceBar
         editor={editor}
-        locale={locale}
         onClose={closeFind}
         inputRef={findInputRef}
         className={styles.findBar}
@@ -1417,6 +1419,15 @@ export const MarkdownWysiwygEditor = forwardRef<
       {editor && showBlockDrag ? (
         <BlockDragHandle editor={editor} />
       ) : null}
+      {/* 悬停 / 点击就地交互：编辑态常驻，和块拖拽手柄一样属于编辑器自身行为。
+          以前挂在 <EditorToolbar> 里，没工具栏的宿主就整块缺失；工具栏也不再挂，避免重复。 */}
+      {editor && editable ? (
+        <>
+          <TableHandles editor={editor} />
+          <ImageAlignTools editor={editor} />
+          <MathEditingLayer editor={editor} />
+        </>
+      ) : null}
       {/* 统计开着时，计数与键盘悬浮键共用一条贴在右下的 sticky 底栏。
           统计关着时悬浮键保持自己的粘性定位，不套这层——外层再包一个不粘的盒子会让 sticky 失效。 */}
       {editor && characterCount ? (
@@ -1452,7 +1463,6 @@ export const MarkdownWysiwygEditor = forwardRef<
         <ShortcutPanel
           open={shortcutsOpen}
           onClose={() => setShortcutsOpen(false)}
-          locale={locale}
         />
       ) : null}
     </div>

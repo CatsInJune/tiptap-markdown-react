@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { buildShortcutGroups } from './types';
 import { ShortcutPanel } from './ShortcutPanel';
+import { TiptapConfigProvider } from '../components/TiptapConfigProvider';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -93,12 +94,16 @@ describe('ShortcutPanel 渲染', () => {
     expect(keycaps).toContain('Space');
   });
 
-  it('locale=zh 使用内置中文', () => {
+  it('Provider 为 zh 时使用内置中文', () => {
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
     act(() => {
-      root.render(<ShortcutPanel open onClose={() => {}} locale="zh" />);
+      root.render(
+        <TiptapConfigProvider locale="zh">
+          <ShortcutPanel open onClose={() => {}} />
+        </TiptapConfigProvider>,
+      );
     });
     expect(host.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('快捷键');
     const headers = [...host.querySelectorAll('[class*="head"] > *')].map((e) => e.textContent);

@@ -9,6 +9,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { baseExtensions } from '../extensions';
 import { FindReplaceBar, type FindReplaceBarProps } from './FindReplaceBar';
+import { TiptapConfigProvider } from './TiptapConfigProvider';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -42,12 +43,22 @@ describe('FindReplaceBar', () => {
   let root: Root;
   let editor: Editor;
 
-  const mount = async (props: Partial<FindReplaceBarProps> & { editor: Editor }) => {
+  const mount = async (
+    props: Partial<FindReplaceBarProps> & { editor: Editor },
+    locale?: 'zh' | 'en',
+  ) => {
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
     await act(async () => {
-      root.render(<FindReplaceBar onClose={() => {}} {...props} />);
+      const bar = <FindReplaceBar onClose={() => {}} {...props} />;
+      root.render(
+        locale ? (
+          <TiptapConfigProvider locale={locale}>{bar}</TiptapConfigProvider>
+        ) : (
+          bar
+        ),
+      );
     });
     return host;
   };
@@ -183,9 +194,9 @@ describe('FindReplaceBar', () => {
     expect(host.textContent).toContain('Read-only');
   });
 
-  it('locale=zh 使用内置中文', async () => {
+  it('Provider 为 zh 时使用内置中文', async () => {
     editor = buildEditor('one two one');
-    await mount({ editor, locale: 'zh' });
+    await mount({ editor }, 'zh');
 
     expect(host.querySelector('[role="dialog"]')?.getAttribute('aria-label')).toBe('查找');
     expect(buttonByLabel('下一处')).not.toBeNull();

@@ -1,12 +1,12 @@
 'use client';
 
-import type { LocaleCode } from '../i18n';
 import {
   ReportContent,
   type ReportContentProps,
 } from '../ReportContent';
 import { ContentOutline } from './ContentOutline';
 import { ImagePreviewHost } from './ImageLightbox';
+import { useMarkdownLocale } from './TiptapConfigProvider';
 
 export interface ReaderReportContentProps extends ReportContentProps {
   /**
@@ -14,8 +14,6 @@ export interface ReaderReportContentProps extends ReportContentProps {
    * 悬停展开，点击滚动。宽度小于 768px 时不显示。
    */
   toc?: boolean;
-  /** 目录按钮的无障碍文案。默认英文。 */
-  locale?: LocaleCode;
 }
 
 /**
@@ -26,9 +24,9 @@ export function ReaderReportContent({
   html,
   className,
   toc = false,
-  locale = 'en',
   ...rest
 }: ReaderReportContentProps) {
+  const locale = useMarkdownLocale();
   return (
     <ContentOutline toc={toc} locale={locale} watch={html}>
       <ImagePreviewHost locale={locale} activate="click">

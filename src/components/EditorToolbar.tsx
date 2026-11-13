@@ -13,7 +13,7 @@ import {
   useToolbarFullscreen,
   type FullscreenTarget,
 } from '../fullscreen';
-import { getLocaleBundle, type LocaleCode } from '../i18n';
+import { getLocaleBundle } from '../i18n';
 import type { ToolbarLabels } from '../labels';
 import { readCurrentNumberingFormat } from '../numberingFormat';
 import {
@@ -24,7 +24,7 @@ import {
 import type { SourceRef } from '../citationUtils';
 import { hasImageUpload } from '../imageUpload';
 import { insertMarkdown } from '../insertMarkdown';
-import { subscribeMathClick, type MathKind } from '../math';
+import type { MathKind } from '../math';
 import {
   resolveToolbarLayout,
   type ToolbarGroup,
@@ -56,9 +56,8 @@ import {
   clearFormatting,
   type CapturedFormat,
 } from '../formatBrush';
-import { ImageAlignTools } from './ImageAlignTools';
 import { renderToolbarBody } from './toolbarBody';
-import { TableHandles } from './TableHandles';
+import { useMarkdownLocale } from './TiptapConfigProvider';
 import { MathEditorPopover } from './MathEditorPopover';
 
 /** `onImportDocument` 的成功返回。给字符串等价于 `{ markdown }`。 */
@@ -125,8 +124,6 @@ export interface EditorToolbarProps {
    * 时多一项 Document。宿主要拆成 Word / PDF 时自己传入。
    */
   importMenuItems?: ImportMenuItem[];
-  /** 内置语言，默认英文。 */
-  locale?: LocaleCode;
   /**
    * 搜索按钮的点击回调。按钮是否出现由 `groups` 决定（默认清单里没有 `search`）。
    * 清单里有这颗按钮但没传回调时，按钮照样在，点击无反应。
@@ -186,7 +183,6 @@ export function EditorToolbar({
   onImportDocument,
   importAccept,
   importMenuItems,
-  locale = 'en',
   onSearch,
   searchActive = false,
   onHistory,
@@ -198,6 +194,7 @@ export function EditorToolbar({
   extraToolbarItems,
   className,
 }: EditorToolbarProps) {
+  const locale = useMarkdownLocale();
   const t: ToolbarLabels = getLocaleBundle(locale).toolbar;
   const extraKeyList = JSON.stringify(extraToolbarItems?.map((item) => item.key) ?? []);
   const layout = useMemo(
@@ -512,15 +509,7 @@ export function EditorToolbar({
     isNew?: boolean;
   } | null>(null);
 
-  useEffect(() => subscribeMathClick((payload) => {
-    setMathEdit({
-      kind: payload.kind,
-      mode: 'edit',
-      pos: payload.pos,
-      latex: payload.latex,
-    });
-  }), []);
-
+  // 点击公式的编辑由编辑器壳的 <MathEditingLayer> 接管；工具栏只负责“插入公式”。
   const openInsertMath = (kind: MathKind) => {
     const { from, to } = editor.state.selection;
     const selected =
@@ -614,7 +603,6 @@ export function EditorToolbar({
         <div className={styles.inner}>
           {renderToolbarBody({
             editor,
-            locale,
             t,
             groups: layout.groups,
             fullscreen,
@@ -686,12 +674,6 @@ export function EditorToolbar({
           onCancel={cancelMath}
         />
       ) : null}
-
-      {/* 表格悬停手柄（行左缘 ⋮ / 表格上方 ⋯）+ 它的操作菜单；
-          原来那套「表内右键出菜单」只剩多格选区的批量增删，由这个组件自己接管 */}
-      <TableHandles editor={editor} labels={t} />
-      {/* 图片对齐工具条（悬停图片时浮出；与表格手柄同一套就地交互） */}
-      <ImageAlignTools editor={editor} labels={t} />
     </>
   );
 }

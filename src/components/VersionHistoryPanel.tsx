@@ -18,6 +18,7 @@ import { getLocaleBundle, type LocaleCode } from '../i18n';
 import { ChevronDownIcon, HistoryIcon, XIcon } from '../icons';
 import { isSameVersionMarkdown, restoreVersionMarkdown } from '../versionHistory/restoreVersion';
 import type { DocumentVersion } from '../versionHistory/types';
+import { useMarkdownLocale } from './TiptapConfigProvider';
 import { MarkdownPreview } from './MarkdownPreview';
 import { VersionDiffView } from './VersionDiffView';
 import styles from '../styles/versionHistory.module.css';
@@ -59,8 +60,6 @@ export interface VersionHistoryPanelProps {
   /** 受控的弹窗开关。不传则由悬浮按钮自己开关。 */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  /** 内置语言，默认英文。 */
-  locale?: LocaleCode;
   className?: string;
   /** 预览脚注时按 index 对齐，语义同 MarkdownPreview。 */
   sources?: SourceRef[];
@@ -110,12 +109,12 @@ export function VersionHistoryPanel({
   onClose,
   open: openProp,
   onOpenChange,
-  locale = 'en',
   className,
   sources,
   buttonOffset,
   buttonContainer,
 }: VersionHistoryPanelProps) {
+  const locale = useMarkdownLocale();
   const t = getLocaleBundle(locale).history;
   const [mounted, setMounted] = useState(false);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -539,7 +538,7 @@ export function VersionHistoryPanel({
                   locale={locale}
                 />
               ) : previewContent != null ? (
-                <MarkdownPreview markdown={previewContent} sources={sources} locale={locale} />
+                <MarkdownPreview markdown={previewContent} sources={sources} />
               ) : (
                 <div className={styles.emptyVersion}>
                   <FileIcon />

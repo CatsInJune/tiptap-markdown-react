@@ -11,7 +11,6 @@ import { ImageWithConfirmDelete } from './components/MarkdownWysiwygEditor';
 import { ImageAlignTools } from './components/ImageAlignTools';
 import { isImageAlignActive, setImageAlign, setImageAlignAt } from './imageAlign';
 import { setImageCaption } from './imageCaption';
-import { defaultToolbarLabels } from './labels';
 import { renderReportHtml } from './renderReportHtml';
 
 const IMG_MD = '![a](https://x/a.png)';
@@ -159,7 +158,7 @@ describe('ImageAlignTools（悬停工具条）', () => {
     return ed ? (
       <>
         <EditorContent editor={ed} />
-        <ImageAlignTools editor={ed} labels={defaultToolbarLabels} />
+        <ImageAlignTools editor={ed} />
       </>
     ) : null;
   }

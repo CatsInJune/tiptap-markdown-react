@@ -21,6 +21,10 @@ export {
   MarkdownPreview,
   type MarkdownPreviewProps,
 } from './components/MarkdownPreview';
+export {
+  TiptapConfigProvider,
+  type TiptapConfigProviderProps,
+} from './components/TiptapConfigProvider';
 
 // ── 工具栏 / 色板 ──
 export {
@@ -52,10 +56,19 @@ export {
   type VersionHistoryPanelProps,
 } from './components/VersionHistoryPanel';
 export { LinkPopover, type LinkPopoverProps } from './components/LinkPopover';
+// ── 悬停 / 点击就地交互（编辑器已内置；自建 Editor 管线可单独挂载） ──
 export {
   ImageAlignTools,
   type ImageAlignToolsProps,
 } from './components/ImageAlignTools';
+export {
+  TableHandles,
+  type TableHandlesProps,
+} from './components/TableHandles';
+export {
+  MathEditingLayer,
+  type MathEditingLayerProps,
+} from './components/MathEditingLayer';
 
 // ── 链接编辑（浮层背后的命令；宿主自绘 UI 或无头流程可直接用） ──
 export {
