@@ -132,11 +132,6 @@ export const zh: LocaleBundle = {
   },
   chart: {
     tabLabel: (chartType, index) => `${chartType} ${index + 1}`,
-    done: '完成',
-    cancel: '取消',
-    configLabel: '图表配置（JSON）',
-    tableLabel: '数据表（Markdown）',
-    editTitle: '编辑图表',
     changeType: '换图型',
     toTable: '还原成表格',
     typeLabels: {

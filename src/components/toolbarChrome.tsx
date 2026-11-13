@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from 'react';
 import { ColorPalette } from './ColorPalette';
-import type { LocaleCode } from '../i18n';
 import type { ToolbarLabels } from '../labels';
 import {
   NUMBERING_FORMAT_IDS,
@@ -294,14 +293,12 @@ export function ColorPopover({
   bar,
   value,
   onPick,
-  locale,
 }: {
   title: string;
   glyph: string;
   bar: string;
   value?: string;
   onPick: (color: string | null) => void;
-  locale: LocaleCode;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -334,7 +331,6 @@ export function ColorPopover({
               onPick(c);
               setOpen(false);
             }}
-            locale={locale}
           />
         </Popover.Content>
       </Popover.Portal>

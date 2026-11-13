@@ -11,6 +11,11 @@
 import './styles/chart.css';
 
 export {
+  TiptapConfigProvider,
+  type TiptapConfigProviderProps,
+} from './components/TiptapConfigProvider';
+export type { LocaleCode } from './i18n';
+export {
   ReaderReportContent as ReportContent,
   type ReaderReportContentProps as ReportContentProps,
 } from './components/ReaderReportContent';

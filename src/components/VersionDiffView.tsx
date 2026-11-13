@@ -68,7 +68,7 @@ export function VersionDiffView({
       ...baseExtensions,
       previewCodeBlock,
       pureImage,
-      createChart({ editable: false }),
+      createChart(),
       createCitationRef(),
       Markdown.configure({ marked: getCjkEmphasisMarked() }),
       versionDiffExtension,

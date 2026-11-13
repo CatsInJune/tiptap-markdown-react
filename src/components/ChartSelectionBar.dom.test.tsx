@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { MarkdownWysiwygEditor } from './MarkdownWysiwygEditor';
+import { TiptapConfigProvider } from './TiptapConfigProvider';
 import type { Editor } from '@tiptap/core';
 
 const sample = `<!-- {"chartType":"column","x":"分部","y":"收入","colorLegend":"财年","title":"分部收入"} -->
@@ -62,14 +63,15 @@ describe('选中图表的操作条', () => {
     box.editor = null;
     await act(async () => {
       root?.render(
-        <MarkdownWysiwygEditor
-          initialMarkdown={sample}
-          locale="zh"
-          documentTitle={false}
-          onEditorReady={(next) => {
-            box.editor = next;
-          }}
-        />,
+        <TiptapConfigProvider locale="zh">
+          <MarkdownWysiwygEditor
+            initialMarkdown={sample}
+            documentTitle={false}
+            onEditorReady={(next) => {
+              box.editor = next;
+            }}
+          />
+        </TiptapConfigProvider>,
       );
     });
     const editor = box.editor;

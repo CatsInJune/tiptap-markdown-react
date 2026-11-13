@@ -21,7 +21,8 @@ import {
   XIcon,
   type IconProps,
 } from '../icons';
-import type { ToolbarLabels } from '../labels';
+import { useEditorBundle } from '../i18n/store';
+import { useMarkdownLocale } from './TiptapConfigProvider';
 import { setImageCaptionAtPos } from '../imageCaption';
 import { setImageCropAtPos } from '../imageCrop';
 import { setImageAlignAtPos } from '../imageAlign';
@@ -40,8 +41,6 @@ import styles from '../styles/imageAlignTools.module.css';
 export interface ImageAlignToolsProps {
   /** 编辑器实例。只读态不出工具条。 */
   editor: Editor;
-  /** 已合并默认值的工具栏文案（工具条与三个按钮的 aria-label 都取自它）。 */
-  labels: ToolbarLabels;
 }
 
 /** 悬停图片时的几何与位置（工具条 fixed 定位，直接用视口坐标）。 */
@@ -102,13 +101,15 @@ function measureImage(editor: Editor, img: HTMLImageElement): HoverImage | null 
  * 图片工具条（悬停式，与表格悬停手柄同一套交互）：鼠标落在图片上时，图片上方
  * （放不下就下方）浮出左 / 中 / 右、裁剪、描述。点对齐即生效；裁剪打开原图上的选框。
  *
- * fixed 定位 + portal 到 body：它要贴着图片边缘，而工具栏并不在编辑器 DOM 内。
+ * fixed 定位 + portal 到 body：它要贴着图片边缘，而它自己并不在编辑器 DOM 内。
  * 滚动 / 缩放时重新量悬停的那张图让工具条跟着走。
  *
  * 点击走 {@link setImageAlignAt}（按 DOM 位置改 attrs）：鼠标只是飘过图片时图片
  * 并未被选中，不能像快捷键那样走 selection。
  */
-export function ImageAlignTools({ editor, labels }: ImageAlignToolsProps) {
+export function ImageAlignTools({ editor }: ImageAlignToolsProps) {
+  const labels = useEditorBundle(editor, useMarkdownLocale()).toolbar;
+
   const [hover, setHover] = useState<HoverImage | null>(null);
   const hoverRef = useRef<HoverImage | null>(null);
   /** 描述编辑态：null = 未在编辑；string = 输入中的草稿。 */

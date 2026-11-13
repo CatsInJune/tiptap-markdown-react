@@ -8,6 +8,7 @@ import {
   type MarkdownWysiwygEditorHandle,
   type MarkdownWysiwygEditorProps,
 } from './components/MarkdownWysiwygEditor';
+import { TiptapConfigProvider } from './components/TiptapConfigProvider';
 
 beforeAll(() => {
   (
@@ -21,14 +22,17 @@ describe('正文文档标题', () => {
   let editor: Editor | null;
   let handle: MarkdownWysiwygEditorHandle | null;
 
-  function mount(props: Partial<MarkdownWysiwygEditorProps> = {}) {
+  function mount(
+    props: Partial<MarkdownWysiwygEditorProps> = {},
+    locale?: 'zh' | 'en',
+  ) {
     host = document.createElement('div');
     document.body.append(host);
     root = createRoot(host);
     editor = null;
     handle = null;
     return act(async () => {
-      root?.render(
+      const editorNode = (
         <MarkdownWysiwygEditor
           initialMarkdown="正文"
           onEditorReady={(next) => {
@@ -38,7 +42,14 @@ describe('正文文档标题', () => {
             handle = next;
           }}
           {...props}
-        />,
+        />
+      );
+      root?.render(
+        locale ? (
+          <TiptapConfigProvider locale={locale}>{editorNode}</TiptapConfigProvider>
+        ) : (
+          editorNode
+        ),
       );
     });
   }
@@ -77,7 +88,7 @@ describe('正文文档标题', () => {
   });
 
   it('中文占位为「标题」', async () => {
-    await mount({ locale: 'zh' });
+    await mount({}, 'zh');
     expect(titleField()?.placeholder).toBe('标题');
   });
 

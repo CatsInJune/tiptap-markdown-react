@@ -96,14 +96,13 @@ export interface ApiRow {
 export const EDITOR_API: ApiRow[] = [
   { name: 'initialMarkdown', desc: 'Initial markdown content', type: 'string', defaultVal: "''" },
   { name: 'editable', desc: 'Read-only mode: same extensions/NodeViews/styles as editing; interactive controls collapse. Comments ignored when false', type: 'boolean', defaultVal: 'true' },
-  { name: 'locale', desc: 'Built-in UI language. en or zh. Toolbar and other sibling components take the same prop; the outline follows the editor', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'sources', desc: 'Initial citation sources for [^n] (url/title on citationRef). Init-only', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'renderCitation', desc: 'NodeView slot to wrap citation pills (Popover etc.). Init-only', type: 'RenderCitation', defaultVal: '—' },
   { name: 'placeholder', desc: 'Empty-state placeholder', type: 'string', defaultVal: '—' },
   { name: 'documentTitle', desc: 'Document title above the body. Kept out of markdown and the outline. A string is controlled; false hides the field. Empty is allowed', type: 'string | false', defaultVal: 'shown, empty' },
   { name: 'defaultDocumentTitle', desc: 'Initial title when documentTitle is not a string', type: 'string', defaultVal: "''" },
   { name: 'onDocumentTitleChange', desc: 'Fires when the title changes, whether or not it is controlled', type: '(title: string) => void', defaultVal: '—' },
-  { name: 'documentTitlePlaceholder', desc: 'Title placeholder. Defaults with locale: Title / 标题', type: 'string', defaultVal: 'locale' },
+  { name: 'documentTitlePlaceholder', desc: 'Title placeholder. Defaults with TiptapConfigProvider: Title / 标题', type: 'string', defaultVal: 'TiptapConfigProvider' },
   { name: 'documentTitleMaxLength', desc: 'Maximum title length', type: 'number', defaultVal: '200' },
   { name: 'onEditorReady', desc: 'Called when editor is ready / destroyed', type: '(editor: Editor | null) => void', defaultVal: '—' },
   { name: 'onTocChange', desc: 'Optional. Fires when the heading list changes. The editor draws the outline itself', type: '(items: TocItem[]) => void', defaultVal: '—' },
@@ -149,7 +148,6 @@ export const TOOLBAR_API: ApiRow[] = [
   { name: 'onImportDocument', desc: 'Convert a non-Markdown file to Markdown. Omit and Import only takes .md', type: '(file: File, ctx: ImportDocumentContext) => Promise<ImportDocumentResult | string>', defaultVal: '—' },
   { name: 'importAccept', desc: 'Extra accept for the default Document menu item when importMenuItems is omitted', type: 'string', defaultVal: '—' },
   { name: 'importMenuItems', desc: 'Import dropdown options (label + accept). Hosts split Markdown / Word / PDF here', type: 'ImportMenuItem[]', defaultVal: '—' },
-  { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'onSearch', desc: 'Click handler for the search button. The default layout does not include that button', type: '() => void', defaultVal: '—' },
   { name: 'searchActive', desc: 'Whether the bar is open; drives aria-pressed on the search entry', type: 'boolean', defaultVal: 'false' },
   { name: 'onHistory', desc: 'Click handler for a history button placed in groups. The default layout has no clock; the floating button belongs to VersionHistoryPanel', type: '() => void', defaultVal: '—' },
@@ -163,7 +161,6 @@ export const TOOLBAR_API: ApiRow[] = [
 export const LINK_API: ApiRow[] = [
   { name: 'editor', desc: 'Tiptap Editor instance (required)', type: 'Editor' },
   { name: 'trigger', desc: 'Your own trigger element — Radix asChild takes over its click / ref / aria', type: 'ReactNode' },
-  { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'className / style', desc: 'Extra class / inline style on the panel (placement stays with Radix)', type: 'string / CSSProperties', defaultVal: '—' },
   { name: 'applyLink(editor, raw)', desc: 'Normalise and apply an address over the whole link / selection. false = the editor rejected it', type: '(editor, raw: string) => boolean' },
   { name: 'removeLink(editor)', desc: 'Strip the link from the whole range without letting autolink add it back', type: '(editor) => boolean' },
@@ -177,7 +174,6 @@ export const PREVIEW_API: ApiRow[] = [
   { name: 'sources', desc: 'Optional: attach url/title onto [^n] nodes by index', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'renderCitation', desc: 'NodeView slot: wrap the pill (e.g. host Popover). Data lookup is host-owned', type: 'RenderCitation', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on scroll container', type: 'string', defaultVal: '—' },
-  { name: 'locale', desc: 'Built-in UI language for the read-only code block, charts, and outline', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'toc', desc: 'Built-in left outline. Ticks when there are headings; hover expands titles and click scrolls. Hidden under 768px', type: 'boolean', defaultVal: 'false' },
 ];
 
@@ -185,7 +181,6 @@ export const REPORT_CONTENT_API: ApiRow[] = [
   { name: 'html', desc: 'HTML from renderReportHtml(...).html', type: 'string' },
   { name: 'className', desc: 'Extra class merged with editorContent', type: 'string', defaultVal: '—' },
   { name: 'toc', desc: 'On the ./reader export: built-in left outline. The ./server export ignores this and stays static HTML', type: 'boolean', defaultVal: 'false' },
-  { name: 'locale', desc: 'Outline accessible name on the ./reader export', type: "'en' | 'zh'", defaultVal: 'en' },
 ];
 
 export const RENDER_HTML_API: ApiRow[] = [
@@ -541,7 +536,6 @@ export const HISTORY_API: ApiRow[] = [
   { name: 'open / onOpenChange', desc: 'Controlled dialog. Omit and the floating button owns open state', type: 'boolean / (open: boolean) => void', defaultVal: 'button' },
   { name: 'buttonOffset', desc: 'Floating-button insets. Omit and the button sits 12px above the keyboard shortcut. left replaces right; top replaces bottom', type: 'HistoryButtonOffset', defaultVal: 'above shortcut' },
   { name: 'buttonContainer', desc: 'Mount the button here and position it yourself. The dialog still covers the viewport', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'document.body' },
-  { name: 'locale', desc: 'Built-in UI language for the history panel', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'sources', desc: 'Footnote sources for the preview, same as MarkdownPreview', type: 'SourceRef[]', defaultVal: '—' },
   { name: 'className', desc: 'Extra class on the panel root', type: 'string', defaultVal: '—' },
   { name: 'DocumentVersion', desc: 'id, title, markdown, plus optional createdAt, detail, and documentTitle', type: 'interface', defaultVal: '—' },
@@ -554,7 +548,6 @@ export const FIND_API: ApiRow[] = [
   { name: 'findBar', desc: 'Let the editor render the bar; false = host places <FindReplaceBar> itself', type: 'boolean', defaultVal: '= findReplace' },
   { name: 'findBarContainer', desc: 'Where the library-rendered bar mounts (open state + shortcut stay in the library)', type: 'HTMLElement | (() => HTMLElement | null)', defaultVal: 'in-editor bar' },
   { name: 'findShortcut', desc: 'Take over Cmd/Ctrl+F while the editor has focus (only when the editor owns a bar)', type: 'boolean', defaultVal: 'true' },
-  { name: 'locale', desc: 'Built-in UI language for the bar', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'onFindOpenChange', desc: 'Bar open/close notification (fires only when the bar actually shows or hides, plus once on unmount)', type: '(open: boolean) => void', defaultVal: '—' },
   { name: 'Esc / × / toggleFind', desc: 'Ways out of the bar. Esc works from anywhere that belongs to the editor and is consumed; clicking into the document or another input deliberately does not close it', type: 'keyboard / handle', defaultVal: '—' },
   { name: 'EditorToolbar onSearch / searchActive', desc: 'Toolbar magnifier. Put search in groups to show it; onSearch is the click handler and searchActive drives aria-pressed', type: '() => void / boolean', defaultVal: '—' },
@@ -565,6 +558,7 @@ export const FIND_API: ApiRow[] = [
 ];
 
 export const I18N_API: ApiRow[] = [
-  { name: 'locale', desc: 'Built-in language on each visible component: editor, toolbar, TOC, palette, find bar, link popover, preview', type: "'en' | 'zh'", defaultVal: 'en' },
+  { name: 'TiptapConfigProvider', desc: 'Single global language entry; wrap the app once', type: 'Component', defaultVal: '—' },
+  { name: 'locale', desc: 'Language prop on TiptapConfigProvider', type: "'en' | 'zh'", defaultVal: 'en' },
   { name: 'LocaleCode', desc: 'Exported union of the built-in languages', type: "'en' | 'zh'", defaultVal: '—' },
 ];

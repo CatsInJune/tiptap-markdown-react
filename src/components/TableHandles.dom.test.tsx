@@ -6,7 +6,10 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { baseExtensions } from '../extensions';
+import { getLocaleBundle, type LocaleCode } from '../i18n';
+import { setEditorLocale } from '../i18n/store';
 import { defaultToolbarLabels } from '../labels';
+import { TiptapConfigProvider } from './TiptapConfigProvider';
 import { TableHandles } from './TableHandles';
 
 beforeAll(() => {
@@ -80,7 +83,7 @@ describe('TableHandles', () => {
   let root: Root;
   let editor: Editor;
 
-  const mount = async (ed: Editor) => {
+  const mount = async (ed: Editor, locale?: LocaleCode) => {
     editor = ed;
     // `new Editor({...})` 没传 element 时视图 DOM 是游离的，事件冒泡不到 document；
     // 真实宿主里它在文档里，所以测试也要挂上去（否则 mousemove 追不到）
@@ -89,7 +92,15 @@ describe('TableHandles', () => {
     document.body.appendChild(host);
     root = createRoot(host);
     await act(async () => {
-      root.render(<TableHandles editor={editor} labels={defaultToolbarLabels} />);
+      root.render(
+        locale ? (
+          <TiptapConfigProvider locale={locale}>
+            <TableHandles editor={editor} />
+          </TiptapConfigProvider>
+        ) : (
+          <TableHandles editor={editor} />
+        ),
+      );
     });
     return host;
   };
@@ -338,6 +349,43 @@ describe('TableHandles', () => {
     await hover(cell(1, 1));
     expect(rowHandle()).toBeNull();
     expect(colHandle()).toBeNull();
+  });
+
+  it('未发布 locale 的编辑器跟随 TiptapConfigProvider', async () => {
+    await mount(buildEditor(), 'zh');
+    await hover(cell(1, 1));
+
+    const zh = getLocaleBundle('zh').toolbar;
+    expect(rowHandle()!.getAttribute('aria-label')).toBe(zh.tableRowMenu);
+    expect(colHandle()!.getAttribute('aria-label')).toBe(zh.tableColumnMenu);
+  });
+
+  it('编辑器已发布语言时优先于 Provider', async () => {
+    const ed = buildEditor();
+    setEditorLocale(ed, 'zh');
+    await mount(ed, 'en');
+    await hover(cell(1, 1));
+
+    expect(rowHandle()!.getAttribute('aria-label')).toBe(
+      getLocaleBundle('zh').toolbar.tableRowMenu,
+    );
+  });
+
+  it('挂载后切换 Provider 语言，手柄文案跟着更新', async () => {
+    await mount(buildEditor(), 'en');
+    await hover(cell(1, 1));
+
+    await act(async () => {
+      root.render(
+        <TiptapConfigProvider locale="zh">
+          <TableHandles editor={editor} />
+        </TiptapConfigProvider>,
+      );
+    });
+
+    expect(rowHandle()!.getAttribute('aria-label')).toBe(
+      getLocaleBundle('zh').toolbar.tableRowMenu,
+    );
   });
 
   it('右键只服务多格选区：没有多格选区时不出菜单', async () => {

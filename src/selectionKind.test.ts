@@ -10,7 +10,7 @@ import { selectionKind } from './selectionKind';
 
 function build(content = ''): Editor {
   return new Editor({
-    extensions: [...baseExtensions, createChart({ editable: false }), Markdown],
+    extensions: [...baseExtensions, createChart(), Markdown],
     content: prepareChartMarkdown(content),
     contentType: 'markdown',
   });

@@ -203,12 +203,6 @@ export interface SlashMenuLabels {
 export interface ChartLabels {
   /** Tab label when config has no title. */
   tabLabel: (chartType: string, index: number) => string;
-  done: string;
-  cancel: string;
-  configLabel: string;
-  tableLabel: string;
-  /** Modal dialog title. */
-  editTitle: string;
   /** 选中图表后的图型按钮。当前图型未知时用这句。 */
   changeType: string;
   /** 把图表节点还原成数据表。 */
@@ -225,11 +219,6 @@ export interface ChartLabels {
 
 export const defaultChartLabels: ChartLabels = {
   tabLabel: (chartType, index) => `${chartType} ${index + 1}`,
-  done: 'Done',
-  cancel: 'Cancel',
-  configLabel: 'Chart config (JSON)',
-  tableLabel: 'Data table (Markdown)',
-  editTitle: 'Edit chart',
   changeType: 'Chart type',
   toTable: 'Back to table',
   typeLabels: {

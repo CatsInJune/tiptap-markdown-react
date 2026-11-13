@@ -29,7 +29,6 @@ import {
   UnderlineIcon,
   UndoIcon,
 } from '../icons';
-import type { LocaleCode } from '../i18n';
 import type { ToolbarLabels } from '../labels';
 import { applyNumberingFormat, type NumberingFormat } from '../numberingFormat';
 import type { ResolvedToolbarGroup } from '../toolbarLayout';
@@ -52,7 +51,6 @@ const FONT_SIZES = ['12px', '14px', '16px', '18px', '20px', '24px', '30px'] as c
 
 export interface ToolbarBodyModel {
   editor: Editor;
-  locale: LocaleCode;
   t: ToolbarLabels;
   groups: ResolvedToolbarGroup[];
   fullscreen: boolean;
@@ -219,7 +217,6 @@ function controlNode(id: string, ctx: ToolbarBodyModel): ReactNode {
           bar={state.textColor || '#ff3b30'}
           value={state.textColor}
           onPick={ctx.applyTextColor}
-          locale={ctx.locale}
         />
       );
     case 'highlight':
@@ -230,7 +227,6 @@ function controlNode(id: string, ctx: ToolbarBodyModel): ReactNode {
           bar={state.highlightColor || '#ffd83d'}
           value={state.highlightColor}
           onPick={ctx.applyHighlight}
-          locale={ctx.locale}
         />
       );
     case 'script':
@@ -239,7 +235,6 @@ function controlNode(id: string, ctx: ToolbarBodyModel): ReactNode {
       return (
         <LinkPopover
           editor={editor}
-          locale={ctx.locale}
           trigger={
             <ToolbarButton data-toolbar-item="link" title={t.link} active={state.link}>
               <LinkIcon />
@@ -398,7 +393,6 @@ function moreEntry(id: string, ctx: ToolbarBodyModel): ReactNode {
       return (
         <LinkPopover
           editor={editor}
-          locale={ctx.locale}
           trigger={
             <button type="button" className={styles.menuItem} onMouseDown={(e) => e.preventDefault()}>
               <span className={styles.styleItem}>

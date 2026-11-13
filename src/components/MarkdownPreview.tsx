@@ -4,13 +4,13 @@ import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, ReactNodeViewRenderer, useEditor } from '@tiptap/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { type LocaleCode } from '../i18n';
 import { usePublishEditorLocale } from '../i18n/store';
 import { useIsMobile } from '../hooks/useIsMobile';
 import type { TocItem } from '../toc/extractToc';
 import { makeTocGetId } from '../toc/tocSlug';
 import { sameTocItems } from '../toc/readTocItems';
 import { EditorToc } from './EditorToc';
+import { useMarkdownLocale } from './TiptapConfigProvider';
 import { createChart } from '../chart/createChart';
 import { prepareChartMarkdown } from '../chart/prepareChartMarkdown';
 import {
@@ -41,8 +41,6 @@ export interface MarkdownPreviewProps {
    */
   renderCitation?: RenderCitation;
   className?: string;
-  /** 内置界面语言，默认英文。代码块、图表和目录文案跟着变。 */
-  locale?: LocaleCode;
   /**
    * 内置左缘目录（默认关闭）。传入后，有标题时显示短横线，悬停展开，点击滚动。
    * 宽度小于 768px 时不显示。
@@ -64,9 +62,9 @@ export function MarkdownPreview({
   sources,
   renderCitation,
   className,
-  locale = 'en',
   toc = false,
 }: MarkdownPreviewProps) {
+  const locale = useMarkdownLocale();
   const mobile = useIsMobile(768);
   const [tocItems, setTocItems] = useState<TocItem[]>([]);
   const tocItemsRef = useRef<TocItem[]>([]);
@@ -100,7 +98,7 @@ export function MarkdownPreview({
       ...baseExtensions,
       previewCodeBlock,
       pureImage,
-      createChart({ editable: false }),
+      createChart(),
       createCitationRef({ renderCitation }),
       // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
       Markdown.configure({ marked: getCjkEmphasisMarked() }),

@@ -8,6 +8,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { baseExtensions } from '../extensions';
 import { ImageUploadNode } from '../imageUpload';
 import { EditorToolbar, type EditorToolbarProps } from './EditorToolbar';
+import { TiptapConfigProvider } from './TiptapConfigProvider';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -38,13 +39,24 @@ describe('EditorToolbar 的搜索入口', () => {
       contentType: 'markdown',
     });
 
-  const mount = async (props: Partial<EditorToolbarProps> = {}) => {
+  const mount = async (
+    props: Partial<EditorToolbarProps> = {},
+    locale?: 'zh' | 'en',
+  ) => {
     editor = buildEditor();
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
     await act(async () => {
-      root.render(<EditorToolbar editor={editor} {...props} />);
+      root.render(
+        locale ? (
+          <TiptapConfigProvider locale={locale}>
+            <EditorToolbar editor={editor} {...props} />
+          </TiptapConfigProvider>
+        ) : (
+          <EditorToolbar editor={editor} {...props} />
+        ),
+      );
     });
     return host;
   };
@@ -84,8 +96,8 @@ describe('EditorToolbar 的搜索入口', () => {
     expect(searchButton()?.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('locale=zh 使用内置中文', async () => {
-    await mount({ groups: [['search']], onSearch: () => {}, locale: 'zh' });
+  it('Provider 为 zh 时使用内置中文', async () => {
+    await mount({ groups: [['search']], onSearch: () => {} }, 'zh');
     expect(searchButton('查找替换')).not.toBeNull();
   });
 
@@ -241,7 +253,15 @@ describe('样式按钮显示当前块级', () => {
     document.body.appendChild(host);
     root = createRoot(host);
     await act(async () => {
-      root.render(<EditorToolbar editor={editor} locale={locale} />);
+      root.render(
+        locale ? (
+          <TiptapConfigProvider locale={locale}>
+            <EditorToolbar editor={editor} />
+          </TiptapConfigProvider>
+        ) : (
+          <EditorToolbar editor={editor} />
+        ),
+      );
     });
   }
 
@@ -304,10 +324,12 @@ describe('焦点在文档标题时', () => {
     root = createRoot(host);
     await act(async () => {
       root.render(
-        <div>
-          <textarea data-document-title="" defaultValue="年度报告" />
-          <EditorToolbar editor={editor} locale="zh" />
-        </div>,
+        <TiptapConfigProvider locale="zh">
+          <div>
+            <textarea data-document-title="" defaultValue="年度报告" />
+            <EditorToolbar editor={editor} />
+          </div>
+        </TiptapConfigProvider>,
       );
     });
   }
@@ -461,10 +483,14 @@ describe('格式刷和清除格式', () => {
     expect(editor.getMarkdown()).toContain('**two**');
   });
 
-  it('locale=zh 使用格式刷和清除格式', async () => {
+  it('Provider 为 zh 时使用格式刷和清除格式', async () => {
     await mount('x');
     await act(async () => {
-      root.render(<EditorToolbar editor={editor} locale="zh" />);
+      root.render(
+        <TiptapConfigProvider locale="zh">
+          <EditorToolbar editor={editor} />
+        </TiptapConfigProvider>,
+      );
     });
     expect(button('格式刷。双击可连续使用，Esc 取消')).not.toBeNull();
     expect(button('清除格式')).not.toBeNull();
@@ -486,14 +512,25 @@ describe('EditorToolbar 的全屏', () => {
 
   const mount = async (
     props: Partial<EditorToolbarProps> = {},
-    parent: HTMLElement = document.body,
+    parentOrLocale: HTMLElement | 'zh' | 'en' = document.body,
   ) => {
+    const parent =
+      typeof parentOrLocale === 'string' ? document.body : parentOrLocale;
+    const locale =
+      typeof parentOrLocale === 'string' ? parentOrLocale : undefined;
     editor = buildEditor();
     host = document.createElement('div');
     parent.appendChild(host);
     root = createRoot(host);
     await act(async () => {
-      root.render(<EditorToolbar editor={editor} {...props} />);
+      const toolbar = <EditorToolbar editor={editor} {...props} />;
+      root.render(
+        locale ? (
+          <TiptapConfigProvider locale={locale}>{toolbar}</TiptapConfigProvider>
+        ) : (
+          toolbar
+        ),
+      );
     });
   };
 
@@ -618,8 +655,8 @@ describe('EditorToolbar 的全屏', () => {
     expect(host.hasAttribute('data-tmr-fullscreen')).toBe(false);
   });
 
-  it('locale=zh 使用全屏 / 退出全屏', async () => {
-    await mount({ locale: 'zh' });
+  it('Provider 为 zh 时使用全屏 / 退出全屏', async () => {
+    await mount({}, 'zh');
     await openMore('更多');
     expect(button('全屏')).not.toBeNull();
     await click('全屏');

@@ -1,36 +1,16 @@
 import { BlockMath, InlineMath } from '@tiptap/extension-mathematics';
-import type { Node as PMNode } from '@tiptap/pm/model';
 import katex from 'katex';
 
 const KATEX_OPTIONS = { throwOnError: false as const };
 
 export type MathKind = 'inline' | 'block';
 
-export interface MathClickPayload {
-  kind: MathKind;
-  pos: number;
-  latex: string;
-}
-
-type MathClickListener = (payload: MathClickPayload) => void;
-
-let mathClickListener: MathClickListener | null = null;
-
-/** 编辑器工具栏注册点击公式回调；未注册时点击无操作（预览 / SSR）。 */
-export function subscribeMathClick(listener: MathClickListener): () => void {
-  mathClickListener = listener;
-  return () => {
-    if (mathClickListener === listener) mathClickListener = null;
-  };
-}
-
-function emitClick(kind: MathKind, node: PMNode, pos: number) {
-  mathClickListener?.({
-    kind,
-    pos,
-    latex: String(node.attrs.latex ?? ''),
-  });
-}
+/**
+ * 官方 NodeView 只在配置了 `onClick` 时才挂自己的 click 处理器（并 preventDefault /
+ * stopPropagation）。点击编辑由编辑器层的 `<MathEditingLayer>` 接管；这里保留空回调，
+ * 只为维持原来的点击行为，不再向工具栏派发事件。
+ */
+const KEEP_NODE_VIEW_CLICK = () => {};
 
 function escapeHtml(value: string): string {
   return value
@@ -108,7 +88,7 @@ export const reportInlineMath = InlineMath.extend({
   },
 }).configure({
   katexOptions: { ...KATEX_OPTIONS, displayMode: false },
-  onClick: (node, pos) => emitClick('inline', node, pos),
+  onClick: KEEP_NODE_VIEW_CLICK,
 });
 
 /**
@@ -144,5 +124,5 @@ export const reportBlockMath = BlockMath.extend({
   },
 }).configure({
   katexOptions: { ...KATEX_OPTIONS, displayMode: true },
-  onClick: (node, pos) => emitClick('block', node, pos),
+  onClick: KEEP_NODE_VIEW_CLICK,
 });

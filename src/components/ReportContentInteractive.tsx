@@ -2,7 +2,6 @@
 
 import { useRef, type ComponentProps } from 'react';
 import type { OnCitationEnter, OnCitationLeave } from '../citationTypes';
-import type { LocaleCode } from '../i18n';
 import { ReportContent } from '../ReportContent';
 import { CitationInteractive } from './CitationInteractive';
 import { ReaderReportContent } from './ReaderReportContent';
@@ -15,8 +14,6 @@ export interface ReportContentInteractiveProps
   onCitationLeave: OnCitationLeave;
   /** 内置左缘目录，默认关闭。 */
   toc?: boolean;
-  /** 目录按钮的无障碍文案。默认英文。 */
-  locale?: LocaleCode;
 }
 
 /**
@@ -29,14 +26,13 @@ export function ReportContentInteractive({
   className,
   html,
   toc = false,
-  locale = 'en',
   ...rest
 }: ReportContentInteractiveProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   return (
     <div ref={ref} className={className}>
-      <ReaderReportContent html={html} toc={toc} locale={locale} {...rest} />
+      <ReaderReportContent html={html} toc={toc} {...rest} />
       <CitationInteractive
         containerRef={ref}
         onCitationEnter={onCitationEnter}

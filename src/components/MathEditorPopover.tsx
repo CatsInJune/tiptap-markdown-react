@@ -27,6 +27,11 @@ export interface MathEditorPopoverProps {
   doneLabel: string;
   onConfirm: (latex: string) => void;
   onCancel: () => void;
+  /**
+   * 浮层挂载点。默认编辑器 view 的父元素（工具栏场景）；编辑器壳传 `document.body`，
+   * 避免浮层随编辑器树一起卸载时 React 先移除了它的容器。
+   */
+  portalHost?: HTMLElement | null;
 }
 
 function resolveNodeEl(editor: Editor, pos: number): HTMLElement | null {
@@ -44,11 +49,15 @@ function mathRenderTarget(el: HTMLElement, isBlock: boolean): HTMLElement {
 function getMathLayerStyle(
   editor: Editor,
   kind: MathKind,
-  pos?: number,
+  pos: number | undefined,
+  viewport: boolean,
 ): CSSProperties {
   const host = editor.view.dom.parentElement;
-  if (!host) return {};
-  const hostRect = host.getBoundingClientRect();
+  if (!viewport && !host) return {};
+  // viewport 模式挂到 body、用 fixed 定位，坐标直接取视口值；否则相对 host 计算。
+  const hostRect = viewport
+    ? { left: 0, top: 0 }
+    : host!.getBoundingClientRect();
   const editorRect = editor.view.dom.getBoundingClientRect();
   const gap = 6;
   const blockWidth = editor.view.dom.clientWidth;
@@ -98,27 +107,30 @@ export function MathEditorPopover({
   doneLabel,
   onConfirm,
   onCancel,
+  portalHost,
 }: MathEditorPopoverProps) {
+  const viewport = portalHost != null;
   const [draft, setDraft] = useState(latex);
   const [layerStyle, setLayerStyle] = useState<CSSProperties>(() =>
-    getMathLayerStyle(editor, kind, pos),
+    getMathLayerStyle(editor, kind, pos, viewport),
   );
   const titleId = useId();
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const isBlock = kind === 'block';
-  const host = editor.view.dom.parentElement;
+  const host = portalHost ?? editor.view.dom.parentElement;
 
   useEffect(() => {
     setDraft(latex);
   }, [latex]);
 
   useEffect(() => {
-    const update = () => setLayerStyle(getMathLayerStyle(editor, kind, pos));
+    const update = () =>
+      setLayerStyle(getMathLayerStyle(editor, kind, pos, viewport));
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, [editor, kind, pos, draft]);
+  }, [editor, kind, pos, draft, viewport]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -222,7 +234,11 @@ export function MathEditorPopover({
     <div
       ref={rootRef}
       className={styles.mathLayer}
-      style={layerStyle}
+      style={
+        viewport
+          ? { ...layerStyle, position: 'fixed', zIndex: 1000 }
+          : layerStyle
+      }
       role="dialog"
       aria-modal="false"
       aria-labelledby={titleId}

@@ -30,7 +30,8 @@ import {
   SearchIcon,
   XIcon,
 } from '../icons';
-import { getLocaleBundle, type LocaleCode } from '../i18n';
+import { getLocaleBundle } from '../i18n';
+import { useMarkdownLocale } from './TiptapConfigProvider';
 import styles from '../styles/findBar.module.css';
 
 export interface FindReplaceBarProps {
@@ -38,8 +39,6 @@ export interface FindReplaceBarProps {
   editor: Editor;
   /** 关闭（Esc / ×）：宿主负责收起浮动条并把焦点还给编辑器。 */
   onClose: () => void;
-  /** 内置语言，默认英文。 */
-  locale?: LocaleCode;
   /**
    * 查找输入框 ref。宿主拿它实现「再按一次 Mod+F 聚焦并全选当前查询」。
    * 也用于浮动条打开时自动聚焦。
@@ -79,11 +78,11 @@ function warnMissingExtensionOnce(): void {
 export function FindReplaceBar({
   editor,
   onClose,
-  locale = 'en',
   inputRef,
   className,
   style,
 }: FindReplaceBarProps) {
+  const locale = useMarkdownLocale();
   const t = getLocaleBundle(locale).find;
   const [term, setTerm] = useState('');
   const [replaceTerm, setReplaceTerm] = useState('');

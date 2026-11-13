@@ -9,7 +9,7 @@ import { getMarkdownForRange } from './markdownRange';
 
 function build(content = ''): Editor {
   return new Editor({
-    extensions: [...baseExtensions, createChart({ editable: false }), Markdown],
+    extensions: [...baseExtensions, createChart(), Markdown],
     // 与 MarkdownWysiwygEditor 一致：先预处理（注释 + 表 → 围栏）再交给编辑器
     content: prepareChartMarkdown(content),
     contentType: 'markdown',

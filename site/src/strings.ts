@@ -128,7 +128,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'Stable data-find-* selectors for host CSS (bar internals are hashed CSS-module classes)': '给宿主 CSS 的稳定 data-find-* 选择器（浮动条内部是哈希过的 CSS Modules 类名）',
   'Regex (RE2, no lookarounds) stays available via setUseRegex, no button': '正则（RE2，不支持环视）经 setUseRegex 仍可用，无按钮',
   'Replace and replace-all — replace-all is a single undo step': '单处替换与全部替换——全部替换是单步撤销',
-  'Find-only on read-only editors; bar text follows locale': '只读编辑器仅查找；条文案随 locale',
+  'Find-only on read-only editors; bar text follows TiptapConfigProvider': '只读编辑器仅查找；条文案随 TiptapConfigProvider',
   'Headless: drive it with editor.commands.setSearchTerm / replaceAll': '无头用法：用 editor.commands.setSearchTerm / replaceAll 驱动',
   'Floating find bar': '浮动查找条',
   'Doc ends with a code block on purpose — that is the TrailingNode edge case runFindCommand absorbs.':
@@ -140,12 +140,12 @@ export const ZH_STRINGS: Record<string, string> = {
   'findBar={false}: the editor keeps the extension but renders no bar — placement, stacking and looks belong to the host.':
     'findBar={false}：编辑器保留扩展但不出条子——摆位、层叠与外观全归宿主。',
 
-  'UI copy ships inside the components. Pass locale="zh" or locale="en" (the default) to the editor, toolbar, TOC, palette, find bar, link popover and preview. There is no labels prop and no provider. Switching locale updates the toolbar, find bar, shortcuts, code blocks, charts and upload placeholders without remounting the editor. Comment popover content is still your children.':
-    '界面文案在组件内。给编辑器、工具栏、目录、色板、查找条、链接浮层和预览传 locale="zh" 或 locale="en"（默认）。没有 labels，也没有 Provider。切换 locale 时工具栏、查找条、快捷键、代码块、图表和上传占位一起变，不用重建编辑器。评论浮层的内容仍由宿主的 children 提供。',
+  'Wrap the app once in <TiptapConfigProvider locale="zh">. Every component — editor, toolbar, TOC, palette, find bar, link popover, preview, reader and hover tools — follows it. There is no per-component locale and no labels prop. Switching the provider updates everything live without remounting the editor. Comment popover content is still your children.':
+    '在应用最外层包一次 <TiptapConfigProvider locale="zh">。编辑器、工具栏、目录、色板、查找条、链接浮层、预览、阅读页和就地交互全部跟随。组件不再接受各自的 locale，也没有 labels。切换 Provider 时所有界面即时更新，编辑器不用重建。评论浮层的内容仍由宿主的 children 提供。',
   'Built-in en and zh bundles': '内置英文和中文',
-  'locale on each visible component, default en': '每个可见组件收 locale，默认 en',
-  'Toolbar, TOC, find bar, code blocks and charts switch live': '工具栏、目录、查找条、代码块和图表即时切换',
-  'No host-supplied label objects': '宿主不再传入文案对象',
+  'One TiptapConfigProvider at the app root': '应用根部一个 TiptapConfigProvider',
+  'Toolbar, TOC, find bar, code blocks, charts and hover tools switch live': '工具栏、目录、查找条、代码块、图表和悬停控件即时切换',
+  'No per-component locale or label objects': '不再按组件传 locale 或文案对象',
   'Comment popover body stays host-owned': '评论浮层正文仍归宿主',
   'Chinese ⇄ English': '中文 ⇄ English',
   'The header 中 / EN switch drives this editor, the toolbar and the TOC. Unsaved edits stay.':
@@ -166,7 +166,7 @@ export const ZH_STRINGS: Record<string, string> = {
   'Radix Popover / DropdownMenu — no native selects': 'Radix Popover / DropdownMenu——不用原生 select',
   'extraToolbarItems append to the default More menu; with groups, list the key':
     'extraToolbarItems 追加到默认「更多」菜单；传了 groups 时，把 key 写进布局才出现',
-  'locale switches the built-in toolbar copy': 'locale 切换内置工具栏文案',
+  'TiptapConfigProvider switches the built-in toolbar copy': 'TiptapConfigProvider 切换内置工具栏文案',
   'Toolbar with image upload': '带图片上传的工具栏',
 
   'KaTeX inline and block math. Insert from the toolbar More menu; click a formula to edit LaTeX in place (the document formula updates live; the popover is input-only). Typing $ / $$ never converts — dollar amounts stay text. Markdown round-trip uses $$.':
@@ -262,7 +262,7 @@ export const ZH_STRINGS: Record<string, string> = {
     '正文上方的文档标题。不进 markdown，也不进目录。传字符串为受控；传 false 隐藏。可以留空',
   'Initial title when documentTitle is not a string': 'documentTitle 不是字符串时的初始标题',
   'Fires when the title changes, whether or not it is controlled': '标题变化时回调，受控与否都会触发',
-  'Title placeholder. Defaults with locale: Title / 标题': '标题占位。默认随语言：Title / 标题',
+  'Title placeholder. Defaults with TiptapConfigProvider: Title / 标题': '标题占位。默认随 TiptapConfigProvider：Title / 标题',
   'Maximum title length': '标题最长字数',
   'Current document title. Empty when the field is hidden. Not included in getMarkdown()':
     '当前文档标题。字段隐藏时为空。不包含在 getMarkdown() 里',
@@ -410,8 +410,8 @@ export const ZH_STRINGS: Record<string, string> = {
   'The bar itself, if you place it yourself': '浮动条本体，想自己摆位时用',
   'Re-exported official extension for hand-built pipelines': '再导出的官方扩展，供自建管线使用',
   'Guard for the Tiptap 3.31.3 trailing-node transaction mismatch': 'Tiptap 3.31.3 尾随节点事务错位的防护壳',
-  'Built-in language on each visible component: editor, toolbar, TOC, palette, find bar, link popover, preview':
-    '每个可见组件上的内置语言：编辑器、工具栏、目录、色板、查找条、链接浮层、预览',
+  'Single global language entry; wrap the app once': '全局语言入口；在应用外层包一次',
+  'Language prop on TiptapConfigProvider': 'TiptapConfigProvider 的 locale 属性',
   'Exported union of the built-in languages': '导出的内置语言联合类型',
   'Toolbar More → Inline equation / Block equation. No keyboard shortcut; typing $ / $$ stays text': '工具栏更多 → 行内公式 / 块级公式。无快捷键；键入 $ / $$ 保持文本',
   'Click a formula: KaTeX stays in the document (highlighted); pill input anchors below and updates it in place; Done / Enter (⌘Enter for block)': '点击公式：KaTeX 留在文档里（高亮），下方锚定输入框原位更新；完成 / Enter（块级用 ⌘Enter）',

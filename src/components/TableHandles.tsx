@@ -22,7 +22,9 @@ import {
   RowDeleteIcon,
   TableDeleteIcon,
 } from '../icons';
+import { useEditorBundle } from '../i18n/store';
 import type { ToolbarLabels } from '../labels';
+import { useMarkdownLocale } from './TiptapConfigProvider';
 import {
   addColumnsAfter,
   addColumnsBefore,
@@ -42,8 +44,6 @@ import styles from '../styles/tableHandles.module.css';
 export interface TableHandlesProps {
   /** 编辑器实例。只读态不出手柄。 */
   editor: Editor;
-  /** 已合并默认值的工具栏文案（行列菜单项与两个手柄的 aria-label 都取自它）。 */
-  labels: ToolbarLabels;
 }
 
 /** 悬停到某个单元格时量出来的几何：手柄贴边 + 建 CellSelection 用。 */
@@ -275,10 +275,12 @@ function menuItemsFor(
  * 这是原来「表内右键出菜单」的替代——右键只保留**多格选区**的批量增删（手柄只覆盖单行单列，
  * 那个场景手柄表达不了）。命令全部复用 `tableSelection.ts`，与工具栏的「插入表格」共用一套。
  *
- * 手柄是 fixed 定位、渲染在 body 的 portal 里：它要贴着单元格边缘，而工具栏并不在编辑器 DOM
- * 内。滚动 / 缩放时重新量一遍悬停的那颗单元格，让手柄跟着走。
+ * 手柄是 fixed 定位、渲染在 body 的 portal 里：它要贴着单元格边缘，而它自己并不在编辑器
+ * DOM 内。滚动 / 缩放时重新量一遍悬停的那颗单元格，让手柄跟着走。
  */
-export function TableHandles({ editor, labels }: TableHandlesProps) {
+export function TableHandles({ editor }: TableHandlesProps) {
+  const labels = useEditorBundle(editor, useMarkdownLocale()).toolbar;
+
   const [hover, setHover] = useState<HoverGeom | null>(null);
   const [menu, setMenu] = useState<HandleMenu | null>(null);
 

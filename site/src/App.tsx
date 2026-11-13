@@ -61,13 +61,13 @@ import {
   TopNav,
   useHashRoute,
 } from './ui';
-import { LangProvider, useT, useTx } from './lang';
-import { useEffect } from 'react';
+import { LangProvider, useLang, useT, useTx } from './lang';
+import { useEffect, type ReactNode } from 'react';
+import { TiptapConfigProvider } from 'tiptap-markdown-react';
 
 const COLOR_PALETTE_API = [
   { name: 'value', desc: 'Currently applied color (shows checkmark)', type: 'string', defaultVal: '—' },
   { name: 'onPick', desc: 'Called when a swatch is clicked; null clears', type: '(color: string | null) => void' },
-  { name: 'locale', desc: 'Built-in UI language', type: "'en' | 'zh'", defaultVal: 'en' },
 ];
 
 const COMMENT_ANCHOR_API = [
@@ -256,7 +256,7 @@ function ComponentsPage() {
           'Enter that commits an IME candidate never jumps or replaces',
           'Regex (RE2, no lookarounds) stays available via setUseRegex, no button',
           'Replace and replace-all — replace-all is a single undo step',
-          'Find-only on read-only editors; bar text follows locale',
+          'Find-only on read-only editors; bar text follows TiptapConfigProvider',
           'Toolbar magnifier is off the default list; put search in groups and wire onSearch to toggleFind()',
           'Stable data-find-* selectors for host CSS (bar internals are hashed CSS-module classes)',
           'Headless: drive it with editor.commands.setSearchTerm / replaceAll',
@@ -306,13 +306,13 @@ function ComponentsPage() {
       <ComponentSection
         id="i18n"
         title="Internationalization"
-        description={'UI copy ships inside the components. Pass locale="zh" or locale="en" (the default) to the editor, toolbar, TOC, palette, find bar, link popover and preview. There is no labels prop and no provider. Switching locale updates the toolbar, find bar, shortcuts, code blocks, charts and upload placeholders without remounting the editor. Comment popover content is still your children.'}
-        importName="LocaleCode"
+        description={'Wrap the app once in <TiptapConfigProvider locale="zh">. Every component — editor, toolbar, TOC, palette, find bar, link popover, preview, reader and hover tools — follows it. There is no per-component locale and no labels prop. Switching the provider updates everything live without remounting the editor. Comment popover content is still your children.'}
+        importName="TiptapConfigProvider"
         features={[
           'Built-in en and zh bundles',
-          'locale on each visible component, default en',
-          'Toolbar, TOC, find bar, code blocks and charts switch live',
-          'No host-supplied label objects',
+          'One TiptapConfigProvider at the app root',
+          'Toolbar, TOC, find bar, code blocks, charts and hover tools switch live',
+          'No per-component locale or label objects',
           'Comment popover body stays host-owned',
         ]}
         demo={
@@ -336,7 +336,7 @@ function ComponentsPage() {
           'More menu: code block, equations, table, fullscreen',
           'Radix Popover / DropdownMenu — no native selects',
           'extraToolbarItems append to the default More menu; with groups, list the key',
-          'locale switches the built-in toolbar copy',
+          'TiptapConfigProvider switches the built-in toolbar copy',
         ]}
         demo={
           <DemoBlock title="Toolbar with image upload">
@@ -670,7 +670,7 @@ function DemosPage() {
           <code>markdownFileDrop={'{false}'}</code>
           {tx(' 关闭。检测只看纯文本内容，所以从任何应用（Xcode、VS Code、备忘录）复制的 markdown 源码都会转换，而真正的富文本（Word / 网页）照常粘贴。导入按钮的文案随 ',
             '. Detection looks only at the plain-text content, so copying markdown source from any app (Xcode, VS Code, notes) converts, while real rich text (Word / web pages) pastes normally. The Import button follows ')}
-          <code>locale</code>
+          <code>TiptapConfigProvider</code>
           {tx('。', '.')}
         </p>
       </div>
@@ -715,7 +715,7 @@ function DemosPage() {
       <div className="propsNote">
         <h4>{t('Props 说明')}</h4>
         <p>
-          {tx('代码块文案随 ', 'Code block text follows ')}<code>locale</code>
+          {tx('代码块文案随 ', 'Code block text follows ')}<code>TiptapConfigProvider</code>
           {tx('，切换时不用重建编辑器。', ' on MarkdownWysiwygEditor, including after a switch.')}
         </p>
       </div>
@@ -731,7 +731,7 @@ function DemosPage() {
         <h4>{t('Props 说明')}</h4>
         <p>
           {tx('无需额外 props。按钮文案随 ', 'No extra editor props. Button text follows ')}
-          <code>locale</code>
+          <code>TiptapConfigProvider</code>
           {tx('。命令：', '. Commands: ')}
           <code>insertInlineMath</code> / <code>insertBlockMath</code>.
         </p>
@@ -925,7 +925,7 @@ function ApiPage() {
           <code>EditorToolbar</code>
           {tx(' 自带 ', ' ships an ')}<em>{tx('导入', 'Import')}</em>
           {tx('下拉，文案随 ', ' dropdown whose text follows ')}
-          <code>locale</code>
+          <code>TiptapConfigProvider</code>
           {tx('，本地读取 ', ' and reads ')}<code>.md</code>
           {tx(' 并把其他文件交给 ', ' and hands any other file to ')}
           <code>onImportDocument</code>
@@ -943,7 +943,7 @@ function ApiPage() {
         <p className="componentDesc">
           {tx('更多菜单含 ', 'More menu includes ')}<em>{tx('行内公式', 'Inline equation')}</em> / <em>{tx('块级公式', 'Block equation')}</em>
           {tx('。点击已渲染的公式可原位编辑 LaTeX。按钮文案随 ', '. Click a rendered formula to edit LaTeX in place. Button text follows ')}
-          <code>locale</code>.
+          <code>TiptapConfigProvider</code>.
         </p>
         <ApiTable rows={MATH_LABELS_API} />
 
@@ -1076,18 +1076,26 @@ export function App() {
 
   return (
     <LangProvider>
-      <div className="aurora" aria-hidden />
-      <div className="auroraGrain" aria-hidden />
-      <div className="site">
-        <TopNav active={page} />
-        <div className={page === 'home' ? 'page homePage' : 'page docsPage'}>
-          {page === 'home' && <HomePage />}
-          {page === 'components' && <ComponentsPage />}
-          {page === 'demos' && <DemosPage />}
-          {page === 'api' && <ApiPage />}
-          <SiteFooter />
+      <MarkdownLangBridge>
+        <div className="aurora" aria-hidden />
+        <div className="auroraGrain" aria-hidden />
+        <div className="site">
+          <TopNav active={page} />
+          <div className={page === 'home' ? 'page homePage' : 'page docsPage'}>
+            {page === 'home' && <HomePage />}
+            {page === 'components' && <ComponentsPage />}
+            {page === 'demos' && <DemosPage />}
+            {page === 'api' && <ApiPage />}
+            <SiteFooter />
+          </div>
         </div>
-      </div>
+      </MarkdownLangBridge>
     </LangProvider>
   );
+}
+
+/** 把站点自身的语言状态接到组件库的全局入口上。 */
+function MarkdownLangBridge({ children }: { children: ReactNode }) {
+  const { lang } = useLang();
+  return <TiptapConfigProvider locale={lang}>{children}</TiptapConfigProvider>;
 }
