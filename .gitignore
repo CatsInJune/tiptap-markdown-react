@@ -8,3 +8,7 @@ site/node_modules
 *.log
 .vercel
 site/bench-results
+
+# CI 部署专用 SSH 私钥，绝不入库
+deploy/*_deploy_key
+deploy/*_deploy_key.pub
