@@ -25,13 +25,31 @@ export interface TocItem {
 /** 目录纳入的最大层级（h1-h6，全层级入目录）。 */
 const MAX_LEVEL = 6;
 
-/** 取 heading 节点的纯文本（拼接其 text 子节点）。 */
+/**
+ * 取 heading 节点的纯文本。
+ *
+ * 标题里可能有行内原子节点（emoji、公式、脚注引用）：只拼 `text` 子节点会把
+ * 它们静默吞掉。这里递归展开，给每类原子一个可读文本（短码 / LaTeX / [^n]）。
+ */
+function nodeText(node: TocDocNode): string {
+  if (node.type === 'text') return node.text ?? '';
+  if (node.type === 'emoji') {
+    const name = node.attrs?.name;
+    return name == null || name === '' ? '' : `:${String(name)}:`;
+  }
+  if (node.type === 'inlineMath' || node.type === 'blockMath') {
+    const latex = node.attrs?.latex;
+    return latex == null ? '' : String(latex);
+  }
+  if (node.type === 'citationRef') {
+    const index = node.attrs?.index;
+    return index == null ? '' : `[^${String(index)}]`;
+  }
+  return (node.content ?? []).map(nodeText).join('');
+}
+
 function headingText(node: TocDocNode): string {
-  if (!node.content) return '';
-  return node.content
-    .map((c) => (c.type === 'text' ? c.text ?? '' : ''))
-    .join('')
-    .trim();
+  return nodeText(node).replace(/\s+/g, ' ').trim();
 }
 
 /**

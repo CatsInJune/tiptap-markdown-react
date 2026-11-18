@@ -73,7 +73,6 @@
     "@tiptap/core": "3.31.3",
     "@tiptap/extension-code": "3.31.3",
     "@tiptap/extension-code-block-lowlight": "3.31.3",
-    "@tiptap/extension-collaboration": "3.31.3",
     "@tiptap/extension-details": "3.31.3",
     "@tiptap/extension-drag-handle": "3.31.3",
     "@tiptap/extension-drag-handle-react": "3.31.3",
@@ -104,15 +103,12 @@
     "@tiptap/starter-kit": "3.31.3",
     "@tiptap/static-renderer": "3.31.3",
     "@tiptap/suggestion": "3.31.3",
-    "@tiptap/y-tiptap": "3.0.7",
     "chart.js": "^4.5.1",
     "emoji-regex": "10.6.0",
     "katex": "^0.16.47",
     "lowlight": "3.3.0",
     "marked": "^17.0.1",
-    "nanoid": "^5.1.16",
-    "y-protocols": "1.0.6",
-    "yjs": "13.6.29"
+    "nanoid": "^5.1.16"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
@@ -140,7 +136,6 @@
     "@tiptap/extension-drag-handle": "3.31.3",
     "@tiptap/extension-drag-handle-react": "3.31.3",
     "@tiptap/extension-node-range": "3.31.3",
-    "@tiptap/extension-collaboration": "3.31.3",
     "re2js": "2.8.8"
   }
 }

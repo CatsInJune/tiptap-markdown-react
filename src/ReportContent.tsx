@@ -1,7 +1,11 @@
 import type { HTMLAttributes } from 'react';
 import styles from './styles/content.module.css';
 
-export interface ReportContentProps extends HTMLAttributes<HTMLDivElement> {
+export interface ReportContentProps
+  extends Omit<
+    HTMLAttributes<HTMLDivElement>,
+    'children' | 'dangerouslySetInnerHTML'
+  > {
   /** `renderReportHtml(...).html` 产出的正文 HTML 字符串。 */
   html: string;
 }

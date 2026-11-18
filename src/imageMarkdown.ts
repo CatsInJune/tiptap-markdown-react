@@ -330,10 +330,37 @@ function toPixel(value: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 }
 
+/** alt 里的 `[` / `]` / 换行会让 `![alt]` 提前闭合，标准语法不安全。 */
+function isSafeMarkdownAlt(alt: string): boolean {
+  return !/[[\]\r\n]/.test(alt);
+}
+
+/** title 里的 `"` / 反斜杠 / 换行需要转义；HTML 形式能完整表达。 */
+function isSafeMarkdownTitle(title: string): boolean {
+  return !/["\\\r\n]/.test(title);
+}
+
+/** 标准目标不能有空白 / 尖括号；括号必须配对（CommonMark 允许成对括号）。 */
+function isSafeMarkdownDestination(src: string): boolean {
+  if (!src || /[\s<>]/.test(src)) return false;
+  let depth = 0;
+  for (const ch of src) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') {
+      depth -= 1;
+      if (depth < 0) return false;
+    }
+  }
+  return depth === 0;
+}
+
 /**
  * 图片的 markdown 序列化：带尺寸 / 对齐 / 裁剪 / 描述的输出 HTML 形式，否则标准语法。
  * 描述（图注）用 `<figure>` + `<figcaption>` 包裹（HTML 标准语义，GitHub 同样认）；
  * 覆盖 @tiptap/extension-image 的内置实现（它只输出 src/alt/title，其余都会丢）。
+ *
+ * 标准语法只有在 alt / title / src 都能安全表达时才用：否则 `]`、空格、引号会把
+ * markdown 结构撕开（实测 `![x](a b.png)` 重解析后图片变成文字 + 链接）。
  */
 export function imageRenderMarkdown(node: {
   attrs?: Record<string, unknown>;
@@ -349,7 +376,13 @@ export function imageRenderMarkdown(node: {
   const caption = normalizeImageCaption(attrs.caption);
 
   if (width == null && height == null && !align && !crop && !caption) {
-    return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
+    const standardSafe =
+      isSafeMarkdownAlt(alt) &&
+      isSafeMarkdownDestination(src) &&
+      isSafeMarkdownTitle(title);
+    if (standardSafe) {
+      return title ? `![${alt}](${src} "${title}")` : `![${alt}](${src})`;
+    }
   }
 
   const parts = [`src="${encodeAttr(src)}"`];

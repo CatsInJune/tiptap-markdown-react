@@ -1,4 +1,5 @@
 import type { JSONContent } from '@tiptap/core';
+import { createFenceState, stepFence } from './markdownFences';
 import { normalizeLinkUrl } from './urlSafety';
 
 export interface SourceRef {
@@ -154,31 +155,13 @@ export function extractFootnoteSources(markdown: string): ExtractedFootnotes {
   const seen = new Set<string>();
   let removed = false;
 
-  let inFence = false;
-  let fenceChar = '`';
-  let fenceLen = 3;
+  const fence = createFenceState();
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-
-    const fence = line.match(/^(`{3,}|~{3,})/);
-    if (fence) {
-      const char = fence[1][0];
-      if (!inFence) {
-        inFence = true;
-        fenceChar = char;
-        fenceLen = fence[1].length;
-      } else if (
-        char === fenceChar &&
-        fence[1].length >= fenceLen &&
-        /^[`~]+\s*$/.test(line)
-      ) {
-        inFence = false;
-      }
-      bodyLines.push(line);
-      continue;
-    }
-    if (inFence) {
+    const step = stepFence(fence, line);
+    // 围栏标记行与围栏内容一律原样保留，不识别脚注定义。
+    if (step.wasInFence || step.isFenceLine) {
       bodyLines.push(line);
       continue;
     }

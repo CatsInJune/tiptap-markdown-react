@@ -43,7 +43,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  /* 宿主顶栏、Ant Design 弹层常见到 1000。历史弹窗要盖住整页。 */
+  /* 宿主顶栏、第三方弹层常见到 1000。历史弹窗要盖住整页。 */
   z-index: 1200;
   display: flex;
   align-items: center;

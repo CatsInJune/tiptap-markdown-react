@@ -47,4 +47,31 @@ describe('MarkdownWysiwygEditor 渲染稳定性', () => {
     act(() => root.unmount());
     host.remove();
   });
+
+  it('卸载时还原 findBarContainer 的 position', async () => {
+    const host = document.createElement('div');
+    const container = document.createElement('div');
+    // happy-dom 的 getComputedStyle 默认不给 position；显式声明 static 才能走到补定位分支。
+    container.style.position = 'static';
+    host.append(container);
+    document.body.appendChild(host);
+    const root = createRoot(host);
+
+    await act(async () => {
+      root.render(
+        <MarkdownWysiwygEditor
+          initialMarkdown={'正文'}
+          documentTitle={false}
+          findBarContainer={container}
+        />,
+      );
+    });
+    // 宿主容器是 static 时由库补定位上下文。
+    expect(container.style.position).toBe('relative');
+
+    act(() => root.unmount());
+    // 卸载后还原宿主原本的内联值，而不是留下库补的 relative。
+    expect(container.style.position).toBe('static');
+    host.remove();
+  });
 });

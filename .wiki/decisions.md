@@ -18,5 +18,6 @@
 | D12 | 工具栏显隐只有 `groups` 和 `hidden`；按钮显隐与点击能力分开 | 宿主要藏按钮，也要自己排分组。删掉 `showImport` / `showFullscreen`。默认清单不含 `image` / `search` / `history`，只传回调不会冒出按钮。`groups` 整栏替换，`{ more }` 是唯一「更多」。下拉内部不能单关。布局里有按钮但没有回调时仍渲染，点击无操作 | `toolbarLayout.ts`、`components/EditorToolbar.tsx`、`components/toolbarBody.tsx` | 已发布（1.12.0）；Wiki Changelog / Design-Decisions 已同步 |
 | D13 | 版本对比是两级 Myers，画在选中版上 | 历史是宿主交来的 Markdown，没有 Yjs 步骤。面板关着不读全文。原文相同直接判同一版，规范化结果按字符串缓存。块的纯文本相同就跳过。改过的块按词做 Myers（中文 `Intl.Segmenter`），编辑距离过大整块替换。插入是装饰，删除是小组件。不采用付费 Compare / Snapshot | `versionHistory/diffSequence.ts`、`buildDiffDoc.ts`、`diffDecorations.ts`、`components/VersionDiffView.tsx`、`VersionHistoryPanel.tsx` | 已发布（1.12.3）；Wiki Changelog 已同步 |
 | D14 | katex 保持 0.16.x，暂不升 0.19 | audit 报的是低危原型污染（GHSA-238p-pmpm-9mq7），修复版本 0.19.1；但 `@tiptap/extension-mathematics@3.31.3` 的 peer 只允许 `^0.16.4 \|\| ^0.17 \|\| ^0.18`，升 0.19 会破坏 peer。等上游放宽后再升，Dependabot 忽略 `>=0.19.0` | `package.json`、`.github/dependabot.yml` | 待上游放宽 peer |
+| D15 | 开发工具链漏洞暂不随本次升级 | `npm audit` 的 critical/high 全在 dev 链（happy-dom / vitest / vite / tinypool），修复版本分别要求 v21 / v5 / v8，均为跨大版本；不在发布产物里，风险只落在开发与 CI。单独立项升级并用全量测试验证，不混在安全修复 PR 里 | `package.json`（devDependencies） | 单独排期 |
 
 新增决策时：在本表加行；若对使用者可见，同步 GitHub Wiki 对应页。

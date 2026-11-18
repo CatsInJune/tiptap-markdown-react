@@ -1,4 +1,5 @@
 import { customAlphabet } from 'nanoid';
+import { createFenceState, stepFence } from '../markdownFences';
 
 /**
  * 块 ID 的 markdown 表示（RFC §7.1 / 决策 block-id-anchoring）：
@@ -65,29 +66,15 @@ export function stripBlockIdComments(markdown: string): string {
 
   const lines = markdown.split(/\r?\n/);
   const kept: string[] = [];
-  let fence: { char: string; length: number } | null = null;
+  const fence = createFenceState();
 
   for (const line of lines) {
-    if (fence) {
-      kept.push(line);
-      const closing = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
-      if (
-        closing &&
-        closing[1][0] === fence.char &&
-        closing[1].length >= fence.length
-      ) {
-        fence = null;
-      }
-      continue;
-    }
-
-    const opening = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
-    if (opening && !(opening[1][0] === '`' && opening[2].includes('`'))) {
-      fence = { char: opening[1][0], length: opening[1].length };
+    const step = stepFence(fence, line);
+    // 围栏标记行本身与围栏内容一律保留（代码里的伪注释是内容）。
+    if (step.wasInFence || step.isFenceLine) {
       kept.push(line);
       continue;
     }
-
     if (BLOCK_ID_LINE_RE.test(line)) continue;
     kept.push(line);
   }

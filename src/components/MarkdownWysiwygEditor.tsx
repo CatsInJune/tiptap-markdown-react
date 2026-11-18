@@ -280,6 +280,9 @@ export const ImageWithConfirmDelete = Image.extend({
       // wrapper 的（会偏到描述上）——把图片的真实高度写进 --tmr-image-h，
       // CSS 那边用 calc 的降级写法取它（见 content.module.css）。
       let syncCaption: ((attrs: Record<string, unknown>) => void) | null = null;
+      // NodeView 销毁时解绑手动挂的监听：官方元素可能在 update 中被替换，
+      // 残留的 capture 监听会继续持有旧 DOM。
+      const cleanups: Array<() => void> = [];
       if (nodeView.dom instanceof HTMLElement && resizable.element) {
         const { element } = resizable;
         const container = nodeView.dom;
@@ -308,7 +311,11 @@ export const ImageWithConfirmDelete = Image.extend({
         };
         syncCaption(props.node.attrs);
         element.addEventListener('load', syncHandleTop);
+        cleanups.push(() => element.removeEventListener('load', syncHandleTop));
         container.addEventListener('mousedown', applyMaxSize, true);
+        cleanups.push(() =>
+          container.removeEventListener('mousedown', applyMaxSize, true),
+        );
       }
 
       // 官方 onUpdate 把 width/height 划进「拖拽自己管」的集合直接跳过，于是程序化改
@@ -337,6 +344,15 @@ export const ImageWithConfirmDelete = Image.extend({
             return ok;
           };
         }
+      }
+
+      if (cleanups.length > 0) {
+        const originalDestroy = nodeView.destroy?.bind(nodeView);
+        nodeView.destroy = () => {
+          for (const cleanup of cleanups) cleanup();
+          cleanups.length = 0;
+          originalDestroy?.();
+        };
       }
 
       return nodeView;
@@ -1348,9 +1364,20 @@ export const MarkdownWysiwygEditor = forwardRef<
   // 不补的话条子会以「最近的定位祖先」为基准（可能是页面），位置会莫名其妙。
   useEffect(() => {
     if (!findBarTarget) return;
-    if (getComputedStyle(findBarTarget).position === 'static') {
+    const previousPosition = findBarTarget.style.position;
+    const measured = getComputedStyle(findBarTarget).position;
+    // 浏览器里 computed position 不会是空串；happy-dom / 非完整 DOM 环境可能返回 ''，
+    // 一并当作 static 处理。
+    const changed = measured === 'static' || measured === '';
+    if (changed) {
       findBarTarget.style.position = 'relative';
     }
+    return () => {
+      // 只还原自己改过的值，避免卸载时覆盖宿主后来另行设置的定位。
+      if (changed && findBarTarget.style.position === 'relative') {
+        findBarTarget.style.position = previousPosition;
+      }
+    };
   }, [findBarTarget]);
 
   const findBarNode =
