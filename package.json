@@ -105,7 +105,7 @@
     "@tiptap/suggestion": "3.31.3",
     "chart.js": "^4.5.1",
     "emoji-regex": "10.6.0",
-    "katex": "^0.16.47",
+    "katex": "^0.18.10",
     "lowlight": "3.3.0",
     "marked": "^17.0.1",
     "nanoid": "^5.1.16"
