@@ -37,8 +37,10 @@ describe('MarkdownPreview 内置目录', () => {
     expect(host.querySelector('[data-toc-id]')).not.toBeNull();
   });
 
-  it('toc={false} 不画目录', async () => {
+  it('toc={false} 不画目录，也不注册 TOC 扩展（标题无 data-toc-id）', async () => {
     await mount('# 简介\n', false);
     expect(host.querySelector('[data-editor-toc]')).toBeNull();
+    // 不注册 TableOfContents：既不画目录，也不为标题注入锚点 / 每事务扫描。
+    expect(host.querySelector('[data-toc-id]')).toBeNull();
   });
 });

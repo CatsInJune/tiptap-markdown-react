@@ -1,4 +1,5 @@
 import { mergeAttributes, Node } from '@tiptap/core';
+import { normalizeLinkUrl } from './urlSafety';
 
 export interface CitationRefOptions {
   HTMLAttributes: Record<string, unknown>;
@@ -56,10 +57,13 @@ export const CitationRef = Node.create<CitationRefOptions>({
       },
       url: {
         default: null,
-        parseHTML: (element) => element.getAttribute('data-url'),
+        // data-url 可能来自粘贴 / SSR HTML：读入时就丢掉危险协议。
+        parseHTML: (element) =>
+          normalizeLinkUrl(element.getAttribute('data-url')),
         renderHTML: (attributes) => {
-          if (!attributes.url) return {};
-          return { 'data-url': attributes.url };
+          const url = normalizeLinkUrl(attributes.url);
+          if (!url) return {};
+          return { 'data-url': url };
         },
       },
       title: {
@@ -79,7 +83,9 @@ export const CitationRef = Node.create<CitationRefOptions>({
 
   renderHTML({ node, HTMLAttributes }) {
     const index = String(node.attrs.index ?? '');
-    const url = node.attrs.url as string | null;
+    // url 由宿主（sources）或解析结果提供，渲染前再兜一次白名单：
+    // 命令 / 旧文档仍可能带着 javascript: 之类的值。
+    const url = normalizeLinkUrl(node.attrs.url);
     const title = (node.attrs.title as string | null) || '';
     const attrs = mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
       class: 'citation-ref',
@@ -112,7 +118,7 @@ export const CitationRef = Node.create<CitationRefOptions>({
   parseMarkdown: (token, helpers) => {
     return helpers.createNode('citationRef', {
       index: String(token.index ?? ''),
-      url: token.url ?? null,
+      url: normalizeLinkUrl(token.url),
       title: token.title ?? null,
     });
   },

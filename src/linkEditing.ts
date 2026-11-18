@@ -19,20 +19,10 @@
 import type { Editor } from '@tiptap/react';
 
 import { isComposingKeyEvent } from './findReplace';
+import { SAFE_LINK_PROTOCOLS } from './urlSafety';
 
 /** 「在新窗口打开」允许的协议（对齐官方 `sanitizeUrl` / Tiptap Link 的默认允准集）。 */
-const OPENABLE_PROTOCOLS = new Set([
-  'http:',
-  'https:',
-  'ftp:',
-  'ftps:',
-  'mailto:',
-  'tel:',
-  'callto:',
-  'sms:',
-  'cid:',
-  'xmpp:',
-]);
+const OPENABLE_PROTOCOLS = SAFE_LINK_PROTOCOLS;
 
 /** 已经有协议了（`https:` / `mailto:` …），或者是个站内相对地址（`/x`、`#x`、`?x`）。 */
 const HAS_SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;

@@ -1,7 +1,8 @@
 import { OrderedList } from '@tiptap/extension-list';
 import type { Editor, JSONContent, MarkdownToken, MarkdownTokenizer } from '@tiptap/core';
-import type { Node as ProseMirrorNode, ResolvedPos } from '@tiptap/pm/model';
-import { Plugin } from '@tiptap/pm/state';
+import type { Node as ProseMirrorNode, ResolvedPos, Slice } from '@tiptap/pm/model';
+import { Plugin, type Transaction } from '@tiptap/pm/state';
+import { AttrStep, ReplaceAroundStep, ReplaceStep } from '@tiptap/pm/transform';
 
 /**
  * 有序列表的编号格式。id 与下拉预览对齐 Tiptap Numbering Format Dropdown：
@@ -374,6 +375,35 @@ function callParent<T>(self: object, ...args: unknown[]): T | undefined {
   return parent?.(...args);
 }
 
+/** slice 里是否含有序列表（含嵌套）。 */
+function sliceContainsOrderedList(slice: Slice): boolean {
+  let found = false;
+  slice.content.descendants((node) => {
+    if (found) return false;
+    if (node.type.name === 'orderedList') {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
+}
+
+/** 本批事务是否可能产生 / 改变「嵌套 orderedList 上的编号格式」。 */
+function transactionsMayAffectNumbering(
+  transactions: readonly Transaction[],
+): boolean {
+  return transactions.some((tr) =>
+    tr.steps.some((step) => {
+      if (step instanceof ReplaceStep || step instanceof ReplaceAroundStep) {
+        return sliceContainsOrderedList(step.slice);
+      }
+      // 设置 / 清除格式走 setNodeAttribute → AttrStep。
+      return step instanceof AttrStep && step.attr === 'numberingFormat';
+    }),
+  );
+}
+
 /**
  * StarterKit 的 OrderedList 加上 `numberingFormat`。节点名仍是 orderedList，
  * 所以要在 StarterKit 里关掉内置那份，避免 Duplicate extension names。
@@ -504,6 +534,9 @@ export const OrderedListWithNumbering = OrderedList.extend({
       new Plugin({
         appendTransaction(transactions, _oldState, newState) {
           if (!transactions.some((tr) => tr.docChanged)) return null;
+          // 普通打字不会产生嵌套格式问题；只在「插入/包裹含有序列表」或
+          // 「改 numberingFormat 属性」时才需要全文档清理。
+          if (!transactionsMayAffectNumbering(transactions)) return null;
           const fixes: { pos: number; attrs: Record<string, unknown> }[] = [];
           newState.doc.descendants((node, pos) => {
             if (node.type.name !== 'orderedList') return;

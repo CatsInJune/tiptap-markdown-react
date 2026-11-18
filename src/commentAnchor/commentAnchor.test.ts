@@ -441,6 +441,14 @@ describe('commentAnchorController · 应用 / 聚焦 / 导航', () => {
     expect(collectCommentIds(editor)).toEqual([]);
   });
 
+  it('hasMarks 随铺 / 清切换（无评论时 decorations 直接返回空集）', () => {
+    expect(commentAnchorPluginKey.getState(editor.state)?.hasMarks).toBe(false);
+    applyCommentAnchorsToEditor(editor, comments);
+    expect(commentAnchorPluginKey.getState(editor.state)?.hasMarks).toBe(true);
+    applyCommentAnchorsToEditor(editor, []);
+    expect(commentAnchorPluginKey.getState(editor.state)?.hasMarks).toBe(false);
+  });
+
   it('focusComment 设 active + 光标落到区间起点；未知 id 清 active 返回 false', () => {
     applyCommentAnchorsToEditor(editor, comments);
     const ok = focusComment(editor, '1');

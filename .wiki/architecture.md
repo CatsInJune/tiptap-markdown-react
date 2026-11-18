@@ -5,7 +5,7 @@
 | 入口 | 定位 | 关键约束 |
 | --- | --- | --- |
 | `src/index.ts`（`tiptap-markdown-react`） | 编辑器 / 工具栏 / 实时预览 | 加载 `TableKit` |
-| `src/server.ts`（`./server`） | RSC/ISR 的 `renderReportHtml` | 无 React 组件、无浏览器 API 硬依赖；也加载 `TableKit` |
+| `src/server.ts`（`./server`） | RSC/ISR 的 `renderReportHtml` + 纯工具导出 | 不含 `'use client'` 代码、无浏览器 API 硬依赖；`ReportContent` 是 RSC 兼容的 React 组件（仍需 React peer）。也加载 `TableKit` |
 | `src/reader.ts`（`./reader`） | 客户端阅读页水合 | **不 import `./extensions`**——`.` 与 `./server` 在模块加载时都会 `jsonID("cell")`，同一 JS realm 双载会抛 `Duplicate use of selection JSON ID cell` |
 
 入口头的注释写了完整机制，改入口前先读。

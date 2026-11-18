@@ -23,7 +23,7 @@ npm install tiptap-markdown-react
 pnpm add tiptap-markdown-react
 ```
 
-`react` and `react-dom` are peer dependencies (you likely already have them). **Tiptap and lowlight ship as transitive dependencies** — you do not need to install `@tiptap/*` separately.
+`react` and `react-dom` are peer dependencies (you likely already have them). **Tiptap and lowlight ship as transitive dependencies** — you do not need to install `@tiptap/*` separately. If your app already depends on Tiptap, pin every `@tiptap/*` package to the same exact version (3.31.3) so only one ProseMirror schema is loaded.
 
 Then import the stylesheet once (e.g. in your root layout / entry):
 
@@ -119,6 +119,8 @@ ProseMirror registers table cell selection once per JS realm. Importing **both**
 ### 3. Server-side / static reader (SEO)
 
 Use the `./server` entry from a Server Component — it has no client code and no hard browser dependency. Render markdown to HTML at request/build time, then output it with `ReportContent` (which applies the same content styles as the editor).
+
+> `./server` re-exports pure helpers too (chapter splitting, markdown normalization, block IDs, footnote extraction, image attribute normalization), so RSC code can use them without importing the `'use client'` main entry. `ReportContent` is a React component, so the entry still requires your React peer; `renderReportHtml` itself is React-free.
 
 ```tsx
 // app/p/[slug]/page.tsx  (React Server Component)

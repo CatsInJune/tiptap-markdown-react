@@ -21,6 +21,7 @@ import type {
   NodeViewRendererProps,
   ResizableNodeViewDirection,
 } from '@tiptap/core';
+import type { EditorView } from '@tiptap/pm/view';
 import { mergeAttributes } from '@tiptap/core';
 import { createPortal } from 'react-dom';
 import {
@@ -29,6 +30,7 @@ import {
   useEffect,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -866,12 +868,16 @@ export const MarkdownWysiwygEditor = forwardRef<
 ) {
   const locale = useMarkdownLocale();
 
-  // 默认不落 ID；旧卡片正文里若有 1.10.x 写入的 ID 注释，解析前剥掉。
-  const initialContentInput =
-    blockIds === 'markdown' ? initialMarkdown : stripBlockIdComments(initialMarkdown);
-  const preparedInitial = prepareChartMarkdown(
-    enrichMarkdownCitations(initialContentInput, sources ?? []),
-  );
+  // 初始内容只在创建编辑器时用一次；父组件每次渲染都重算（尤其图表预处理会
+  // 解析表格）是纯浪费，而且会随文档规模线性变慢。sources 常以内联数组传入，
+  // 用序列化后的 key 判断内容是否真的变了。
+  const sourcesKey = useMemo(() => JSON.stringify(sources ?? []), [sources]);
+  const preparedInitial = useMemo(() => {
+    // 默认不落 ID；旧卡片正文里若有 1.10.x 写入的 ID 注释，解析前剥掉。
+    const input =
+      blockIds === 'markdown' ? initialMarkdown : stripBlockIdComments(initialMarkdown);
+    return prepareChartMarkdown(enrichMarkdownCitations(input, sources ?? []));
+  }, [blockIds, initialMarkdown, sourcesKey]);
 
   const blockDragMobile = useIsMobile(768);
   const showBlockDrag = blockDrag && editable && !blockDragMobile;
@@ -903,9 +909,67 @@ export const MarkdownWysiwygEditor = forwardRef<
   const onTocChangeRef = useRef(onTocChange);
   onTocChangeRef.current = onTocChange;
   const tocItemsRef = useRef<TocItem[]>([]);
+  const wantsToc = toc || Boolean(onTocChange);
 
-  const editor = useEditor({
-    extensions: [
+  // 扩展 / editorProps 必须引用稳定：Tiptap 的 useEditor 在没传 deps 时会比较
+  // 每次渲染的 options，extensions / editorProps 是新对象就每渲染一次
+  // setOptions + view.updateState。renderCitation 走 ref，内联函数不会触发重建。
+  const renderCitationRef = useRef(renderCitation);
+  renderCitationRef.current = renderCitation;
+  const renderCitationStable = useCallback<RenderCitation>(
+    (ctx) => {
+      const fn = renderCitationRef.current;
+      return fn ? fn(ctx) : ctx.defaultDom;
+    },
+    [],
+  );
+
+  // 这三项都是「仅初始化时生效」的配置。冻结首帧值，避免宿主传内联对象 / 数组
+  // 时每渲染都新建扩展实例（进而触发 Tiptap 的 setOptions + view.updateState）。
+  const imageUploadRef = useRef(imageUpload);
+  const imageResizeRef = useRef(imageResize);
+  const extraExtensionsRef = useRef(extraExtensions);
+  const hasImageUpload = imageUpload != null;
+  const imageResizeEnabled = imageResize !== false;
+  const extraExtensionCount = extraExtensions?.length ?? 0;
+
+  const handleEditorKeyDown = useCallback(
+    (view: EditorView, event: KeyboardEvent): boolean => {
+      if (!showDocumentTitleRef.current) return false;
+      if (
+        event.key !== 'ArrowUp' ||
+        event.shiftKey ||
+        event.altKey ||
+        event.metaKey ||
+        event.ctrlKey ||
+        isComposingKeyEvent(event)
+      ) {
+        return false;
+      }
+      if (!isAtDocumentStart(view.state.selection)) return false;
+      const title = titleInputRef.current;
+      if (!title) return false;
+      event.preventDefault();
+      title.focus();
+      const end = title.value.length;
+      title.setSelectionRange(end, end);
+      return true;
+    },
+    [],
+  );
+
+  const editorProps = useMemo(
+    () => ({
+      attributes: {
+        class: styles.editorContent,
+      },
+      handleKeyDown: handleEditorKeyDown,
+    }),
+    [handleEditorKeyDown],
+  );
+
+  const extensions = useMemo(
+    () => [
       ...baseExtensions.map((ext) =>
         ext.name === 'emoji'
           ? configureEmojiSuggestion(ext, emojiSuggestion)
@@ -917,9 +981,8 @@ export const MarkdownWysiwygEditor = forwardRef<
         // 图片缩放（默认开、默认等比、默认左右两条手柄）：false 关掉；对象透传官方配置
         // ——等比与手柄方向都有本库默认，显式传值可覆盖。
         resize:
-          imageResize === false
-            ? false
-            : {
+          imageResizeEnabled
+            ? {
                 enabled: true,
                 alwaysPreserveAspectRatio: true,
                 directions: ['left', 'right'] as ResizableNodeViewDirection[],
@@ -927,12 +990,17 @@ export const MarkdownWysiwygEditor = forwardRef<
                 // 包装读取并注入 maxSize，见 ImageWithConfirmDelete）。
                 minWidth: 80,
                 minHeight: 80,
-                ...(typeof imageResize === 'object' ? imageResize : null),
-              },
+                ...(typeof imageResizeRef.current === 'object'
+                  ? imageResizeRef.current
+                  : null),
+              }
+            : false,
       }),
       // 图片上传占位块：空态拖拽 / 点选 → 进度就地 → 成功原地换成 image。
       // 不配置 imageUpload 就不注册（工具栏退回旧的直传路径）。
-      ...(imageUpload ? [ImageUploadNode.configure(imageUpload)] : []),
+      ...(hasImageUpload && imageUploadRef.current
+        ? [ImageUploadNode.configure(imageUploadRef.current)]
+        : []),
       ImportPlaceholder,
       // 空文档占位符：官方 Placeholder 把 data-placeholder 属性与
       // is-empty / is-editor-empty 类打在**空文本块节点**上——CSS
@@ -975,7 +1043,7 @@ export const MarkdownWysiwygEditor = forwardRef<
       // （appendTransaction 生成 data-toc-id + onTransaction 重算 anchors），
       // 超大文档下是每事务的固定税——不开目录、也不收 onTocChange 的宿主就不付
       // 这笔钱。注册只在初始化时发生，传 onTocChange 的宿主行为不变。
-      ...(toc || onTocChange
+      ...(wantsToc
         ? [
             TableOfContents.configure({
               getId: makeTocGetId(),
@@ -1005,39 +1073,36 @@ export const MarkdownWysiwygEditor = forwardRef<
       ...(slashMenu ? [SlashMenu] : []),
       // 智能标点：输入规则，不增加节点，所以不进 baseExtensions。
       ...(typography ? [Typography] : []),
-      ...(extraExtensions ?? []),
+      ...(extraExtensionsRef.current ?? []),
     ],
+    [
+      emojiSuggestion,
+      imageResizeEnabled,
+      hasImageUpload,
+      extraExtensionCount,
+      placeholder,
+      blockIds,
+      findReplace,
+      showCommentGutter,
+      commentInteractive,
+      characterCount,
+      wantsToc,
+      markdownPaste,
+      markdownFileDrop,
+      slashMenu,
+      typography,
+      renderCitationStable,
+    ],
+  );
+
+  const editor = useEditor({
+    extensions,
     content: preparedInitial,
     contentType: 'markdown',
     editable,
     // Next.js SSR：服务端不立即渲染，避免 hydration 不一致
     immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        class: styles.editorContent,
-      },
-      handleKeyDown: (_view, event) => {
-        if (!showDocumentTitleRef.current) return false;
-        if (
-          event.key !== 'ArrowUp' ||
-          event.shiftKey ||
-          event.altKey ||
-          event.metaKey ||
-          event.ctrlKey ||
-          isComposingKeyEvent(event)
-        ) {
-          return false;
-        }
-        if (!isAtDocumentStart(_view.state.selection)) return false;
-        const title = titleInputRef.current;
-        if (!title) return false;
-        event.preventDefault();
-        title.focus();
-        const end = title.value.length;
-        title.setSelectionRange(end, end);
-        return true;
-      },
-    },
+    editorProps,
   });
 
   usePublishEditorLocale(editor, locale);

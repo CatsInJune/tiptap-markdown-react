@@ -42,7 +42,7 @@ beforeAll(() => {
         set: () => true,
       },
     );
-  } as HTMLCanvasElement['getContext'];
+  } as unknown as HTMLCanvasElement['getContext'];
 });
 
 describe('选中图表的操作条', () => {
@@ -74,7 +74,9 @@ describe('选中图表的操作条', () => {
         </TiptapConfigProvider>,
       );
     });
-    const editor = box.editor;
+    // 显式断言：box.editor 在 render 回调里才被赋值，控制流分析看不到，
+    // 不断言会被窄化成 null，再 `if (!editor) throw` 后变成 never。
+    const editor = box.editor as Editor | null;
     if (!editor) throw new Error('editor not ready');
     let pos = -1;
     editor.state.doc.descendants((node, at) => {

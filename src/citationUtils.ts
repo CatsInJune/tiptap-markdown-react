@@ -1,8 +1,13 @@
 import type { JSONContent } from '@tiptap/core';
+import { normalizeLinkUrl } from './urlSafety';
 
 export interface SourceRef {
   /** 与 markdown `[^n]` 中的 n 对齐（字符串，如 `"1"`）。 */
   index: string;
+  /**
+   * 来源地址。只接受 http(s) / mailto / tel 等白名单协议；`javascript:`、
+   * `data:` 等危险地址在 enrich / apply / 渲染时会被丢弃（圆标仍在，只是不可点）。
+   */
   url?: string;
   title?: string;
   /** 原文片段等；库本身不渲染 Popover，留给消费方。 */
@@ -35,12 +40,15 @@ export function enrichMarkdownCitations(
     const source = sources.find((s) => s.index === num);
     if (!source) return match;
 
+    // 脚注 URL 常来自外部数据（脚注定义行、第三方接口）。只允许白名单协议，
+    // 避免 javascript: / data: 之类直接落进 href。
+    const url = normalizeLinkUrl(source.url);
     const attrs = [`class="citation-ref"`, `data-index="${num}"`];
-    if (source.url) attrs.push(`data-url="${escapeAttr(source.url)}"`);
+    if (url) attrs.push(`data-url="${escapeAttr(url)}"`);
     if (source.title) attrs.push(`data-title="${escapeAttr(source.title)}"`);
 
-    if (source.url) {
-      return `<span ${attrs.join(' ')}><a href="${escapeAttr(source.url)}" title="${escapeAttr(source.title || '')}" target="_blank" rel="noopener">${num}</a></span>`;
+    if (url) {
+      return `<span ${attrs.join(' ')}><a href="${escapeAttr(url)}" title="${escapeAttr(source.title || '')}" target="_blank" rel="noopener">${num}</a></span>`;
     }
     return `<span ${attrs.join(' ')}>${num}</span>`;
   });
@@ -59,7 +67,8 @@ function patchCitationNode(
       attrs: {
         ...node.attrs,
         index,
-        url: source.url ?? node.attrs?.url ?? null,
+        // 最终落进节点的 url 一律过白名单（来源或已有 attrs 都可能来自外部数据）。
+        url: normalizeLinkUrl(source.url ?? node.attrs?.url),
         title: source.title ?? node.attrs?.title ?? null,
       },
     };
@@ -201,7 +210,8 @@ export function extractFootnoteSources(markdown: string): ExtractedFootnotes {
     const link = MD_LINK_RE.exec(content);
     const source: SourceRef = { index };
     if (link) {
-      const url = link[2] ?? link[3];
+      // 定义行来自 markdown（可能不可信）：不安全协议不落进 url，只保留文字信息。
+      const url = normalizeLinkUrl(link[2] ?? link[3]);
       if (url) source.url = url;
       const text = link[1]?.trim();
       if (text) source.title = text;

@@ -30,6 +30,12 @@ import type { CommentClickPayload } from './commentTypes';
 export const COMMENT_ACTIVE_META = 'tmr:comment:active';
 export const COMMENT_CLICK_META = 'tmr:comment:click';
 export const COMMENT_GUTTER_META = 'tmr:comment:gutter';
+/**
+ * 文档里「此刻是否存在 commentAnchor mark」的显式状态（boolean）。
+ * applyCommentAnchors 设 true、clearCommentAnchors 设 false，避免每次事务都
+ * 全文档扫描一遍来判断有没有评论——绝大多数文档从来没有评论。
+ */
+export const COMMENT_ANCHORS_PRESENT_META = 'tmr:comment:present';
 
 export interface CommentGutterPayload {
   commentIds: string[];
@@ -49,6 +55,8 @@ export interface CommentAnchorPluginOptions {
 
 export interface CommentAnchorPluginState {
   activeCommentId: string | null;
+  /** 文档里是否有 commentAnchor mark；false 时 decorations 直接返回空集。 */
+  hasMarks: boolean;
 }
 
 export const commentAnchorPluginKey = new PluginKey<CommentAnchorPluginState>(
@@ -97,6 +105,20 @@ function blockBounds(doc: PMNode): Array<{ start: number; end: number }> {
     bounds.push({ start: offset, end: offset + child.nodeSize });
   });
   return bounds;
+}
+
+/** 文档里是否已经带着 commentAnchor mark（初始化时扫一次）。 */
+function docHasCommentMarks(doc: PMNode): boolean {
+  let found = false;
+  doc.descendants((node) => {
+    if (found) return false;
+    if (node.isText && node.marks.some((m) => m.type.name === 'commentAnchor')) {
+      found = true;
+      return false;
+    }
+    return true;
+  });
+  return found;
 }
 
 /** commentId → 文本区间（从 doc 内 commentAnchor mark 收集）。 */
@@ -167,16 +189,33 @@ export function commentAnchorPlugin(
   return new Plugin<CommentAnchorPluginState>({
     key: commentAnchorPluginKey,
     state: {
-      init: () => ({ activeCommentId: null }),
+      init: (config) => ({
+        activeCommentId: null,
+        hasMarks: config.doc ? docHasCommentMarks(config.doc) : false,
+      }),
       apply: (tr, value) => {
         const active = tr.getMeta(COMMENT_ACTIVE_META);
-        return active !== undefined
-          ? { activeCommentId: active as string | null }
-          : value;
+        const present = tr.getMeta(COMMENT_ANCHORS_PRESENT_META);
+        const next: CommentAnchorPluginState = {
+          activeCommentId:
+            active !== undefined
+              ? (active as string | null)
+              : value.activeCommentId,
+          hasMarks:
+            typeof present === 'boolean' ? present : value.hasMarks,
+        };
+        return next.activeCommentId === value.activeCommentId &&
+          next.hasMarks === value.hasMarks
+          ? value
+          : next;
       },
     },
     props: {
       decorations(state: EditorState) {
+        // 没有评论 mark 时不必全文档遍历（这是每事务的固定税）。
+        if (!commentAnchorPluginKey.getState(state)?.hasMarks) {
+          return DecorationSet.empty;
+        }
         const byId = collectCommentRanges(state.doc);
         if (byId.size === 0) return DecorationSet.empty;
 
