@@ -3,7 +3,7 @@ import { Editor } from '@tiptap/core';
 import { Markdown } from '@tiptap/markdown';
 import { describe, expect, it } from 'vitest';
 import { baseExtensions } from './extensions';
-import { insertMarkdown } from './insertMarkdown';
+import { insertMarkdown, splitTopLevelBlocks } from './insertMarkdown';
 
 function build(content = ''): Editor {
   return new Editor({
@@ -35,5 +35,21 @@ describe('insertMarkdown fallback', () => {
     expect(() => insertMarkdown(editor, '**(**一**)** 现任\n')).not.toThrow();
     expect(editor.state.doc.textContent).toMatch(/一/);
     editor.destroy();
+  });
+});
+
+describe('splitTopLevelBlocks', () => {
+  it('protects tilde fences and their blank lines', () => {
+    const blocks = splitTopLevelBlocks(
+      ['a', '', '~~~js', 'b', '', 'c', '~~~', '', 'd'].join('\n'),
+    );
+    expect(blocks).toEqual(['a', '~~~js\nb\n\nc\n~~~', 'd']);
+  });
+
+  it('protected fences of four backticks can contain ```', () => {
+    const blocks = splitTopLevelBlocks(
+      ['````md', '```', 'inner', '```', '````', '', 'tail'].join('\n'),
+    );
+    expect(blocks).toEqual(['````md\n```\ninner\n```\n````', 'tail']);
   });
 });

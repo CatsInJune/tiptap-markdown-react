@@ -10,7 +10,12 @@ import dts from 'vite-plugin-dts';
 export default defineConfig({
   plugins: [
     react(),
-    dts({ entryRoot: 'src', include: ['src'] }),
+    dts({
+      entryRoot: 'src',
+      include: ['src'],
+      // 测试文件不发布：否则 npm pack 会带上 50+ 个 *.test.d.ts。
+      exclude: ['src/**/*.test.*'],
+    }),
     preserveDirectives(),
   ],
   build: {

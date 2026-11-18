@@ -1,3 +1,9 @@
+import {
+  isFenceClosing,
+  matchFenceOpening,
+  type FenceChar,
+} from '../markdownFences';
+
 /**
  * 把 markdown 切成顶层块。围栏、表格、列表、引用、公式和 details 内部的空行
  * 不会被切开。按空行切会把这些结构拆碎。
@@ -19,7 +25,6 @@ export function splitTopLevelMarkdown(markdown: string): string[] {
   return blocks;
 }
 
-const FENCE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
 const LIST_ITEM = /^( {0,3})([-+*]|\d+[.)])\s+/;
 const TABLE_ROW = /^\s*\|/;
 const QUOTE = /^ {0,3}>/;
@@ -29,8 +34,8 @@ const DIV_OPEN = /^ {0,3}<div\b/i;
 
 function endOfBlock(lines: string[], index: number): number {
   const line = lines[index];
-  const fence = FENCE.exec(line);
-  if (fence) return endOfFence(lines, index, fence[2][0], fence[2].length);
+  const fence = matchFenceOpening(line);
+  if (fence) return endOfFence(lines, index, fence.char, fence.length);
   if (DETAILS_OPEN.test(line)) return endOfHtml(lines, index, 'details');
   if (FIGURE_OPEN.test(line)) return endOfHtml(lines, index, 'figure');
   if (DIV_OPEN.test(line)) return endOfHtml(lines, index, 'div');
@@ -41,12 +46,14 @@ function endOfBlock(lines: string[], index: number): number {
   return endOfParagraph(lines, index);
 }
 
-function endOfFence(lines: string[], index: number, char: string, length: number): number {
+function endOfFence(
+  lines: string[],
+  index: number,
+  char: FenceChar,
+  length: number,
+): number {
   for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
-    const close = FENCE.exec(lines[cursor]);
-    if (close && close[2][0] === char && close[2].length >= length && close[3].trim() === '') {
-      return cursor + 1;
-    }
+    if (isFenceClosing(lines[cursor], char, length)) return cursor + 1;
   }
   return lines.length;
 }
@@ -113,9 +120,9 @@ function endOfList(lines: string[], index: number): number {
       }
       break;
     }
-    if (FENCE.test(line)) {
-      const fence = FENCE.exec(line)!;
-      cursor = endOfFence(lines, cursor, fence[2][0], fence[2].length);
+    const fence = matchFenceOpening(line);
+    if (fence) {
+      cursor = endOfFence(lines, cursor, fence.char, fence.length);
       continue;
     }
     if (LIST_ITEM.test(line) || /^\s+\S/.test(line) || QUOTE.test(line)) {

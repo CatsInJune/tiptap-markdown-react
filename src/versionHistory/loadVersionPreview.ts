@@ -65,7 +65,11 @@ export function loadVersionPreview(options: {
  * headless 测试仍能 setContent；真正销毁才看 `destroyed`。
  */
 function isEditorClosed(editor: Editor): boolean {
-  return Boolean((editor as Editor & { destroyed?: boolean }).destroyed);
+  // `destroyed` 不在 Editor 的公开类型里（且与 isDestroyed 的私有声明冲突），
+  // 只能经 unknown 读运行时字段。
+  return Boolean(
+    (editor as unknown as { destroyed?: boolean }).destroyed,
+  );
 }
 
 function runLater(steps: Array<() => void>, done: () => void, stopped: () => boolean): () => void {

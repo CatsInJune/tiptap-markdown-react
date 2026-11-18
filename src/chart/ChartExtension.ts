@@ -1,5 +1,11 @@
 import { mergeAttributes, Node } from '@tiptap/core';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import type { Slice } from '@tiptap/pm/model';
+import { AttrStep, ReplaceAroundStep, ReplaceStep } from '@tiptap/pm/transform';
+import {
+  Plugin,
+  PluginKey,
+  type Transaction,
+} from '@tiptap/pm/state';
 import { CHART_FENCE_LANGS } from './codeBlockChartParse';
 import {
   normalizeChartMarkdown,
@@ -193,12 +199,50 @@ export const reportChart = Node.create<ReportChartOptions>({
         key: chartFenceUpgradeKey,
         appendTransaction(transactions, _oldState, newState) {
           if (!transactions.some((tr) => tr.docChanged)) return null;
+          // 普通打字也是 ReplaceStep，但插入的 slice 里没有代码块；只有插入内容
+          // 含图表围栏、或显式改 language 时才可能产生待升级节点。这样避免每次
+          // 按键都全文档遍历一遍（perf-backlog 未计入的固定税）。
+          if (!transactionsMayIntroduceChartFence(transactions)) return null;
           return buildChartFenceUpgradeTr(newState, chartName);
         },
       }),
     ];
   },
 });
+
+/** 插入的 slice 里是否含有「语言是图表围栏」的代码块。 */
+function sliceContainsChartFence(slice: Slice): boolean {
+  let found = false;
+  slice.content.descendants((node) => {
+    if (found) return false;
+    if (node.type.name === 'codeBlock') {
+      const lang = String(node.attrs.language ?? '')
+        .trim()
+        .toLowerCase();
+      if (CHART_FENCE_LANGS.has(lang)) {
+        found = true;
+        return false;
+      }
+    }
+    return true;
+  });
+  return found;
+}
+
+/** 本批事务是否可能引入 / 改写图表围栏（决定要不要跑全文档升级扫描）。 */
+function transactionsMayIntroduceChartFence(
+  transactions: readonly Transaction[],
+): boolean {
+  return transactions.some((tr) =>
+    tr.steps.some((step) => {
+      if (step instanceof ReplaceStep || step instanceof ReplaceAroundStep) {
+        return sliceContainsChartFence(step.slice);
+      }
+      // 代码块语言下拉框：只有改 language 才可能变成图表围栏。
+      return step instanceof AttrStep && step.attr === 'language';
+    }),
+  );
+}
 
 function buildChartFenceUpgradeTr(
   state: import('@tiptap/pm/state').EditorState,

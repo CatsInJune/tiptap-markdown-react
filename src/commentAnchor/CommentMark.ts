@@ -1,4 +1,5 @@
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { COMMENT_ANCHORS_PRESENT_META } from './commentAnchorPlugin';
 
 /**
  * 评论锚定 mark —— 仅存在于编辑会话内，导出 markdown 时剥离。
@@ -104,6 +105,8 @@ export const CommentMark = Mark.create<CommentMarkOptions>({
           // 锚定是会话级 UI，不是用户内容：不进 undo 历史，避免 Ctrl+Z 把
           // 高亮全部撤掉。真编辑（改字）仍可正常 undo。
           next.setMeta('addToHistory', false);
+          // 告诉 commentAnchorPlugin：以后每事务的 decorations 需要扫描 doc。
+          next.setMeta(COMMENT_ANCHORS_PRESENT_META, true);
           if (dispatch) dispatch(next);
           return true;
         },
@@ -123,6 +126,7 @@ export const CommentMark = Mark.create<CommentMarkOptions>({
           let next = tr;
           for (const r of ranges) next = next.removeMark(r.from, r.to, markType);
           next.setMeta('addToHistory', false);
+          next.setMeta(COMMENT_ANCHORS_PRESENT_META, false);
           if (dispatch) dispatch(next);
           return true;
         },

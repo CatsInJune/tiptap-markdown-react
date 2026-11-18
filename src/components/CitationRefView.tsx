@@ -5,6 +5,7 @@ import {
   type NodeViewProps,
 } from '@tiptap/react';
 import type { RenderCitation } from '../citationTypes';
+import { normalizeLinkUrl } from '../urlSafety';
 
 /**
  * 脚注圆标 React NodeView。
@@ -12,7 +13,8 @@ import type { RenderCitation } from '../citationTypes';
  */
 export function CitationRefView({ node, extension }: NodeViewProps) {
   const index = String(node.attrs.index ?? '');
-  const url = (node.attrs.url as string | null) || null;
+  // 与 CitationRef.renderHTML 同一条白名单：不把危险协议交给 href / 宿主插槽。
+  const url = normalizeLinkUrl(node.attrs.url);
   const title = (node.attrs.title as string | null) || '';
   const renderCitation = extension.options.renderCitation as
     | RenderCitation

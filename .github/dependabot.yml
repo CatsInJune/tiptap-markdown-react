@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:17"
+    open-pull-requests-limit: 5
+    groups:
+      tiptap:
+        patterns:
+          - "@tiptap/*"
+    ignore:
+      # @tiptap/extension-mathematics 3.31.3 的 peer 只允许 katex ^0.16–^0.18；
+      # 0.19 是 audit 给的修复版本但不兼容，等上游放宽 peer 再升。
+      - dependency-name: katex
+        versions:
+          - ">=0.19.0"
+
+  - package-ecosystem: npm
+    directory: "/site"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:17"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: katex
+        versions:
+          - ">=0.19.0"

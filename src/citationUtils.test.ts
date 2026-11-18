@@ -55,6 +55,16 @@ describe('enrichMarkdownCitations', () => {
     const out = enrichMarkdownCitations('x[^3]', SOURCES);
     expect(out).toContain('data-title="Title &quot;quoted&quot;"');
   });
+
+  it('不安全协议的 url 不落进 href / data-url，圆标仍保留', () => {
+    const out = enrichMarkdownCitations('x[^1]', [
+      { index: '1', url: 'javascript:alert(1)', title: '危险' },
+    ]);
+    expect(out).not.toContain('javascript:');
+    expect(out).not.toContain('<a ');
+    expect(out).toContain('data-index="1"');
+    expect(out).toContain('data-title="危险"');
+  });
 });
 
 describe('applyCitationSources', () => {
@@ -98,6 +108,14 @@ describe('applyCitationSources', () => {
 
   it('空 sources 返回同一引用', () => {
     expect(applyCitationSources(doc, [])).toBe(doc);
+  });
+
+  it('来源 url 不安全时写 null（不保留危险协议）', () => {
+    const next = applyCitationSources(doc, [
+      { index: '1', url: 'javascript:alert(1)', title: '危险' },
+    ]);
+    expect(next.content![0].content![1].attrs?.url).toBeNull();
+    expect(next.content![0].content![1].attrs?.title).toBe('危险');
   });
 });
 
@@ -205,5 +223,14 @@ describe('extractFootnoteSources', () => {
     expect(enriched).toContain('data-url="https://example.com/x"');
     expect(enriched).toContain('class="citation-ref"');
     expect(enriched).not.toContain('[^1]');
+  });
+
+  it('危险协议的链接不写进 sources.url，但保留标题与摘要', () => {
+    const out = extractFootnoteSources(
+      '正文[^1]。\n\n[^1]: [危险来源](javascript:alert(1))',
+    );
+    expect(out.sources).toEqual([
+      { index: '1', title: '危险来源', excerpt: '危险来源' },
+    ]);
   });
 });

@@ -3,7 +3,7 @@
 import { TableOfContents } from '@tiptap/extension-table-of-contents';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, ReactNodeViewRenderer, useEditor } from '@tiptap/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePublishEditorLocale } from '../i18n/store';
 import { useIsMobile } from '../hooks/useIsMobile';
 import type { TocItem } from '../toc/extractToc';
@@ -81,6 +81,17 @@ export function MarkdownPreview({
     [markdown, sources],
   );
 
+  // 渲染插槽走 ref：宿主传内联函数时不会重建编辑器（useEditor 的 deps 是 extensions）。
+  const renderCitationRef = useRef(renderCitation);
+  renderCitationRef.current = renderCitation;
+  const renderCitationStable = useCallback<RenderCitation>(
+    (ctx) => {
+      const fn = renderCitationRef.current;
+      return fn ? fn(ctx) : ctx.defaultDom;
+    },
+    [],
+  );
+
   // 预览代码块挂只读 NodeView（语言标签 + 复制 + 展开收起 + 行号槽）。
   // 仅客户端入口挂；server 入口（renderReportHtml）保持纯版，静态 HTML 零 React 依赖。
   const previewCodeBlock = useMemo(
@@ -99,26 +110,34 @@ export function MarkdownPreview({
       previewCodeBlock,
       pureImage,
       createChart(),
-      createCitationRef({ renderCitation }),
-      // CJK 粗体边界修复走实例级 marked（见 cjkEmphasis.ts），所有解析路径统一注入。
+      createCitationRef({ renderCitation: renderCitationStable }),
+      // CJK 粗体边界修复走实例级 marked，所有解析路径统一注入。
       Markdown.configure({ marked: getCjkEmphasisMarked() }),
-      TableOfContents.configure({
-        getId: makeTocGetId(),
-        onUpdate: (anchors) => {
-          const next = anchors
-            .filter((anchor) => anchor.originalLevel <= 6 && anchor.textContent.trim())
-            .map((anchor) => ({
-              id: anchor.id,
-              level: anchor.originalLevel,
-              text: anchor.textContent,
-            }));
-          if (sameTocItems(tocItemsRef.current, next)) return;
-          tocItemsRef.current = next;
-          setTocItems(next);
-        },
-      }),
+      // 与编辑器同一决策（D9）：不开目录就不注册，避免每事务全文档遍历。
+      ...(toc
+        ? [
+            TableOfContents.configure({
+              getId: makeTocGetId(),
+              onUpdate: (anchors) => {
+                const next = anchors
+                  .filter(
+                    (anchor) =>
+                      anchor.originalLevel <= 6 && anchor.textContent.trim(),
+                  )
+                  .map((anchor) => ({
+                    id: anchor.id,
+                    level: anchor.originalLevel,
+                    text: anchor.textContent,
+                  }));
+                if (sameTocItems(tocItemsRef.current, next)) return;
+                tocItemsRef.current = next;
+                setTocItems(next);
+              },
+            }),
+          ]
+        : []),
     ],
-    [previewCodeBlock, renderCitation],
+    [previewCodeBlock, renderCitationStable, toc],
   );
 
   const editor = useEditor(

@@ -13,13 +13,65 @@ const CHART_COMMENT_RE = /^<!--\s*(\[[\s\S]*?\]|\{[\s\S]*?\})\s*-->\s*$/;
 const GFM_TABLE_BLOCK_RE =
   /^\|(.+)\|\s*\n\|([-:\s|]+)\|\s*\n((?:\|.*\|\s*\n?)*)/;
 
+/**
+ * GFM 表格单元格转义：`\` → `\\`、`|` → `\|`、换行 → `<br>`。
+ *
+ * 不转义的话单元格里的 `|` 会被当成列分隔、换行会把一行拆成两行——图表数据
+ * 在保存 / 重载时就会静默改值（例如 `华东|华南` 变成两列、后一列的值被挤掉）。
+ * `<br>` 是 GFM 单元格内允许的换行写法，解析侧再还原成 `\n`。
+ */
+function encodeTableCell(value: unknown): string {
+  if (value == null) return '';
+  return String(value)
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>');
+}
+
+/** 与 {@link encodeTableCell} 对称；保留原有的 trim 语义。 */
+function decodeTableCell(raw: string): string {
+  let out = '';
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (ch === '\\' && (raw[i + 1] === '\\' || raw[i + 1] === '|')) {
+      out += raw[i + 1];
+      i += 1;
+      continue;
+    }
+    out += ch;
+  }
+  return out.replace(/<br\s*\/?>/gi, '\n').trim();
+}
+
+/** 按「未转义的 |」切单元格，再解码转义。 */
 function splitRow(line: string): string[] {
   const trimmed = line.trim();
-  const inner =
-    trimmed.startsWith('|') && trimmed.endsWith('|')
-      ? trimmed.slice(1, -1)
-      : trimmed;
-  return inner.split('|').map((c) => c.trim());
+  let inner = trimmed;
+  if (inner.startsWith('|')) inner = inner.slice(1);
+  // 结尾的 `|` 只有在未被转义时才是列分隔符。
+  if (inner.endsWith('|') && !inner.endsWith('\\|')) {
+    inner = inner.slice(0, -1);
+  }
+
+  const cells: string[] = [];
+  let current = '';
+  for (let i = 0; i < inner.length; i += 1) {
+    const ch = inner[i];
+    // 反斜杠转义整体跳过两个字符，交给 decodeTableCell 还原。
+    if (ch === '\\' && i + 1 < inner.length) {
+      current += ch + inner[i + 1];
+      i += 1;
+      continue;
+    }
+    if (ch === '|') {
+      cells.push(current);
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  cells.push(current);
+  return cells.map(decodeTableCell);
 }
 
 function isSeparatorRow(line: string): boolean {
@@ -283,21 +335,25 @@ export function tryParseCommentTableChart(
   return { payload, raw };
 }
 
+/**
+ * 配置 JSON 写进 `<!-- ... -->` 前把 `-->` 编码掉：JSON 里的 `>` 解析后仍是
+ * `>`，所以往返内容不变，但 HTML 注释不会提前结束。
+ */
+function encodeConfigComment(value: unknown): string {
+  return JSON.stringify(value).replace(/-->/g, '--\\u003e');
+}
+
 /** Serialize payload to flat comment + GFM table (author form). */
 export function serializeChartPayload(payload: ChartPayload): string {
   const flat =
     payload.config.length === 1 ? payload.config[0] : payload.config;
-  const comment = `<!-- ${JSON.stringify(flat)} -->`;
-  const headers = payload.columns.map((c) => c.title);
+  const comment = `<!-- ${encodeConfigComment(flat)} -->`;
+  const headers = payload.columns.map((c) => encodeTableCell(c.title));
   const keys = payload.columns.map((c) => c.dataIndex);
   const header = `| ${headers.join(' | ')} |`;
   const sep = `| ${headers.map(() => '---').join(' | ')} |`;
   const rows = payload.dataSource.map((row) => {
-    const cells = keys.map((k) => {
-      const v = row[k];
-      if (v == null) return '';
-      return String(v);
-    });
+    const cells = keys.map((k) => encodeTableCell(row[k]));
     return `| ${cells.join(' | ')} |`;
   });
   return [comment, '', header, sep, ...rows].join('\n');

@@ -1,3 +1,5 @@
+import { normalizeLinkUrl } from './urlSafety';
+
 /**
  * 从事件目标向上找到 `.citation-ref`（且必须在 root 内）。
  * SSR 阅读页事件委托与单测共用。
@@ -25,7 +27,8 @@ export function readCitationAttrs(el: HTMLElement): {
 } {
   return {
     index: el.getAttribute('data-index') || el.textContent?.trim() || '',
-    url: el.getAttribute('data-url'),
+    // 交给宿主插槽前再兜一次白名单：DOM 也可能来自宿主自己的 SSR HTML。
+    url: normalizeLinkUrl(el.getAttribute('data-url')),
     title: el.getAttribute('data-title'),
   };
 }

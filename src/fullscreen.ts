@@ -18,7 +18,7 @@ const ROOT_ATTR = 'data-tmr-fullscreen-root';
  * 块菜单、Radix 下拉）。捕获阶段它们还在，就让给它们；下一次 Esc 再退出全屏。
  * 不能靠 `defaultPrevented`：ProseMirror 对 Escape 几乎总会 preventDefault。
  *
- * `[role="menu"]` 要单独看：Ant Design Menu / ProLayout 侧栏的根节点一直是这个角色，
+ * `[role="menu"]` 要单独看：宿主顶栏 / 侧栏的菜单根节点一直是这个角色，
  * 但它是页面导航，不是按 Esc 关掉的浮层。只有弹出层里的菜单才让路。
  */
 const ESCAPE_GUARDS = [

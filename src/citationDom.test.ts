@@ -58,4 +58,13 @@ describe('readCitationAttrs', () => {
       title: 'FY2025',
     });
   });
+
+  it('data-url 是危险协议时返回 null', () => {
+    const el = document.createElement('span');
+    el.className = 'citation-ref';
+    el.setAttribute('data-index', '8');
+    el.setAttribute('data-url', 'javascript:alert(1)');
+    el.textContent = '8';
+    expect(readCitationAttrs(el).url).toBeNull();
+  });
 });

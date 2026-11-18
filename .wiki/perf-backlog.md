@@ -1,9 +1,19 @@
 # 性能实测档案与待办
 
-> **复现**：`node site/scripts/perf-bench.mjs`（`--only <名>` 过滤；`--profile <名> --profile-action typing|bigtx|load` 出 CPU 热点，按包/函数聚合自耗时）。历史面板装载：`node site/scripts/history-bench.mjs --chars 160000`。
+> 复现：`node site/scripts/perf-bench.mjs`（`--only <名>` 过滤；`--profile <名> --profile-action typing|bigtx|load` 出 CPU 热点，按包/函数聚合自耗时）。历史面板装载：`node site/scripts/history-bench.mjs --chars 160000`。
 > **设施**：`site/bench.html` + `site/src/bench.tsx`（lib 模式走 dist=真实用户路径；custom 模式引 src 做扩展减法归因；`content=json` 对照跳过 markdown 解析层，fixture 在 `site/public/bench-fixtures/`）。矩阵与 query 参数见脚本头注释。
 > **产物**：`site/bench-results/`（本地未入库，含 .cpuprofile）。
 > **官方资料**：[性能指南](https://tiptap.dev/docs/guides/performance)（只覆盖 React 渲染层，不覆盖装载）；[20 万词示例](https://tiptap.dev/docs/examples/basics/long-texts)（裸编辑器、JSON 直灌、无 markdown 层——官方对大 markdown 装载没有现成方案）。
+
+## 已修复（unreleased）— 每事务固定税与渲染抖动
+
+未做新的量化基准，以下改动都只减少工作、不改变语义：
+
+- **图表围栏升级**：`appendTransaction` 只在「插入的 slice 含 chart 代码块 / 改 language」时跑全文档扫描，普通打字不再遍历。
+- **编号格式清理**：同样只在「插入/包裹 orderedList / 改 numberingFormat」时触发。
+- **评论装饰**：`commentAnchorPlugin` 维护 `hasMarks` 状态，没有评论 mark 时 `decorations` 直接返回空集（原先每次事务都全文档遍历）。
+- **预览目录**：`MarkdownPreview` 不开 `toc` 时不再注册 `TableOfContents`（与编辑器 D9 对齐）。
+- **渲染稳定性**：编辑器把 `preparedInitial`、extensions、editorProps memo 化，内联 `renderCitation` / `imageResize` / `extraExtensions` 不再导致每次宿主重渲染都 `setOptions + view.updateState`；`MarkdownPreview` 的 `renderCitation` 换成新函数不再销毁重建编辑器。
 
 ## 已修复（1.12.3，2026-11-11）— 历史版本对比
 

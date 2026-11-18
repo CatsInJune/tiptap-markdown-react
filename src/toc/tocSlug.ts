@@ -25,6 +25,10 @@ function baseSlug(text: string): string {
 /**
  * 造一个带去重的 `getId`。每次生成新实例（闭包各自计数），传给
  * `TableOfContents.configure({ getId })` 或 `generateTocIds` 的扩展配置。
+ *
+ * 注意：闭包计数会在编辑会话内随标题新增/删除而变化（新标题可能拿到 -2/-3）；
+ * 发布页每次渲染都从零计数。因此跨会话保证的是「发布产物锚点稳定」，编辑器内
+ * 的预览锚点可能与发布页不同；同一文档内 id 的唯一性不受影响。
  */
 export function makeTocGetId(): (content: string) => string {
   const seen = new Map<string, number>();

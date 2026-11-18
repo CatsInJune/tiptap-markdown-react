@@ -1,5 +1,6 @@
 import '@tiptap/markdown';
 import type { Editor } from '@tiptap/react';
+import { createFenceState, stepFence } from './markdownFences';
 import { prepareChartMarkdown } from './chart/prepareChartMarkdown';
 import {
   enrichMarkdownCitations,
@@ -53,19 +54,29 @@ function insertPlainParagraph(editor: Editor, text: string): void {
     .run();
 }
 
-/** 围栏代码整块留下，其余按空行切。 */
+/**
+ * 围栏代码整块留下，其余按空行切。围栏用共享扫描器识别，``` / ~~~ / 更长围栏
+ * 与缩进规则一致；未闭合的围栏把后文当成同一块（原实现会把它拆开）。
+ */
 export function splitTopLevelBlocks(markdown: string): string[] {
   const out: string[] = [];
-  for (const [i, part] of markdown.split(/(```[\s\S]*?```)/).entries()) {
-    if (!part) continue;
-    if (i % 2 === 1) {
-      out.push(part);
+  const current: string[] = [];
+  const fence = createFenceState();
+  const flush = () => {
+    const block = current.join('\n').trim();
+    if (block) out.push(block);
+    current.length = 0;
+  };
+
+  for (const line of markdown.split(/\r?\n/)) {
+    const step = stepFence(fence, line);
+    if (!step.wasInFence && !step.isFenceLine && line.trim() === '') {
+      flush();
       continue;
     }
-    for (const block of part.split(/\n{2,}/)) {
-      if (block.trim()) out.push(block);
-    }
+    current.push(line);
   }
+  flush();
   return out;
 }
 

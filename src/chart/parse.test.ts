@@ -204,3 +204,54 @@ describe('raw 消费跨度', () => {
     expect(out.trimEnd().endsWith('结束语。')).toBe(true);
   });
 });
+
+// 回归：单元格里的 `|` 会被当成列分隔、换行会把一行拆成两行，保存/重载后
+// 图表数据静默改值；配置标题里的 `-->` 会提前结束 HTML 注释。
+describe('serializeChartPayload 转义', () => {
+  const payload = {
+    config: [{ chartType: 'column', x: '地区', y: '收入', title: 'a-->b' }],
+    columns: [
+      { title: '地区', dataIndex: '地区' },
+      { title: '收入', dataIndex: '收入' },
+    ],
+    dataSource: [
+      { 地区: '华东|华南', 收入: 100 },
+      { 地区: 'a\nb', 收入: 200 },
+    ],
+  };
+
+  it('单元格里的 | 与换行往返保真', () => {
+    const md = serializeChartPayload(payload);
+    expect(md).toContain('华东\\|华南');
+    expect(md).toContain('a<br>b');
+
+    const parsed = tryParseCommentTableChart(md);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.payload.dataSource).toEqual(payload.dataSource);
+  });
+
+  it('配置里的 --> 不会提前结束注释', () => {
+    const md = serializeChartPayload(payload);
+    expect(md).not.toContain('-->b');
+
+    const parsed = tryParseCommentTableChart(md);
+    expect(parsed!.payload.config[0].title).toBe('a-->b');
+  });
+
+  it('列标题里的 | 同样能往返', () => {
+    const withPipe = {
+      config: [{ chartType: 'bar', x: 'A|B', y: 'v' }],
+      columns: [
+        { title: 'A|B', dataIndex: 'A|B' },
+        { title: 'v', dataIndex: 'v' },
+      ],
+      dataSource: [{ 'A|B': 'x', v: 1 }],
+    };
+    const md = serializeChartPayload(withPipe);
+    expect(md).toContain('A\\|B');
+
+    const parsed = tryParseCommentTableChart(md);
+    expect(parsed!.payload.dataSource[0]['A|B']).toBe('x');
+    expect(parsed!.payload.config[0].x).toBe('A|B');
+  });
+});
